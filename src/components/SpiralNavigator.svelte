@@ -239,23 +239,6 @@
     </svg>
   </div>
 
-  <!-- Legend -->
-  <div class="legend">
-    <div class="legend-item" style:color={t.legend.text}>
-      <span class="dot" style:background={t.legend.completed}
-            style:box-shadow="0 0 6px {t.legend.completed}80"></span>
-      <span>Completado</span>
-    </div>
-    <div class="legend-item" style:color={t.legend.text}>
-      <span class="dot" style:background={t.legend.active}
-            style:box-shadow="0 0 6px {t.legend.active}80"></span>
-      <span>En curso</span>
-    </div>
-    <div class="legend-item" style:color={t.legend.text}>
-      <span class="dot" style:background={t.legend.locked}></span>
-      <span>Bloqueado</span>
-    </div>
-  </div>
 </div>
 
 <style>
@@ -298,25 +281,6 @@
     display: block;
   }
 
-  .legend {
-    display: flex;
-    justify-content: center;
-    gap: 28px;
-    padding: 14px 0 4px;
-  }
-
-  .legend-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font: 500 13px/1 'Inter', system-ui, sans-serif;
-  }
-
-  .dot {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-  }
 
   :global(.title-orbit-text) {
     font: 700 24px/1 'Inter', system-ui, sans-serif;
