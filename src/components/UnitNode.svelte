@@ -1,0 +1,180 @@
+<script lang="ts">
+  import type { ProgramUnit } from '../lib/types';
+  import UnitIcon from './UnitIcon.svelte';
+  import { getTheme } from '../lib/theme.svelte';
+
+  const theme = $derived(getTheme());
+
+  interface Props {
+    unit: ProgramUnit;
+    x: number;
+    y: number;
+    galacticCenterX: number;
+    galacticCenterY: number;
+    size?: number;
+    isFinalProject?: boolean;
+    index: number;
+  }
+
+  let {
+    unit, x, y,
+    galacticCenterX, galacticCenterY,
+    size = 62, isFinalProject = false, index,
+  }: Props = $props();
+
+  const sw = 3.5;
+  const isStart = $derived(index === 0);
+  const sz = $derived(isStart ? size * 1.15 : (isFinalProject ? size * 1.08 : size));
+  const r = $derived(sz / 2);
+  const pr = $derived(r - sw / 2);
+  const circ = $derived(2 * Math.PI * pr);
+  const dashOff = $derived(circ - (unit.progress / 100) * circ);
+
+  const gradId = $derived(`g${index}`);
+  const glowId = $derived(`w${index}`);
+
+  // Pull colors from the global theme based on unit status
+  const colors = $derived.by(() => {
+    if (isFinalProject) return theme.unit.finalProject;
+    switch (unit.status) {
+      case 'completed': return theme.unit.completed;
+      case 'in-progress': return theme.unit.inProgress;
+      default: return theme.unit.locked;
+    }
+  });
+
+  const shortName = $derived(
+    isFinalProject
+      ? 'Misión Control'
+      : unit.fullname.replace(/^C450\s*[–-]\s*Unidad\s*\d+\.\s*/i, '')
+  );
+
+  const statusText = $derived.by(() => {
+    if (unit.status === 'completed') return 'Completado';
+    if (unit.status === 'in-progress') return `En curso · ${unit.progress}%`;
+    if (isFinalProject) return 'Proyecto Final';
+    return '';
+  });
+
+  const iconSize = $derived(isStart ? 28 : 24);
+  const iconOff = $derived(iconSize / 2);
+  const labelBelow = $derived(y >= galacticCenterY);
+  const labelGap = 12;
+</script>
+
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<g
+  class="node"
+  class:clickable={unit.status !== 'locked'}
+  class:locked={unit.status === 'locked' && !isFinalProject}
+  transform="translate({x}, {y})"
+  tabindex={unit.status !== 'locked' ? 0 : -1}
+>
+  <defs>
+    <radialGradient id={gradId} cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color={colors.g1} />
+      <stop offset="100%" stop-color={colors.g2} />
+    </radialGradient>
+    {#if unit.status !== 'locked' || isFinalProject}
+      <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
+        <feGaussianBlur stdDeviation="5" result="blur" />
+        <feFlood flood-color={colors.glow} flood-opacity="0.3" result="color" />
+        <feComposite in="color" in2="blur" operator="in" result="glow" />
+        <feMerge>
+          <feMergeNode in="glow" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    {/if}
+  </defs>
+
+  {#if unit.status !== 'locked' || isFinalProject}
+    <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" opacity="0.25" />
+  {/if}
+
+  <circle
+    cx="0" cy="0" r={r}
+    fill="url(#{gradId})"
+    filter={unit.status !== 'locked' || isFinalProject ? `url(#${glowId})` : undefined}
+  />
+
+  {#if unit.status !== 'locked' || isFinalProject}
+    <circle cx="0" cy="0" r={pr} fill="none" stroke={theme.progressRingBg} stroke-width={sw} />
+    <circle
+      cx="0" cy="0" r={pr}
+      fill="none" stroke={colors.ring} stroke-width={sw}
+      stroke-dasharray={circ} stroke-dashoffset={dashOff}
+      stroke-linecap="round" transform="rotate(-90)"
+      class="progress-ring"
+    />
+
+    {#if unit.status === 'completed'}
+      <g transform="translate({r * 0.62}, {-r * 0.62})">
+        <circle cx="0" cy="0" r="8" fill={theme.badge.fill} stroke={theme.badge.stroke} stroke-width="1.5" />
+        <svg x="-4.5" y="-4.5" width="9" height="9" viewBox="0 0 24 24" fill="none"
+             stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </g>
+    {/if}
+  {/if}
+
+  {#if unit.status === 'locked' && !isFinalProject}
+    <svg x="-11" y="-13" width="22" height="26" viewBox="0 0 24 24"
+         fill="none" stroke={colors.icon} stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+  {:else}
+    <g transform="translate({-iconOff}, {-iconOff})">
+      <UnitIcon icon={unit.icon} size={iconSize} color={colors.icon} />
+    </g>
+  {/if}
+
+  <!-- Labels -->
+  {#if labelBelow}
+    <g transform="translate(0, {r + labelGap})">
+      <text y="2" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
+        {isFinalProject ? 'Misión Control' : unit.label}
+      </text>
+      <text y="20" text-anchor="middle" class="lbl-desc" fill={theme.text.secondary}>
+        {shortName}
+      </text>
+      {#if statusText}
+        <rect x="-42" y="28" width="84" height="18" rx="9"
+              fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
+        <text y="41" text-anchor="middle" class="lbl-status" fill={colors.lText}>
+          {statusText}
+        </text>
+      {/if}
+    </g>
+  {:else}
+    <g transform="translate(0, {-(r + labelGap)})">
+      {#if statusText}
+        <rect x="-42" y="-48" width="84" height="18" rx="9"
+              fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
+        <text y="-35" text-anchor="middle" class="lbl-status" fill={colors.lText}>
+          {statusText}
+        </text>
+      {/if}
+      <text y="-16" text-anchor="middle" class="lbl-desc" fill={theme.text.secondary}>
+        {shortName}
+      </text>
+      <text y="3" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
+        {isFinalProject ? 'Misión Control' : unit.label}
+      </text>
+    </g>
+  {/if}
+</g>
+
+<style>
+  .node { cursor: default; }
+  .node.clickable { cursor: pointer; }
+  .node.clickable:hover { opacity: 0.88; }
+  .node.locked { opacity: 0.45; }
+  .progress-ring { transition: stroke-dashoffset 1s ease; }
+  .lbl-name { font: 700 14px/1 'Inter', system-ui, sans-serif; }
+  .lbl-desc { font: 400 11px/1 'Inter', system-ui, sans-serif; }
+  .lbl-status { font: 600 9px/1 'Inter', system-ui, sans-serif; }
+</style>

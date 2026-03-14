@@ -1,0 +1,137 @@
+<script lang="ts">
+  import { onMount } from 'svelte';
+  import type { AppState } from './lib/types';
+  import { getIframeConfig } from './lib/token';
+  import { loadProgramFromMoodle } from './lib/program-loader';
+  import { MOCK_PROGRAM } from './lib/mock-data';
+  import { getTheme } from './lib/theme.svelte';
+  import SpiralNavigator from './components/SpiralNavigator.svelte';
+
+  let state = $state<AppState>({ kind: 'loading' });
+
+  const theme = $derived(getTheme());
+
+  // Reactively update body background when theme changes
+  $effect(() => {
+    document.body.style.background = theme.body;
+    document.body.style.color = theme.text.primary;
+  });
+
+  onMount(async () => {
+    try {
+      const config = getIframeConfig();
+      const data = await loadProgramFromMoodle(config);
+      state = { kind: 'ready', data };
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.warn('Using mock data (no Moodle token provided):', err);
+        state = { kind: 'ready', data: MOCK_PROGRAM };
+      } else {
+        state = {
+          kind: 'error',
+          message: err instanceof Error ? err.message : 'Error desconocido',
+        };
+      }
+    }
+  });
+</script>
+
+<main class="app-root">
+  {#if state.kind === 'loading'}
+    <div class="state-container">
+      <div class="spinner"></div>
+      <p class="state-text" style:color={theme.text.secondary}>Cargando programa...</p>
+    </div>
+  {:else if state.kind === 'error'}
+    <div class="state-container">
+      <div class="error-icon">!</div>
+      <p class="state-text error">{state.message}</p>
+      <button class="retry-btn" onclick={() => window.location.reload()}>
+        Reintentar
+      </button>
+    </div>
+  {:else}
+    <SpiralNavigator program={state.data} />
+  {/if}
+</main>
+
+<style>
+  :global(*) {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  :global(body) {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    transition: background 0.4s, color 0.4s;
+  }
+
+  .app-root {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .state-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px;
+  }
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(128,128,128,0.2);
+    border-top-color: #7c6cf7;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .state-text {
+    font-size: 15px;
+  }
+
+  .state-text.error {
+    color: #f87171;
+    max-width: 320px;
+    text-align: center;
+  }
+
+  .error-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(248,113,113,0.15);
+    color: #f87171;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  .retry-btn {
+    padding: 8px 20px;
+    border: 1px solid rgba(128,128,128,0.3);
+    border-radius: 8px;
+    background: rgba(128,128,128,0.1);
+    color: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .retry-btn:hover {
+    background: rgba(128,128,128,0.2);
+  }
+</style>
