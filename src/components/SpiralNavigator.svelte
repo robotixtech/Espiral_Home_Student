@@ -181,19 +181,19 @@
 
 <style>
   .galaxy-container {
-    width: 100vw;
+    width: 100%;
     height: 100%;
-    max-width: 100vw;
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     position: relative;
+    overflow: hidden;
   }
 
   .theme-toggle {
     position: absolute;
-    right: 20px;
-    top: 20px;
+    right: 12px;
+    top: 12px;
     z-index: 10;
     display: flex;
     align-items: center;
@@ -219,12 +219,21 @@
     width: 100%;
     height: 100%;
     display: block;
+    /* xMidYMid meet: scales uniformly, centers in both axes, never crops */
+    /* This ensures the full galaxy is always visible regardless of aspect ratio */
   }
-
 
   :global(.title-orbit-text) {
     font: 900 28px/1 'Inter', system-ui, sans-serif;
     letter-spacing: 5px;
     text-transform: uppercase;
+  }
+
+  /* Touch devices: slightly larger toggle target */
+  @media (pointer: coarse) {
+    .theme-toggle {
+      width: 42px;
+      height: 42px;
+    }
   }
 </style>

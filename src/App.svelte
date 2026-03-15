@@ -19,8 +19,10 @@
     s.backgroundImage = `url('${import.meta.env.BASE_URL}background.png')`;
     s.backgroundPosition = 'bottom center';
     s.backgroundRepeat = 'no-repeat';
-    s.backgroundSize = '100vw auto';
-    s.backgroundAttachment = 'fixed';
+    // cover ensures it fills the viewport on all screen sizes
+    s.backgroundSize = 'cover';
+    // fixed doesn't work on iOS, use scroll as fallback handled via CSS
+    s.backgroundAttachment = 'scroll';
   });
 
   onMount(async () => {
@@ -66,19 +68,27 @@
     box-sizing: border-box;
   }
 
+  :global(html) {
+    height: 100%;
+    overflow: hidden;
+  }
+
   :global(body) {
     font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
-    transition: background 0.4s, color 0.4s;
+    overflow: hidden;
+    height: 100%;
+    transition: background-color 0.4s, color 0.4s;
   }
 
   .site-header {
     width: 100%;
     height: 48px;
+    min-height: 48px;
     background: #0075BF;
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
     z-index: 100;
     display: flex;
     align-items: center;
@@ -86,12 +96,16 @@
   }
 
   .header-logo {
-    height: 32px;
+    height: 28px;
     width: auto;
   }
 
   .app-root {
-    height: calc(100vh - 48px);
+    position: fixed;
+    top: 48px;
+    left: 0;
+    right: 0;
+    bottom: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -155,5 +169,12 @@
 
   .retry-btn:hover {
     background: rgba(128,128,128,0.2);
+  }
+
+  /* Mobile adjustments */
+  @media (max-height: 500px) {
+    .site-header { height: 36px; min-height: 36px; }
+    .header-logo { height: 22px; }
+    .app-root { top: 36px; }
   }
 </style>
