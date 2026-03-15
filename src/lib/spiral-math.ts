@@ -99,23 +99,43 @@ export function getOrbitPaths(cfg: SpiralConfig): string[] {
   return orbits;
 }
 
-/** Calculate what fraction of the spiral should be filled based on unit statuses */
+/**
+ * Calculate what fraction of the spiral path should be filled.
+ *
+ * Nodes sit at t = i / (count - 1), so the line must reach each node's
+ * exact position. For an in-progress unit, the line extends from that
+ * node's position toward the next node proportionally to its progress.
+ */
 export function getProgressFraction(
   units: { status: string; progress: number }[],
 ): number {
-  const total = units.length;
-  if (total === 0) return 0;
+  const count = units.length;
+  if (count <= 1) return 0;
 
-  let filled = 0;
-  for (const unit of units) {
+  const segments = count - 1; // divisor matching getSpiralNodePositions
+
+  for (let i = 0; i < count; i++) {
+    const unit = units[i];
+
     if (unit.status === 'completed') {
-      filled += 1;
-    } else if (unit.status === 'in-progress') {
-      filled += unit.progress / 100;
-      break;
-    } else {
-      break;
+      // If this is the last unit and it's completed, fill the entire path
+      if (i === count - 1) return 1;
+      continue;
     }
+
+    if (unit.status === 'in-progress') {
+      // Line reaches this node's position, then extends toward the next
+      const nodeT = i / segments;
+      const nextT = Math.min((i + 1) / segments, 1);
+      const segmentLength = nextT - nodeT;
+      return nodeT + segmentLength * (unit.progress / 100);
+    }
+
+    // locked — line stops at the last completed node (i-1)
+    // which means the line reaches up to that node's position
+    if (i === 0) return 0;
+    return Math.max(0, (i - 1) / segments);
   }
-  return filled / total;
+
+  return 1; // all completed
 }

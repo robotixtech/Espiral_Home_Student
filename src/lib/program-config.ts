@@ -112,8 +112,8 @@ export const C450_CONFIG: ProgramConfig = {
       fullname: 'C450 – Unidad 3. Visión de túnel',
       icon: 'tunnel',
       href: null,
-      status: 'in-progress',
-      progress: 45,
+      status: 'completed',
+      progress: 100,
     },
     {
       label: 'Análisis profundo',
@@ -121,8 +121,8 @@ export const C450_CONFIG: ProgramConfig = {
       fullname: 'C450 – Unidad 4. Análisis profundo',
       icon: 'search',
       href: null,
-      status: 'locked',
-      progress: 0,
+      status: 'in-progress',
+      progress: 30,
     },
     {
       label: 'Señales inteligentes',
