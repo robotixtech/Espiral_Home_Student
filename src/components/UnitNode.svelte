@@ -2,6 +2,7 @@
   import type { ProgramUnit } from '../lib/types';
   import UnitIcon from './UnitIcon.svelte';
   import { getTheme } from '../lib/theme.svelte';
+  import { STATUS_LABELS } from '../lib/program-config';
 
   const theme = $derived(getTheme());
 
@@ -12,19 +13,18 @@
     galacticCenterX: number;
     galacticCenterY: number;
     size?: number;
-    isFinalProject?: boolean;
     index: number;
   }
 
   let {
     unit, x, y,
     galacticCenterX, galacticCenterY,
-    size = 62, isFinalProject = false, index,
+    size = 62, index,
   }: Props = $props();
 
   const sw = 3.5;
   const isStart = $derived(index === 0);
-  const sz = $derived(isStart ? size * 1.15 : (isFinalProject ? size * 1.08 : size));
+  const sz = $derived(isStart ? size * 1.15 : size);
   const r = $derived(sz / 2);
   const pr = $derived(r - sw / 2);
   const circ = $derived(2 * Math.PI * pr);
@@ -33,9 +33,7 @@
   const gradId = $derived(`g${index}`);
   const glowId = $derived(`w${index}`);
 
-  // Pull colors from the global theme based on unit status
   const colors = $derived.by(() => {
-    if (isFinalProject) return theme.unit.finalProject;
     switch (unit.status) {
       case 'completed': return theme.unit.completed;
       case 'in-progress': return theme.unit.inProgress;
@@ -43,39 +41,35 @@
     }
   });
 
-  const shortName = $derived(
-    isFinalProject
-      ? 'Misión Control'
-      : unit.fullname.replace(/^C450\s*[–-]\s*Unidad\s*\d+\.\s*/i, '')
-  );
+  const shortName = $derived(unit.displayName);
 
   const statusText = $derived.by(() => {
-    if (unit.status === 'completed') return 'Completado';
-    if (unit.status === 'in-progress') return `En curso · ${unit.progress}%`;
-    if (isFinalProject) return 'Proyecto Final';
-    return '';
+    if (unit.status === 'completed') return STATUS_LABELS.completed;
+    if (unit.status === 'in-progress') return `${STATUS_LABELS.inProgress} · ${unit.progress}%`;
+    return STATUS_LABELS.locked;
   });
 
   const iconSize = $derived(isStart ? 28 : 24);
   const iconOff = $derived(iconSize / 2);
   const labelBelow = $derived(y >= galacticCenterY);
   const labelGap = 12;
+  const isActive = $derived(unit.status !== 'locked');
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <g
   class="node"
-  class:clickable={unit.status !== 'locked'}
-  class:locked={unit.status === 'locked' && !isFinalProject}
+  class:clickable={isActive}
+  class:locked={!isActive}
   transform="translate({x}, {y})"
-  tabindex={unit.status !== 'locked' ? 0 : -1}
+  tabindex={isActive ? 0 : -1}
 >
   <defs>
     <radialGradient id={gradId} cx="35%" cy="35%" r="65%">
       <stop offset="0%" stop-color={colors.g1} />
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
-    {#if unit.status !== 'locked' || isFinalProject}
+    {#if isActive}
       <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
         <feGaussianBlur stdDeviation="5" result="blur" />
         <feFlood flood-color={colors.glow} flood-opacity="0.3" result="color" />
@@ -88,17 +82,17 @@
     {/if}
   </defs>
 
-  {#if unit.status !== 'locked' || isFinalProject}
+  {#if isActive}
     <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" opacity="0.25" />
   {/if}
 
   <circle
     cx="0" cy="0" r={r}
     fill="url(#{gradId})"
-    filter={unit.status !== 'locked' || isFinalProject ? `url(#${glowId})` : undefined}
+    filter={isActive ? `url(#${glowId})` : undefined}
   />
 
-  {#if unit.status !== 'locked' || isFinalProject}
+  {#if isActive}
     <circle cx="0" cy="0" r={pr} fill="none" stroke={theme.progressRingBg} stroke-width={sw} />
     <circle
       cx="0" cy="0" r={pr}
@@ -119,7 +113,7 @@
     {/if}
   {/if}
 
-  {#if unit.status === 'locked' && !isFinalProject}
+  {#if !isActive}
     <svg x="-11" y="-13" width="22" height="26" viewBox="0 0 24 24"
          fill="none" stroke={colors.icon} stroke-width="1.8"
          stroke-linecap="round" stroke-linejoin="round">
@@ -136,7 +130,7 @@
   {#if labelBelow}
     <g transform="translate(0, {r + labelGap})">
       <text y="2" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
-        {isFinalProject ? 'Misión Control' : unit.label}
+        {unit.label}
       </text>
       <text y="20" text-anchor="middle" class="lbl-desc" fill={theme.text.secondary}>
         {shortName}
@@ -162,7 +156,7 @@
         {shortName}
       </text>
       <text y="3" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
-        {isFinalProject ? 'Misión Control' : unit.label}
+        {unit.label}
       </text>
     </g>
   {/if}

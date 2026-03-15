@@ -13,8 +13,14 @@
 
   // Reactively update body background when theme changes
   $effect(() => {
-    document.body.style.background = theme.body;
-    document.body.style.color = theme.text.primary;
+    const s = document.body.style;
+    s.backgroundColor = theme.body;
+    s.color = theme.text.primary;
+    s.backgroundImage = `url('/background.png')`;
+    s.backgroundPosition = 'bottom center';
+    s.backgroundRepeat = 'no-repeat';
+    s.backgroundSize = '100vw auto';
+    s.backgroundAttachment = 'fixed';
   });
 
   onMount(async () => {
@@ -35,6 +41,10 @@
     }
   });
 </script>
+
+<header class="site-header">
+  <img src="/robotix_logo.png" alt="Robotix" class="header-logo" />
+</header>
 
 <main class="app-root">
   {#if state.kind === 'loading'}
@@ -69,11 +79,29 @@
     transition: background 0.4s, color 0.4s;
   }
 
+  .site-header {
+    width: 100%;
+    height: 48px;
+    background: #0075BF;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+  }
+
+  .header-logo {
+    height: 32px;
+    width: auto;
+  }
+
   .app-root {
-    min-height: 100vh;
+    height: calc(100vh - 48px);
     display: flex;
     align-items: center;
     justify-content: center;
+    overflow: hidden;
   }
 
   .state-container {

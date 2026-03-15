@@ -6,6 +6,7 @@ export interface ProgramUnit {
   id: number;
   shortname: string;
   label: string;
+  displayName: string;
   fullname: string;
   status: UnitStatus;
   progress: number; // 0–100

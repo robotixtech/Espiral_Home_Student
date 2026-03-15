@@ -82,7 +82,7 @@
 
   <!-- Label -->
   <text y={r + 15} text-anchor="middle" fill={s.label} class="sun-label">
-    Open Scentia
+    {unit.label}
   </text>
 </g>
 
