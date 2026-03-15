@@ -38,6 +38,7 @@ export const MOCK_PROGRAM: ProgramData = {
       progress: act.progress,
       icon: act.icon,
       activityUrl: act.href ?? '#',
+      slides: act.slides,
     })),
   })),
 };

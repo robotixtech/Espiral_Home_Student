@@ -3,6 +3,7 @@
   import UnitIcon from './UnitIcon.svelte';
   import { getTheme } from '../lib/theme.svelte';
   import { STATUS_LABELS } from '../lib/program-config';
+  import { navigateToActivity } from '../lib/navigation.svelte';
 
   const theme = $derived(getTheme());
 
@@ -47,7 +48,9 @@
 
   function handleClick() {
     if (!isActive) return;
-    if (activity.activityUrl && activity.activityUrl !== '#') {
+    if (activity.slides && activity.slides.length > 0) {
+      navigateToActivity(activity);
+    } else if (activity.activityUrl && activity.activityUrl !== '#') {
       window.open(activity.activityUrl, '_blank');
     }
   }

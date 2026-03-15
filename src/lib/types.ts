@@ -31,6 +31,16 @@ export type UnitIcon =
   | 'snowflake'  // cooling
   | 'binoculars'; // observation
 
+/** A single content slide within an activity */
+export interface ActivitySlide {
+  title: string;
+  body: string;
+  /** Vimeo/YouTube embed URL */
+  video?: string;
+  /** Full-width image path (relative to BASE_URL) */
+  image?: string;
+}
+
 /** A single activity inside a unit */
 export interface Activity {
   id: number;
@@ -39,6 +49,7 @@ export interface Activity {
   progress: number;
   icon: UnitIcon;
   activityUrl: string;
+  slides?: ActivitySlide[];
 }
 
 /** The full program data */

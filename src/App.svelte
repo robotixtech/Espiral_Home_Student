@@ -6,9 +6,10 @@
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
   import { getEmulatedProgram, toggleEmulator, isEmulatorActive } from './lib/emulator.svelte';
-  import { getView, getSelectedUnit } from './lib/navigation.svelte';
+  import { getView, getSelectedUnit, getSelectedActivity } from './lib/navigation.svelte';
   import SpiralNavigator from './components/SpiralNavigator.svelte';
   import UnitDetailView from './components/UnitDetailView.svelte';
+  import ActivitySlideView from './components/ActivitySlideView.svelte';
   import EmulatorToggle from './components/EmulatorToggle.svelte';
 
   let state = $state<AppState>({ kind: 'loading' });
@@ -76,6 +77,11 @@
       {@const selectedUnit = getSelectedUnit()}
       {#if selectedUnit}
         <UnitDetailView unit={selectedUnit} programShortname={state.data.shortname} />
+      {/if}
+    {:else if getView() === 'activity-slide'}
+      {@const selectedActivity = getSelectedActivity()}
+      {#if selectedActivity}
+        <ActivitySlideView activity={selectedActivity} />
       {/if}
     {/if}
   {/if}

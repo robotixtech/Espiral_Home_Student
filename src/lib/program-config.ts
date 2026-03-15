@@ -25,6 +25,14 @@ export interface SunConfig {
   href: string | null;
 }
 
+/** A content slide within an activity */
+export interface SlideConfig {
+  title: string;
+  body: string;
+  video?: string;
+  image?: string;
+}
+
 /** Configuration for an activity inside a unit */
 export interface ActivityConfig {
   label: string;
@@ -32,6 +40,7 @@ export interface ActivityConfig {
   href: string | null;
   status: 'completed' | 'in-progress' | 'locked';
   progress: number;
+  slides?: SlideConfig[];
 }
 
 /** Configuration for each orbital unit */
@@ -114,7 +123,11 @@ export const C450_CONFIG: ProgramConfig = {
       status: 'locked',
       progress: 0,
       activities: [
-        { label: 'Señal de plataforma de lanzamiento', icon: 'rocket', href: null, status: 'locked', progress: 0 },
+        { label: 'Señal de plataforma de lanzamiento', icon: 'rocket', href: null, status: 'locked', progress: 0, slides: [
+          { title: 'Bienvenido a la misión', body: 'En esta actividad aprenderás a configurar y lanzar la señal desde la plataforma de lanzamiento. Prepárate para una experiencia única en el espacio.', video: 'https://player.vimeo.com/video/1114029375?h=9c59e1a281&title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479' },
+          { title: 'Programa tu cohete', body: 'Tu robot necesita mostrar a los otros equipos que es seguro aterrizar.\n\nEsta señal le dice a la Base NOVA y a otros equipos que la zona de aterrizaje está despejada. ¡La X marca el lugar!\n\n**Programa tu robot para:**\n\n• Mostrar en la matriz de luces una X roja durante 5 segundos.', image: 'blockly_example.png' },
+          { title: '¡Lanzamiento!', body: 'Todo listo. Inicia la secuencia de lanzamiento presionando el botón de ignición. Recuerda: una vez iniciada la secuencia, no hay vuelta atrás. ¡Buena suerte, astronauta!' },
+        ] },
         { label: 'Enfriamiento', icon: 'snowflake', href: null, status: 'locked', progress: 0 },
         { label: 'Entrega especial', icon: 'car', href: null, status: 'locked', progress: 0 },
         { label: 'NOVA Demo Day', icon: 'trophy', href: null, status: 'locked', progress: 0 },
