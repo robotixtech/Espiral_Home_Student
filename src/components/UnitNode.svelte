@@ -54,6 +54,7 @@
   const labelBelow = $derived(y >= galacticCenterY);
   const labelGap = 12;
   const isActive = $derived(unit.status !== 'locked');
+  const isInProgress = $derived(unit.status === 'in-progress');
 
   let selected = $state(false);
   function onSelect() {
@@ -92,7 +93,7 @@
   </defs>
 
   {#if isActive}
-    <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" opacity="0.25" />
+    <circle class:heartbeat={isInProgress} cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" opacity="0.25" />
     <!-- Hover glow border -->
     <circle class="halo-ring" cx="0" cy="0" r={r + 5} fill="none"
             stroke={colors.glow} stroke-width="0.8" opacity="0" />
@@ -105,6 +106,7 @@
   {/if}
 
   <circle
+    class:heartbeat={isInProgress}
     cx="0" cy="0" r={r}
     fill="url(#{gradId})"
     filter={isActive ? `url(#${glowId})` : undefined}
@@ -132,6 +134,7 @@
   {/if}
 
   {#if !isActive}
+    <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.5" opacity="0.7" />
     <svg x="-11" y="-13" width="22" height="26" viewBox="0 0 24 24"
          fill="none" stroke={colors.icon} stroke-width="1.8"
          stroke-linecap="round" stroke-linejoin="round">
@@ -223,6 +226,20 @@
   }
 
   .node.locked { opacity: 0.45; }
+
+  /* Heartbeat pulse for in-progress units */
+  .heartbeat {
+    animation: heartbeat 2s ease-in-out infinite;
+    transform-origin: 0 0;
+  }
+  @keyframes heartbeat {
+    0%   { transform: scale(1); }
+    10%  { transform: scale(1.06); }
+    20%  { transform: scale(1); }
+    30%  { transform: scale(1.04); }
+    40%  { transform: scale(1); }
+    100% { transform: scale(1); }
+  }
   .progress-ring { transition: stroke-dashoffset 1s ease; }
   .lbl-name { font: 700 16.5px/1 'Rubik', system-ui, sans-serif; }
   .lbl-desc { font: 400 13px/1 'Rubik', system-ui, sans-serif; }
