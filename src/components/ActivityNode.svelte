@@ -46,7 +46,8 @@
   const circ = $derived(2 * Math.PI * pr);
   const dashOff = $derived(circ - (activity.progress / 100) * circ);
 
-  function handleClick() {
+  function handleClick(e: Event) {
+    e.stopPropagation();
     if (!isActive) return;
     if (activity.slides && activity.slides.length > 0) {
       navigateToActivity(activity);
@@ -75,10 +76,10 @@
   const labelLines = $derived(splitLabel(activity.label));
 
   let selected = $state(false);
-  function onSelect() {
+  function onSelect(e: Event) {
     if (!isActive) return;
     selected = true;
-    handleClick();
+    handleClick(e);
     setTimeout(() => { selected = false; }, 500);
   }
 </script>
@@ -92,8 +93,8 @@
   transform="translate({x}, {y})"
   tabindex={isActive ? 0 : -1}
   role={isActive ? 'button' : undefined}
-  onclick={onSelect}
-  onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); } }}
+  onclick={(e: MouseEvent) => onSelect(e)}
+  onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(e); } }}
 >
   <defs>
     <radialGradient id={gradId} cx="35%" cy="35%" r="65%">
