@@ -6,7 +6,9 @@
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
   import { getEmulatedProgram, toggleEmulator, isEmulatorActive } from './lib/emulator.svelte';
+  import { getView, getSelectedUnit } from './lib/navigation.svelte';
   import SpiralNavigator from './components/SpiralNavigator.svelte';
+  import UnitDetailView from './components/UnitDetailView.svelte';
   import EmulatorToggle from './components/EmulatorToggle.svelte';
 
   let state = $state<AppState>({ kind: 'loading' });
@@ -63,8 +65,19 @@
       </button>
     </div>
   {:else}
-    <SpiralNavigator program={getEmulatedProgram() ?? state.data} />
-    <EmulatorToggle program={state.data} />
+    {@const allCompleted = {
+      ...state.data,
+      units: state.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100 })),
+    }}
+    {#if getView() === 'home'}
+      <SpiralNavigator program={getEmulatedProgram() ?? allCompleted} />
+      <EmulatorToggle program={state.data} />
+    {:else if getView() === 'unit-detail'}
+      {@const selectedUnit = getSelectedUnit()}
+      {#if selectedUnit}
+        <UnitDetailView unit={selectedUnit} programShortname={state.data.shortname} />
+      {/if}
+    {/if}
   {/if}
 </main>
 

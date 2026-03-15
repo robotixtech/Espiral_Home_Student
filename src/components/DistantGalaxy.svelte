@@ -28,7 +28,7 @@
 
   const theme = $derived(getTheme());
 
-  const miniSpiral: SpiralConfig = {
+  const miniSpiral = $derived<SpiralConfig>({
     cx: 0, cy: 0,
     r0x: 145 * scale,
     r0y: 125 * scale,
@@ -36,7 +36,7 @@
     r1y: 315 * scale,
     startAngle: -Math.PI / 2,
     turns: 1.3,
-  };
+  });
 
   const nodePositions = $derived(getSpiralNodePositions(miniSpiral, config.units.length));
   const spiralPath = $derived(getSpiralSvgPath(miniSpiral, 200));
@@ -90,7 +90,7 @@
           stroke={theme.sun.g2} stroke-width="0.4" opacity="0.25" />
 
   <!-- Unit nodes with labels -->
-  {#each nodePositions as pos, i}
+  {#each nodePositions as pos, i (i)}
     {@const cfg = config.units[i]}
     <g transform="translate({pos.x}, {pos.y})">
       <!-- Node dot -->

@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import type { ProgramData } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
+  import { navigateToUnit } from '../lib/navigation.svelte';
   import { PREV_PROGRAM_CONFIG, NEXT_PROGRAM_CONFIG, FUTURE_PROGRAM_CONFIG } from '../lib/program-config';
   import UnitNode from './UnitNode.svelte';
   import SunNode from './SunNode.svelte';
@@ -106,7 +107,11 @@
 
   function handleUnitClick(unit: (typeof program.units)[0]) {
     if (unit.status === 'locked') return;
-    if (unit.courseUrl && unit.courseUrl !== '#') window.open(unit.courseUrl, '_blank');
+    if (unit.activities && unit.activities.length > 0) {
+      navigateToUnit(unit);
+    } else if (unit.courseUrl && unit.courseUrl !== '#') {
+      window.open(unit.courseUrl, '_blank');
+    }
   }
 
   const t = $derived(getTheme());
@@ -178,7 +183,7 @@
       <DistantGalaxy config={PREV_PROGRAM_CONFIG} cx={dgPrev.cx} cy={dgPrev.cy} scale={0.30} opacity={0.35} fontScale={0.6} />
 
       <!-- Orbit rings -->
-      {#each orbitRings as ring}
+      {#each orbitRings as ring, i (i)}
         <path d={ring} fill="none" stroke={t.orbit} stroke-width="1.2" />
       {/each}
 
@@ -199,7 +204,7 @@
       {/if}
 
       <!-- Unit nodes -->
-      {#each program.units as unit, i}
+      {#each program.units as unit, i (unit.id)}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <g onclick={() => handleUnitClick(unit)}
            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') handleUnitClick(unit); }}>

@@ -12,6 +12,7 @@ export interface ProgramUnit {
   progress: number; // 0–100
   courseUrl: string;
   icon: UnitIcon;
+  activities?: Activity[];
 }
 
 /** Icon identifiers for each unit type */
@@ -25,7 +26,20 @@ export type UnitIcon =
   | 'search'     // analysis
   | 'signal'     // signals
   | 'alert'      // emergency
-  | 'trophy';    // final project
+  | 'trophy'     // final project
+  | 'rocket'     // launch/platform
+  | 'snowflake'  // cooling
+  | 'binoculars'; // observation
+
+/** A single activity inside a unit */
+export interface Activity {
+  id: number;
+  label: string;
+  status: UnitStatus;
+  progress: number;
+  icon: UnitIcon;
+  activityUrl: string;
+}
 
 /** The full program data */
 export interface ProgramData {

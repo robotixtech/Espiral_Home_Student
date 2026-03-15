@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { ProgramUnit } from '../lib/types';
+  import type { Activity } from '../lib/types';
   import UnitIcon from './UnitIcon.svelte';
   import { getTheme } from '../lib/theme.svelte';
   import { STATUS_LABELS } from '../lib/program-config';
@@ -7,66 +7,82 @@
   const theme = $derived(getTheme());
 
   interface Props {
-    unit: ProgramUnit;
+    activity: Activity;
     x: number;
     y: number;
-    galacticCenterX: number;
-    galacticCenterY: number;
-    size?: number;
     index: number;
+    isFirst?: boolean;
   }
 
-  let {
-    unit, x, y,
-    galacticCenterX, galacticCenterY,
-    size = 62, index,
-  }: Props = $props();
+  let { activity, x, y, index, isFirst = false }: Props = $props();
 
-  const sw = 3.5;
-  const isStart = $derived(index === 0);
-  const sz = $derived(isStart ? size * 1.15 : size);
-  const r = $derived(sz / 2);
-  const pr = $derived(r - sw / 2);
-  const circ = $derived(2 * Math.PI * pr);
-  const dashOff = $derived(circ - (unit.progress / 100) * circ);
+  const r = $derived(isFirst ? 44 : 38);
+  const isActive = $derived(activity.status !== 'locked');
+  const isInProgress = $derived(activity.status === 'in-progress');
+  const isCompleted = $derived(activity.status === 'completed');
 
-  const gradId = $derived(`g${index}`);
-  const glowId = $derived(`w${index}`);
+  const gradId = $derived(`act-g${index}`);
+  const glowId = $derived(`act-w${index}`);
 
   const colors = $derived.by(() => {
-    switch (unit.status) {
+    switch (activity.status) {
       case 'completed': return theme.unit.completed;
       case 'in-progress': return theme.unit.inProgress;
       default: return theme.unit.locked;
     }
   });
 
-  const shortName = $derived(unit.displayName);
-
   const statusText = $derived.by(() => {
-    if (unit.status === 'completed') return STATUS_LABELS.completed;
-    if (unit.status === 'in-progress') return `${STATUS_LABELS.inProgress} · ${unit.progress}%`;
+    if (activity.status === 'completed') return STATUS_LABELS.completed;
+    if (activity.status === 'in-progress') return `${STATUS_LABELS.inProgress} · ${activity.progress}%`;
     return STATUS_LABELS.locked;
   });
 
-  const iconSize = $derived(isStart ? 28 : 24);
+  const iconSize = $derived(isFirst ? 26 : 22);
   const iconOff = $derived(iconSize / 2);
-  const labelBelow = $derived(y >= galacticCenterY);
-  const labelGap = 12;
-  const isActive = $derived(unit.status !== 'locked');
-  const isInProgress = $derived(unit.status === 'in-progress');
+  const sw = 3;
+  const pr = $derived(r - sw / 2);
+  const circ = $derived(2 * Math.PI * pr);
+  const dashOff = $derived(circ - (activity.progress / 100) * circ);
+
+  function handleClick() {
+    if (!isActive) return;
+    if (activity.activityUrl && activity.activityUrl !== '#') {
+      window.open(activity.activityUrl, '_blank');
+    }
+  }
+
+  // Split long labels into lines of ~18 chars
+  function splitLabel(text: string): string[] {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      if (current && (current + ' ' + word).length > 18) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = current ? current + ' ' + word : word;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  const labelLines = $derived(splitLabel(activity.label));
 
   let selected = $state(false);
   function onSelect() {
     if (!isActive) return;
     selected = true;
+    handleClick();
     setTimeout(() => { selected = false; }, 500);
   }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <g
-  class="node"
+  class="activity-node"
   class:clickable={isActive}
   class:locked={!isActive}
   class:selected={selected}
@@ -96,13 +112,10 @@
 
   {#if isActive}
     <circle class:heartbeat={isInProgress} cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" opacity="0.25" />
-    <!-- Hover glow border -->
     <circle class="halo-ring" cx="0" cy="0" r={r + 5} fill="none"
             stroke={colors.glow} stroke-width="0.8" opacity="0" />
-    <!-- Selected: soft ambient glow -->
     <circle class="selected-glow" cx="0" cy="0" r={r + 12} fill="none"
             stroke={colors.glow} stroke-width="0" opacity="0" />
-    <!-- Selected: solid border -->
     <circle class="selected-ring" cx="0" cy="0" r={r + 5} fill="none"
             stroke="#ffffff" stroke-width="0" opacity="0" />
   {/if}
@@ -124,7 +137,7 @@
       class="progress-ring"
     />
 
-    {#if unit.status === 'completed'}
+    {#if isCompleted}
       <g transform="translate({r * 0.62}, {-r * 0.62})">
         <circle cx="0" cy="0" r="8" fill={theme.badge.fill} stroke={theme.badge.stroke} stroke-width="1.5" />
         <svg x="-4.5" y="-4.5" width="9" height="9" viewBox="0 0 24 24" fill="none"
@@ -136,8 +149,8 @@
   {/if}
 
   {#if !isActive}
-    <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.5" opacity="0.7" />
-    <svg x="-11" y="-13" width="22" height="26" viewBox="0 0 24 24"
+    <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.2" opacity="0.6" />
+    <svg x="-9" y="-11" width="18" height="22" viewBox="0 0 24 24"
          fill="none" stroke={colors.icon} stroke-width="1.8"
          stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -145,78 +158,54 @@
     </svg>
   {:else}
     <g transform="translate({-iconOff}, {-iconOff})">
-      <UnitIcon icon={unit.icon} size={iconSize} color={colors.icon} />
+      <UnitIcon icon={activity.icon} size={iconSize} color={colors.icon} />
     </g>
   {/if}
 
-  <!-- Labels -->
-  {#if labelBelow}
-    <g transform="translate(0, {r + labelGap})">
-      <text y="2" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
-        {unit.label}
+  <!-- Labels below -->
+  <g transform="translate(0, {r + 12})">
+    {#each labelLines as line, li (li)}
+      <text y={li * 15 + 2} text-anchor="middle" class="act-name" fill={theme.text.primary}>
+        {line}
       </text>
-      <text y="20" text-anchor="middle" class="lbl-desc" fill={theme.text.secondary}>
-        {shortName}
+    {/each}
+    {#if statusText}
+      {@const labelOffset = labelLines.length * 15 + 6}
+      <rect x="-42" y={labelOffset} width="84" height="18" rx="9"
+            fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
+      <text y={labelOffset + 13} text-anchor="middle" class="act-status" fill={colors.lText}>
+        {statusText}
       </text>
-      {#if statusText}
-        <rect x="-42" y="28" width="84" height="18" rx="9"
-              fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
-        <text y="41" text-anchor="middle" class="lbl-status" fill={colors.lText}>
-          {statusText}
-        </text>
-      {/if}
-    </g>
-  {:else}
-    <g transform="translate(0, {-(r + labelGap)})">
-      {#if statusText}
-        <rect x="-42" y="-48" width="84" height="18" rx="9"
-              fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
-        <text y="-35" text-anchor="middle" class="lbl-status" fill={colors.lText}>
-          {statusText}
-        </text>
-      {/if}
-      <text y="-16" text-anchor="middle" class="lbl-desc" fill={theme.text.secondary}>
-        {shortName}
-      </text>
-      <text y="3" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
-        {unit.label}
-      </text>
-    </g>
-  {/if}
+    {/if}
+  </g>
 </g>
 
 <style>
-  .node { cursor: default; outline: none; }
-  .node.clickable { cursor: pointer; }
-  .node.clickable:hover .halo-ring {
-    opacity: 0.7;
-    stroke-width: 2;
+  .activity-node { cursor: default; outline: none; }
+  .activity-node.clickable { cursor: pointer; }
+  .activity-node.locked { opacity: 0.45; }
+
+  .activity-node.clickable:hover .halo-ring {
+    animation: act-pulse 1.2s ease-in-out infinite;
   }
 
   .halo-ring {
     transition: opacity 0.3s ease, stroke-width 0.3s ease;
     pointer-events: none;
   }
-  .node.clickable:hover .halo-ring {
-    animation: border-pulse 1.2s ease-in-out infinite;
-  }
-  @keyframes border-pulse {
-    0%, 100% { opacity: 0.4; stroke-width: 0.5; }
-    50% { opacity: 0.8; stroke-width: 1.5; }
-  }
-  /* Selected state — solid border + soft ambient glow */
-  .node.selected .halo-ring {
+
+  .activity-node.selected .halo-ring {
     animation: none !important;
     opacity: 0.9;
     stroke-width: 1.5;
     transition: opacity 0.3s ease, stroke-width 0.3s ease;
   }
-  .node.selected .selected-ring {
+  .activity-node.selected .selected-ring {
     opacity: 0.6;
     stroke-width: 1;
     transition: opacity 0.4s ease;
   }
-  .node.selected .selected-glow {
+  .activity-node.selected .selected-glow {
     opacity: 0.25;
     stroke-width: 6;
     transition: opacity 0.5s ease, stroke-width 0.5s ease;
@@ -227,9 +216,11 @@
     transition: opacity 0.3s ease, stroke-width 0.3s ease;
   }
 
-  .node.locked { opacity: 0.45; }
+  @keyframes act-pulse {
+    0%, 100% { opacity: 0.4; stroke-width: 0.5; }
+    50% { opacity: 0.8; stroke-width: 1.5; }
+  }
 
-  /* Heartbeat pulse for in-progress units */
   .heartbeat {
     animation: heartbeat 2s ease-in-out infinite;
     transform-origin: 0 0;
@@ -242,8 +233,8 @@
     40%  { transform: scale(1); }
     100% { transform: scale(1); }
   }
+
   .progress-ring { transition: stroke-dashoffset 1s ease; }
-  .lbl-name { font: 700 16.5px/1 'Rubik', system-ui, sans-serif; }
-  .lbl-desc { font: 400 13px/1 'Rubik', system-ui, sans-serif; }
-  .lbl-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
+  .act-name { font: 600 13px/1 'Rubik', system-ui, sans-serif; }
+  .act-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
 </style>

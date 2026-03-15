@@ -31,5 +31,13 @@ export const MOCK_PROGRAM: ProgramData = {
     progress: cfg.progress,
     courseUrl: cfg.href ?? '#',
     icon: cfg.icon,
+    activities: cfg.activities?.map((act, j) => ({
+      id: 1000 + i * 10 + j,
+      label: act.label,
+      status: act.status,
+      progress: act.progress,
+      icon: act.icon,
+      activityUrl: act.href ?? '#',
+    })),
   })),
 };

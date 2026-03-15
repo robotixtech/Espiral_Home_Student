@@ -34,6 +34,11 @@ Svelte 5 + Vite + TypeScript. Font: Rubik. Deployed to GitHub Pages.
 - SVG animations: avoid `r:` in keyframes (Safari incompatible). Use `transform: scale()`.
 - SVG `transform-origin`: use `0 0` not `center` (Safari compat).
 
+## Svelte MCP Server
+- Configured via `.mcp.json` (project scope) — connects to `https://mcp.svelte.dev/mcp`.
+- **Always use `svelte-autofixer`** to validate `.svelte` files before delivering code.
+- Use `list-sections` + `get-documentation` when Svelte 5 patterns need clarification.
+
 ## Repo & URLs
 - Repo: https://github.com/robotixtech/Espiral_Home_Student
 - Live: https://robotixtech.github.io/Espiral_Home_Student/

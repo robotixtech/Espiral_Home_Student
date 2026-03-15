@@ -25,6 +25,15 @@ export interface SunConfig {
   href: string | null;
 }
 
+/** Configuration for an activity inside a unit */
+export interface ActivityConfig {
+  label: string;
+  icon: UnitIcon;
+  href: string | null;
+  status: 'completed' | 'in-progress' | 'locked';
+  progress: number;
+}
+
 /** Configuration for each orbital unit */
 export interface UnitConfig {
   /** Short label shown on the node (e.g. "U0", "Misión Control") */
@@ -41,6 +50,8 @@ export interface UnitConfig {
   status: 'completed' | 'in-progress' | 'locked';
   /** Progress percentage 0–100 */
   progress: number;
+  /** Activities within this unit (optional) */
+  activities?: ActivityConfig[];
 }
 
 /** Full program configuration */
@@ -87,6 +98,12 @@ export const C450_CONFIG: ProgramConfig = {
       href: null,
       status: 'locked',
       progress: 0,
+      activities: [
+        { label: 'Preparación de la base', icon: 'gear', href: null, status: 'locked', progress: 0 },
+        { label: 'Protocolo de ignición', icon: 'power', href: null, status: 'locked', progress: 0 },
+        { label: 'Entrega especial', icon: 'car', href: null, status: 'locked', progress: 0 },
+        { label: 'NOVA Demo Day', icon: 'trophy', href: null, status: 'locked', progress: 0 },
+      ],
     },
     {
       label: 'Lanzamiento de señal',
@@ -96,6 +113,12 @@ export const C450_CONFIG: ProgramConfig = {
       href: null,
       status: 'locked',
       progress: 0,
+      activities: [
+        { label: 'Señal de plataforma de lanzamiento', icon: 'rocket', href: null, status: 'locked', progress: 0 },
+        { label: 'Enfriamiento', icon: 'snowflake', href: null, status: 'locked', progress: 0 },
+        { label: 'Entrega especial', icon: 'car', href: null, status: 'locked', progress: 0 },
+        { label: 'NOVA Demo Day', icon: 'trophy', href: null, status: 'locked', progress: 0 },
+      ],
     },
     {
       label: 'Preparado para mover',
@@ -105,6 +128,12 @@ export const C450_CONFIG: ProgramConfig = {
       href: null,
       status: 'locked',
       progress: 0,
+      activities: [
+        { label: 'Activación de motores', icon: 'power', href: null, status: 'locked', progress: 0 },
+        { label: 'Navegación básica', icon: 'tunnel', href: null, status: 'locked', progress: 0 },
+        { label: 'Recorrido de prueba', icon: 'car', href: null, status: 'locked', progress: 0 },
+        { label: 'NOVA Demo Day', icon: 'trophy', href: null, status: 'locked', progress: 0 },
+      ],
     },
     {
       label: 'Visión de túnel',
@@ -114,6 +143,12 @@ export const C450_CONFIG: ProgramConfig = {
       href: null,
       status: 'locked',
       progress: 0,
+      activities: [
+        { label: 'Calibración de sensores', icon: 'search', href: null, status: 'locked', progress: 0 },
+        { label: 'Detección de obstáculos', icon: 'alert', href: null, status: 'locked', progress: 0 },
+        { label: 'Navegación autónoma', icon: 'tunnel', href: null, status: 'locked', progress: 0 },
+        { label: 'NOVA Demo Day', icon: 'trophy', href: null, status: 'locked', progress: 0 },
+      ],
     },
     {
       label: 'Análisis profundo',
@@ -123,6 +158,12 @@ export const C450_CONFIG: ProgramConfig = {
       href: null,
       status: 'locked',
       progress: 0,
+      activities: [
+        { label: 'Recolección de datos', icon: 'signal', href: null, status: 'locked', progress: 0 },
+        { label: 'Procesamiento de señales', icon: 'gear', href: null, status: 'locked', progress: 0 },
+        { label: 'Interpretación de resultados', icon: 'search', href: null, status: 'locked', progress: 0 },
+        { label: 'NOVA Demo Day', icon: 'trophy', href: null, status: 'locked', progress: 0 },
+      ],
     },
     {
       label: 'Señales inteligentes',
@@ -132,6 +173,12 @@ export const C450_CONFIG: ProgramConfig = {
       href: null,
       status: 'locked',
       progress: 0,
+      activities: [
+        { label: 'Emisión de señales', icon: 'signal', href: null, status: 'locked', progress: 0 },
+        { label: 'Recepción y filtrado', icon: 'search', href: null, status: 'locked', progress: 0 },
+        { label: 'Comunicación inteligente', icon: 'power', href: null, status: 'locked', progress: 0 },
+        { label: 'NOVA Demo Day', icon: 'trophy', href: null, status: 'locked', progress: 0 },
+      ],
     },
     {
       label: 'Respuesta a emergencias',
@@ -141,6 +188,12 @@ export const C450_CONFIG: ProgramConfig = {
       href: null,
       status: 'locked',
       progress: 0,
+      activities: [
+        { label: 'Detección de emergencia', icon: 'alert', href: null, status: 'locked', progress: 0 },
+        { label: 'Protocolo de respuesta', icon: 'gear', href: null, status: 'locked', progress: 0 },
+        { label: 'Evacuación segura', icon: 'car', href: null, status: 'locked', progress: 0 },
+        { label: 'NOVA Demo Day', icon: 'trophy', href: null, status: 'locked', progress: 0 },
+      ],
     },
   ],
 };
