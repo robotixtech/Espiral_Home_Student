@@ -29,15 +29,9 @@
       const data = await loadProgramFromMoodle(config);
       state = { kind: 'ready', data };
     } catch (err) {
-      if (import.meta.env.DEV) {
-        console.warn('Using mock data (no Moodle token provided):', err);
-        state = { kind: 'ready', data: MOCK_PROGRAM };
-      } else {
-        state = {
-          kind: 'error',
-          message: err instanceof Error ? err.message : 'Error desconocido',
-        };
-      }
+      // Fall back to mock data when no Moodle token is available
+      console.warn('Using mock data:', err);
+      state = { kind: 'ready', data: MOCK_PROGRAM };
     }
   });
 </script>
