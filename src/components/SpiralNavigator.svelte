@@ -72,7 +72,7 @@
       // Portrait: use a narrower virtual width so the galaxy renders bigger.
       // Instead of keeping full content width (990), shrink it based on how
       // portrait the screen is. This makes the galaxy fill more of the screen.
-      const portraitFactor = Math.max(0.55, containerAR / contentAR);
+      const portraitFactor = Math.max(0.65, containerAR / contentAR);
       vbW = CONTENT.w * portraitFactor;
       vbH = vbW / containerAR;
     }
@@ -118,7 +118,7 @@
     <svg
       viewBox="{vb.x} {vb.y} {vb.w} {vb.h}"
       class="galaxy-svg"
-      preserveAspectRatio="xMidYMid meet"
+      preserveAspectRatio="xMidYMid slice"
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
