@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import type { ProgramData } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
   import { PREV_PROGRAM_CONFIG, NEXT_PROGRAM_CONFIG, FUTURE_PROGRAM_CONFIG } from '../lib/program-config';
@@ -20,6 +21,7 @@
 
   let { program }: Props = $props();
 
+  // --- Content coordinate space (fixed, where the galaxy lives) ---
   const W = 1030;
   const H = 728;
 
@@ -39,6 +41,66 @@
   const progressFrac = $derived(getProgressFraction(program.units));
   const progressPath = $derived(getProgressSvgPath(spiral, progressFrac, 600));
 
+  // --- Dynamic viewBox: adapts to container aspect ratio ---
+  let containerEl: HTMLDivElement | undefined = $state();
+  let cW = $state(1030);
+  let cH = $state(728);
+
+  onMount(() => {
+    if (!containerEl) return;
+    const ro = new ResizeObserver(([entry]) => {
+      cW = entry.contentRect.width;
+      cH = entry.contentRect.height;
+    });
+    ro.observe(containerEl);
+    return () => ro.disconnect();
+  });
+
+  // Content bounding box (everything that must be visible)
+  const CONTENT = { x: 20, y: 0, w: 990, h: 728 };
+
+  const vb = $derived.by(() => {
+    const containerAR = cW / cH;
+    const contentAR = CONTENT.w / CONTENT.h;
+
+    let vbW: number, vbH: number;
+    if (containerAR >= contentAR) {
+      // Landscape or wider: expand width to match
+      vbH = CONTENT.h;
+      vbW = vbH * containerAR;
+    } else {
+      // Portrait or taller: expand height to match
+      vbW = CONTENT.w;
+      vbH = vbW / containerAR;
+    }
+
+    const cx = CONTENT.x + CONTENT.w / 2;
+    const cy = CONTENT.y + CONTENT.h / 2;
+
+    return {
+      x: cx - vbW / 2,
+      y: cy - vbH / 2,
+      w: vbW,
+      h: vbH,
+    };
+  });
+
+  // Is portrait?
+  const isPortrait = $derived(cW / cH < 1.0);
+
+  // Distant galaxy positions — adapt to portrait/landscape
+  const dgNext = $derived(isPortrait
+    ? { cx: vb.x + vb.w * 0.30, cy: vb.y + vb.h * 0.07 }
+    : { cx: W * 0.13, cy: H * 0.15 }
+  );
+  const dgFuture = $derived(isPortrait
+    ? { cx: vb.x + vb.w * 0.72, cy: vb.y + vb.h * 0.04 }
+    : { cx: W * 0.90, cy: H * 0.10 }
+  );
+  const dgPrev = $derived(isPortrait
+    ? { cx: vb.x + vb.w * 0.30, cy: vb.y + vb.h * 0.93 }
+    : { cx: W * 0.12, cy: H * 0.88 }
+  );
 
   function handleUnitClick(unit: (typeof program.units)[0]) {
     if (unit.status === 'locked') return;
@@ -46,12 +108,16 @@
   }
 
   const t = $derived(getTheme());
-
 </script>
 
-<div class="galaxy-container">
+<div class="galaxy-container" bind:this={containerEl}>
   <div class="galaxy-wrapper" style:box-shadow={t.wrapperShadow}>
-    <svg viewBox="0 0 {W} {H}" class="galaxy-svg" xmlns="http://www.w3.org/2000/svg">
+    <svg
+      viewBox="{vb.x} {vb.y} {vb.w} {vb.h}"
+      class="galaxy-svg"
+      preserveAspectRatio="xMidYMid meet"
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <defs>
         <radialGradient id="bg-grad" cx="50%" cy="50%" r="60%">
           <stop offset="0%" stop-color={t.bg.center} />
@@ -59,21 +125,15 @@
           <stop offset="100%" stop-color={t.bg.edge} />
         </radialGradient>
 
-
-
-
-        <!-- Elliptical path for the title text to follow (outer orbit area) -->
-        <!-- Double-loop ellipse so textPath offsets >100% still render fully -->
+        <!-- Title text orbit path -->
         <path id="title-orbit"
               d="M {spiral.cx - 380},{spiral.cy} a 380,340 0 1,1 760,0 a 380,340 0 1,1 -760,0 a 380,340 0 1,1 760,0 a 380,340 0 1,1 -760,0" fill="none" />
 
-        <!-- Title text glow — intense double-layer -->
+        <!-- Title glow -->
         <filter id="title-glow" x="-30%" y="-60%" width="160%" height="220%">
-          <!-- Wide outer glow -->
           <feGaussianBlur stdDeviation="8" in="SourceGraphic" result="blur-wide" />
           <feFlood flood-color="#0075BF" flood-opacity="0.7" result="color-wide" />
           <feComposite in="color-wide" in2="blur-wide" operator="in" result="glow-wide" />
-          <!-- Tight inner glow -->
           <feGaussianBlur stdDeviation="2" in="SourceGraphic" result="blur-tight" />
           <feFlood flood-color="#ffffff" flood-opacity="0.4" result="color-tight" />
           <feComposite in="color-tight" in2="blur-tight" operator="in" result="glow-tight" />
@@ -84,12 +144,11 @@
           </feMerge>
         </filter>
 
+        <!-- Progress arc glow -->
         <filter id="path-glow" x="-30%" y="-30%" width="160%" height="160%">
-          <!-- Outer wide glow -->
           <feGaussianBlur stdDeviation="10" in="SourceGraphic" result="blur-outer" />
           <feFlood flood-color={t.progress.glow} flood-opacity="0.3" result="color-outer" />
           <feComposite in="color-outer" in2="blur-outer" operator="in" result="glow-outer" />
-          <!-- Inner bright glow -->
           <feGaussianBlur stdDeviation="4" in="SourceGraphic" result="blur-inner" />
           <feFlood flood-color="#ffffff" flood-opacity="0.2" result="color-inner" />
           <feComposite in="color-inner" in2="blur-inner" operator="in" result="glow-inner" />
@@ -99,27 +158,22 @@
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-
       </defs>
 
-      <!-- Background -->
-      <rect width={W} height={H} fill="url(#bg-grad)" opacity="0.85" />
+      <!-- Background — covers the full dynamic viewBox -->
+      <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#bg-grad)" opacity="0.85" />
 
-
-      <!-- === PROGRAM TITLE — curved along outermost orbit === -->
+      <!-- Program title -->
       <text class="title-orbit-text" fill="#ffffff" opacity="1" filter="url(#title-glow)">
         <textPath href="#title-orbit" startOffset="54%" text-anchor="middle">
           {program.fullname}
         </textPath>
       </text>
 
-      <!-- Distant galaxy: next program (C550) -->
-      <!-- C550: nearby galaxy — larger, more visible -->
-      <DistantGalaxy config={NEXT_PROGRAM_CONFIG} cx={W * 0.13} cy={H * 0.15} scale={0.32} opacity={0.50} fontScale={0.7} />
-      <!-- C650: farther galaxy — smaller, dimmer -->
-      <DistantGalaxy config={FUTURE_PROGRAM_CONFIG} cx={W * 0.90} cy={H * 0.10} scale={0.20} opacity={0.22} fontScale={0.7} />
-      <!-- C350: completed program — below C450 -->
-      <DistantGalaxy config={PREV_PROGRAM_CONFIG} cx={W * 0.12} cy={H * 0.88} scale={0.30} opacity={0.35} fontScale={0.6} />
+      <!-- Distant galaxies -->
+      <DistantGalaxy config={NEXT_PROGRAM_CONFIG} cx={dgNext.cx} cy={dgNext.cy} scale={0.32} opacity={0.50} fontScale={0.7} />
+      <DistantGalaxy config={FUTURE_PROGRAM_CONFIG} cx={dgFuture.cx} cy={dgFuture.cy} scale={0.20} opacity={0.22} fontScale={0.7} />
+      <DistantGalaxy config={PREV_PROGRAM_CONFIG} cx={dgPrev.cx} cy={dgPrev.cy} scale={0.30} opacity={0.35} fontScale={0.6} />
 
       <!-- Orbit rings -->
       {#each orbitRings as ring}
@@ -129,7 +183,7 @@
       <!-- Sun -->
       <SunNode unit={program.sun} cx={spiral.cx} cy={spiral.cy} />
 
-      <!-- Spiral path (dashed) -->
+      <!-- Spiral path -->
       <path d={fullPath} fill="none" stroke={t.spiral} stroke-width="3"
             stroke-dasharray="12 8" stroke-linecap="round" />
 
@@ -137,7 +191,6 @@
       {#if progressPath}
         <path d={progressPath} fill="none" stroke={t.progress.stroke}
               stroke-width="5.5" stroke-linecap="round" filter="url(#path-glow)" />
-        <!-- Fluor highlight — thin bright core -->
         <path d={progressPath} fill="none" stroke="rgba(255,255,255,0.35)"
               stroke-width="1.5" stroke-linecap="round" />
       {/if}
@@ -155,10 +208,8 @@
           />
         </g>
       {/each}
-
     </svg>
   </div>
-
 </div>
 
 <style>
@@ -172,7 +223,6 @@
     overflow: hidden;
   }
 
-
   .galaxy-wrapper {
     width: 100%;
     height: 100%;
@@ -185,8 +235,6 @@
     width: 100%;
     height: 100%;
     display: block;
-    /* xMidYMid meet: scales uniformly, centers in both axes, never crops */
-    /* This ensures the full galaxy is always visible regardless of aspect ratio */
   }
 
   :global(.title-orbit-text) {
@@ -194,5 +242,4 @@
     letter-spacing: 5px;
     text-transform: uppercase;
   }
-
 </style>

@@ -171,10 +171,17 @@
     background: rgba(128,128,128,0.2);
   }
 
-  /* Mobile adjustments */
+  /* Landscape phones — compact header */
   @media (max-height: 500px) {
     .site-header { height: 36px; min-height: 36px; }
-    .header-logo { height: 22px; }
+    .header-logo { height: 20px; }
     .app-root { top: 36px; }
+  }
+
+  /* Portrait phones — slightly smaller header to maximize galaxy space */
+  @media (max-width: 600px) and (orientation: portrait) {
+    .site-header { height: 40px; min-height: 40px; }
+    .header-logo { height: 24px; }
+    .app-root { top: 40px; }
   }
 </style>
