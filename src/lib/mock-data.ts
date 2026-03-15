@@ -1,103 +1,46 @@
-import type { ProgramData } from './types';
+import type { ProgramData, UnitStatus } from './types';
+import { DEFAULT_CONFIG } from './program-config';
 
 /**
- * Mock data matching the C450 program structure.
- * Used in development mode when no Moodle token is provided.
+ * Generates mock program data from the config file.
+ * Simulates a student who has completed U0–U2, is in-progress on U3,
+ * and has U4–U6 + Misión Control locked.
  */
+
+/** Mock progress/status per unit index */
+const MOCK_STATUS: Array<{ status: UnitStatus; progress: number }> = [
+  { status: 'completed',   progress: 100 },  // U0
+  { status: 'completed',   progress: 100 },  // U1
+  { status: 'completed',   progress: 100 },  // U2
+  { status: 'in-progress', progress: 45 },   // U3
+  { status: 'locked',      progress: 0 },    // U4
+  { status: 'locked',      progress: 0 },    // U5
+  { status: 'locked',      progress: 0 },    // U6
+  { status: 'locked',      progress: 0 },    // Misión Control
+];
+
 export const MOCK_PROGRAM: ProgramData = {
   id: 1,
-  shortname: 'C450',
-  fullname: 'C450',
+  shortname: DEFAULT_CONFIG.shortname,
+  fullname: DEFAULT_CONFIG.fullname,
   sun: {
     id: 99,
-    shortname: 'C450-OS',
-    label: 'Open Scentia',
-    fullname: 'Open Scentia',
+    shortname: `${DEFAULT_CONFIG.shortname}-OS`,
+    label: DEFAULT_CONFIG.sun.label,
+    fullname: DEFAULT_CONFIG.sun.label,
     status: 'completed',
     progress: 100,
-    courseUrl: '#',
-    icon: 'sun',
+    courseUrl: DEFAULT_CONFIG.sun.href ?? '#',
+    icon: DEFAULT_CONFIG.sun.icon,
   },
-  units: [
-    {
-      id: 100,
-      shortname: 'C450-U0',
-      label: 'U0',
-      fullname: 'C450 – Unidad 0. Plataforma de lanzamiento',
-      status: 'completed',
-      progress: 100,
-      courseUrl: '#',
-      icon: 'flag',
-    },
-    {
-      id: 101,
-      shortname: 'C450-U1',
-      label: 'U1',
-      fullname: 'C450 – Unidad 1. Lanzamiento de señal',
-      status: 'completed',
-      progress: 100,
-      courseUrl: '#',
-      icon: 'signal',
-    },
-    {
-      id: 102,
-      shortname: 'C450-U2',
-      label: 'U2',
-      fullname: 'C450 – Unidad 2. Preparado para mover',
-      status: 'completed',
-      progress: 100,
-      courseUrl: '#',
-      icon: 'car',
-    },
-    {
-      id: 103,
-      shortname: 'C450-U3',
-      label: 'U3',
-      fullname: 'C450 – Unidad 3. Visión de túnel',
-      status: 'in-progress',
-      progress: 45,
-      courseUrl: '#',
-      icon: 'tunnel',
-    },
-    {
-      id: 104,
-      shortname: 'C450-U4',
-      label: 'U4',
-      fullname: 'C450 – Unidad 4. Análisis profundo',
-      status: 'locked',
-      progress: 0,
-      courseUrl: '#',
-      icon: 'search',
-    },
-    {
-      id: 105,
-      shortname: 'C450-U5',
-      label: 'U5',
-      fullname: 'C450 – Unidad 5. Señales inteligentes',
-      status: 'locked',
-      progress: 0,
-      courseUrl: '#',
-      icon: 'signal',
-    },
-    {
-      id: 106,
-      shortname: 'C450-U6',
-      label: 'U6',
-      fullname: 'C450 – Unidad 6. Respuesta a emergencias',
-      status: 'locked',
-      progress: 0,
-      courseUrl: '#',
-      icon: 'alert',
-    },
-    {
-      id: 107,
-      shortname: 'C450-MC',
-      label: 'Misión Control',
-      fullname: 'C450 – Misión control',
-      status: 'locked',
-      progress: 0,
-      courseUrl: '#',
-      icon: 'trophy',
-    },
-  ],
+  units: DEFAULT_CONFIG.units.map((cfg, i) => ({
+    id: 100 + i,
+    shortname: `${DEFAULT_CONFIG.shortname}-${cfg.label}`,
+    label: cfg.label,
+    fullname: cfg.fullname,
+    status: MOCK_STATUS[i]?.status ?? 'locked',
+    progress: MOCK_STATUS[i]?.progress ?? 0,
+    courseUrl: cfg.href ?? '#',
+    icon: cfg.icon,
+  })),
 };

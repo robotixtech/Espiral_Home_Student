@@ -1,12 +1,17 @@
 import { MoodleApi } from './moodle-api';
-import type { ProgramData, ProgramUnit, UnitStatus, UnitIcon } from './types';
+import type { ProgramData, ProgramUnit, UnitStatus } from './types';
 import type { IframeConfig } from './token';
+import { DEFAULT_CONFIG, type ProgramConfig } from './program-config';
 
 /**
  * Load program data from the Moodle REST API.
- * Maps Moodle courses to our ProgramUnit model.
+ * Uses program-config.ts for labels, icons, and display names.
+ * Moodle provides: course IDs, progress, completion status, URLs.
  */
-export async function loadProgramFromMoodle(config: IframeConfig): Promise<ProgramData> {
+export async function loadProgramFromMoodle(
+  config: IframeConfig,
+  programConfig: ProgramConfig = DEFAULT_CONFIG,
+): Promise<ProgramData> {
   const api = new MoodleApi(config.baseUrl, config.token);
 
   // Step 1: Validate token and get user ID
@@ -17,52 +22,47 @@ export async function loadProgramFromMoodle(config: IframeConfig): Promise<Progr
   const allCourses = await api.getUserCourses(userId);
 
   // Step 3: Filter courses belonging to this program (by shortname prefix)
-  const programPrefix = config.programShortname;
+  const programPrefix = programConfig.shortname;
   const programCourses = allCourses
     .filter((c) => c.fullname.startsWith(programPrefix))
-    .sort((a, b) => {
-      // Sort by the unit number extracted from fullname
-      const numA = extractUnitNumber(a.fullname);
-      const numB = extractUnitNumber(b.fullname);
-      return numA - numB;
-    });
+    .sort((a, b) => extractUnitNumber(a.fullname) - extractUnitNumber(b.fullname));
 
-  // Step 4: Map to ProgramUnit with status inference
+  // Step 4: Map to ProgramUnit, merging Moodle data with config
   const units: ProgramUnit[] = programCourses.map((course, index) => {
-    const isLast = isMisionControl(course.fullname);
-    const unitNum = extractUnitNumber(course.fullname);
     const progress = course.progress ?? 0;
-    const status = inferStatus(course.completed, progress, index, programCourses);
+    const status = inferStatus(course.completed, progress);
+
+    // Match to config entry by index (courses are sorted to match config order)
+    const cfg = programConfig.units[index];
 
     return {
       id: course.id,
       shortname: course.shortname,
-      label: isLast ? 'Misión Control' : `U${unitNum}`,
+      label: cfg?.label ?? `U${index}`,
       fullname: course.fullname,
       status,
       progress: Math.round(progress),
-      courseUrl: course.viewurl ?? `${config.baseUrl}/course/view.php?id=${course.id}`,
-      icon: assignIcon(unitNum, isLast),
+      courseUrl: cfg?.href ?? course.viewurl ?? `${config.baseUrl}/course/view.php?id=${course.id}`,
+      icon: cfg?.icon ?? 'gear',
     };
   });
 
-  // The "sun" node — Open Scentia — is a fixed entry point
-  // In production, this could be fetched as a separate course or configured
+  // Sun node from config
   const sun: ProgramUnit = {
     id: 0,
     shortname: `${programPrefix}-OS`,
-    label: 'Open Scentia',
-    fullname: 'Open Scentia',
+    label: programConfig.sun.label,
+    fullname: programConfig.sun.label,
     status: 'completed',
     progress: 100,
-    courseUrl: `${config.baseUrl}`,
-    icon: 'sun',
+    courseUrl: programConfig.sun.href ?? config.baseUrl,
+    icon: programConfig.sun.icon,
   };
 
   return {
     id: 0,
     shortname: programPrefix,
-    fullname: programPrefix,
+    fullname: programConfig.fullname,
     sun,
     units,
   };
@@ -70,35 +70,14 @@ export async function loadProgramFromMoodle(config: IframeConfig): Promise<Progr
 
 /** Extract unit number from fullname like "C450 – Unidad 3. Visión de túnel" → 3 */
 function extractUnitNumber(fullname: string): number {
-  // "Misión control" gets a high number to sort last
-  if (isMisionControl(fullname)) return 999;
+  if (/misi[oó]n\s+control/i.test(fullname)) return 999;
   const match = fullname.match(/Unidad\s+(\d+)/i);
   return match ? parseInt(match[1], 10) : 0;
 }
 
-function isMisionControl(fullname: string): boolean {
-  return /misi[oó]n\s+control/i.test(fullname);
-}
-
-/**
- * Infer unit status from Moodle completion data.
- * Logic: completed courses are 'completed', the first non-completed is 'in-progress',
- * everything after is 'locked'.
- */
-function inferStatus(
-  completed: boolean,
-  progress: number,
-  _index: number,
-  _allCourses: Array<{ completed: boolean; progress: number | null }>,
-): UnitStatus {
+/** Infer unit status from Moodle completion data */
+function inferStatus(completed: boolean, progress: number): UnitStatus {
   if (completed || progress >= 100) return 'completed';
   if (progress > 0) return 'in-progress';
   return 'locked';
-}
-
-/** Assign an icon based on unit number and type */
-function assignIcon(unitNum: number, isFinal: boolean): UnitIcon {
-  if (isFinal) return 'trophy';
-  const icons: UnitIcon[] = ['flag', 'signal', 'car', 'tunnel', 'search', 'signal', 'alert'];
-  return icons[unitNum] ?? 'gear';
 }
