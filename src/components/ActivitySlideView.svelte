@@ -47,7 +47,7 @@
     <div class="image-card">
       {#if slide.body}
         <div class="image-text">
-          {#each slide.body.split('\n') as line}
+          {#each slide.body.split('\n') as line, li (li)}
             {#if line.startsWith('**') && line.endsWith('**')}
               <p class="image-text-bold">{line.slice(2, -2)}</p>
             {:else if line.startsWith('• ')}
