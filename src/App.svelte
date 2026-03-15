@@ -5,7 +5,9 @@
   import { loadProgramFromMoodle } from './lib/program-loader';
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
+  import { getEmulatedProgram, toggleEmulator, isEmulatorActive } from './lib/emulator.svelte';
   import SpiralNavigator from './components/SpiralNavigator.svelte';
+  import EmulatorToggle from './components/EmulatorToggle.svelte';
 
   let state = $state<AppState>({ kind: 'loading' });
 
@@ -35,6 +37,10 @@
       console.warn('Using mock data:', err);
       state = { kind: 'ready', data: MOCK_PROGRAM };
     }
+    // Auto-start emulator
+    if (state.kind === 'ready' && !isEmulatorActive()) {
+      toggleEmulator(state.data);
+    }
   });
 </script>
 
@@ -57,7 +63,8 @@
       </button>
     </div>
   {:else}
-    <SpiralNavigator program={state.data} />
+    <SpiralNavigator program={getEmulatedProgram() ?? state.data} />
+    <EmulatorToggle program={state.data} />
   {/if}
 </main>
 

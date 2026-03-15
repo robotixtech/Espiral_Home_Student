@@ -183,7 +183,8 @@
       {/each}
 
       <!-- Sun -->
-      <SunNode unit={program.sun} cx={spiral.cx} cy={spiral.cy} />
+      <SunNode unit={program.sun} cx={spiral.cx} cy={spiral.cy}
+               allCompleted={program.units.every(u => u.status === 'completed')} />
 
       <!-- Spiral path -->
       <path d={fullPath} fill="none" stroke={t.spiral} stroke-width="3"

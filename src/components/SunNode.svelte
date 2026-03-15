@@ -7,9 +7,10 @@
     unit: ProgramUnit;
     cx: number;
     cy: number;
+    allCompleted?: boolean;
   }
 
-  let { unit, cx, cy }: Props = $props();
+  let { unit, cx, cy, allCompleted = false }: Props = $props();
   const r = 42;
   const theme = $derived(getTheme());
   const s = $derived(theme.sun);
@@ -76,7 +77,7 @@
           style="transform-origin: 0 0;" />
 
   <!-- Main body -->
-  <circle cx="0" cy="0" r={r} fill="url(#sun-grad)" filter="url(#sun-glow)" />
+  <circle class:sun-heartbeat={allCompleted} cx="0" cy="0" r={r} fill="url(#sun-grad)" filter="url(#sun-glow)" />
 
   <!-- 3D highlight -->
   <circle cx="-6" cy="-8" r={r * 0.35} fill={s.highlight} />
@@ -129,4 +130,17 @@
     animation: sun-wave 1.5s ease-out 0.8s infinite;
   }
 
+  /* Heartbeat when all units completed */
+  .sun-heartbeat {
+    animation: sun-heartbeat 2s ease-in-out infinite;
+    transform-origin: 0 0;
+  }
+  @keyframes sun-heartbeat {
+    0%   { transform: scale(1); }
+    10%  { transform: scale(1.08); }
+    20%  { transform: scale(1); }
+    30%  { transform: scale(1.05); }
+    40%  { transform: scale(1); }
+    100% { transform: scale(1); }
+  }
 </style>
