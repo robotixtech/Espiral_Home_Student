@@ -16,7 +16,7 @@
     const s = document.body.style;
     s.backgroundColor = theme.body;
     s.color = theme.text.primary;
-    s.backgroundImage = `url('/background.png')`;
+    s.backgroundImage = `url('${import.meta.env.BASE_URL}background.png')`;
     s.backgroundPosition = 'bottom center';
     s.backgroundRepeat = 'no-repeat';
     s.backgroundSize = '100vw auto';
@@ -37,7 +37,7 @@
 </script>
 
 <header class="site-header">
-  <img src="/robotix_logo.png" alt="Robotix" class="header-logo" />
+  <img src="{import.meta.env.BASE_URL}robotix_logo.png" alt="Robotix" class="header-logo" />
 </header>
 
 <main class="app-root">
