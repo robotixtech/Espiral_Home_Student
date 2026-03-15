@@ -51,34 +51,29 @@
         0%, 100% {{ opacity: 0.15; transform: scale(1); }}
         50% {{ opacity: 0.25; transform: scale(1.08); }}
       }}
-      @keyframes sun-wave-1 {{
-        0% {{ r: {r + 10}; opacity: 0.6; stroke-width: 2; }}
-        100% {{ r: {r + 45}; opacity: 0; stroke-width: 0.3; }}
-      }}
-      @keyframes sun-wave-2 {{
-        0% {{ r: {r + 10}; opacity: 0.5; stroke-width: 1.8; }}
-        100% {{ r: {r + 45}; opacity: 0; stroke-width: 0.3; }}
-      }}
-      @keyframes sun-wave-3 {{
-        0% {{ r: {r + 10}; opacity: 0.4; stroke-width: 1.5; }}
-        100% {{ r: {r + 45}; opacity: 0; stroke-width: 0.3; }}
+      @keyframes sun-wave {{
+        0% {{ transform: scale(1); opacity: 0.6; stroke-width: 2; }}
+        100% {{ transform: scale(2.2); opacity: 0; stroke-width: 0.3; }}
       }}
     </style>
   </defs>
 
   <!-- Ambient pulse rings -->
   <circle class="orbit-ring ring-inner" cx="0" cy="0" r={r + 14} fill="none" stroke={s.pulse} stroke-width="0.6" opacity="0.15"
-          style="animation: sun-pulse 4s ease-in-out infinite; transform-origin: center;" />
+          style="animation: sun-pulse 4s ease-in-out infinite; transform-origin: 0 0;" />
   <circle class="orbit-ring ring-outer" cx="0" cy="0" r={r + 26} fill="none" stroke={s.pulse} stroke-width="0.4" opacity="0.08"
-          style="animation: sun-pulse 4s ease-in-out 1s infinite; transform-origin: center;" />
+          style="animation: sun-pulse 4s ease-in-out 1s infinite; transform-origin: 0 0;" />
 
   <!-- Hover: expanding wave rings (3 staggered) -->
-  <circle class="hover-wave w1" cx="0" cy="0" r={r + 10}
-          fill="none" stroke={s.g2} stroke-width="0" opacity="0" />
-  <circle class="hover-wave w2" cx="0" cy="0" r={r + 10}
-          fill="none" stroke={s.g3} stroke-width="0" opacity="0" />
-  <circle class="hover-wave w3" cx="0" cy="0" r={r + 10}
-          fill="none" stroke={s.g4} stroke-width="0" opacity="0" />
+  <circle class="hover-wave w1" cx="0" cy="0" r={r * 0.6}
+          fill="none" stroke={s.g2} stroke-width="0" opacity="0"
+          style="transform-origin: 0 0;" />
+  <circle class="hover-wave w2" cx="0" cy="0" r={r * 0.6}
+          fill="none" stroke={s.g3} stroke-width="0" opacity="0"
+          style="transform-origin: 0 0;" />
+  <circle class="hover-wave w3" cx="0" cy="0" r={r * 0.6}
+          fill="none" stroke={s.g4} stroke-width="0" opacity="0"
+          style="transform-origin: 0 0;" />
 
   <!-- Main body -->
   <circle cx="0" cy="0" r={r} fill="url(#sun-grad)" filter="url(#sun-glow)" />
@@ -125,13 +120,13 @@
     pointer-events: none;
   }
   .sun-node:hover .w1 {
-    animation: sun-wave-1 1.5s ease-out infinite;
+    animation: sun-wave 1.5s ease-out infinite;
   }
   .sun-node:hover .w2 {
-    animation: sun-wave-2 1.5s ease-out 0.4s infinite;
+    animation: sun-wave 1.5s ease-out 0.4s infinite;
   }
   .sun-node:hover .w3 {
-    animation: sun-wave-3 1.5s ease-out 0.8s infinite;
+    animation: sun-wave 1.5s ease-out 0.8s infinite;
   }
 
 </style>

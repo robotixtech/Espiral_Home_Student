@@ -83,8 +83,8 @@
 
   .site-header {
     width: 100%;
-    height: 48px;
-    min-height: 48px;
+    height: 61px;
+    min-height: 61px;
     background: #0075BF;
     position: fixed;
     top: 0;
@@ -102,7 +102,7 @@
 
   .app-root {
     position: fixed;
-    top: 48px;
+    top: 61px;
     left: 0;
     right: 0;
     bottom: 0;

@@ -75,7 +75,7 @@ export const C450_CONFIG: ProgramConfig = {
       displayName: 'Misión Control',
       fullname: 'C450 – Misión control',
       icon: 'gear',
-      href: null,
+      href: 'https://www.robotix.com',
       status: 'completed',
       progress: 100,
     },

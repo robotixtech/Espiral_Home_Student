@@ -106,7 +106,7 @@
 
   function handleUnitClick(unit: (typeof program.units)[0]) {
     if (unit.status === 'locked') return;
-    if (unit.courseUrl && unit.courseUrl !== '#') window.open(unit.courseUrl, '_top');
+    if (unit.courseUrl && unit.courseUrl !== '#') window.open(unit.courseUrl, '_blank');
   }
 
   const t = $derived(getTheme());
@@ -204,7 +204,7 @@
            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') handleUnitClick(unit); }}>
           <UnitNode
             {unit}
-            x={positions[i].x} y={positions[i].y}
+            x={positions[i].x} y={positions[i].y + (i === 1 ? 10 : 0)}
             galacticCenterX={spiral.cx} galacticCenterY={spiral.cy}
             size={nodeSize} index={i}
           />
