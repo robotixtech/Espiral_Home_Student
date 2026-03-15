@@ -61,28 +61,29 @@
 
   const vb = $derived.by(() => {
     const containerAR = cW / cH;
-    const contentAR = CONTENT.w / CONTENT.h;
 
+    // The viewBox always matches the container AR exactly.
+    // This means `meet` fills 100% width AND 100% height (no gaps).
+    // We keep the content width as the baseline and compute height from AR.
     let vbW: number, vbH: number;
-    if (containerAR >= contentAR) {
-      // Landscape or wider: expand width to match
-      vbH = CONTENT.h;
-      vbW = vbH * containerAR;
+
+    if (containerAR >= 1) {
+      // Landscape/desktop: content width as base
+      vbW = CONTENT.w;
+      vbH = vbW / containerAR;
     } else {
-      // Portrait: use a narrower virtual width so the galaxy renders bigger.
-      // Instead of keeping full content width (990), shrink it based on how
-      // portrait the screen is. This makes the galaxy fill more of the screen.
-      const portraitFactor = Math.max(0.65, containerAR / contentAR);
-      vbW = CONTENT.w * portraitFactor;
+      // Portrait: content width as base, height expands
+      vbW = CONTENT.w;
       vbH = vbW / containerAR;
     }
 
-    const cx = CONTENT.x + CONTENT.w / 2;
-    const cy = CONTENT.y + CONTENT.h / 2;
+    // Center on the main galaxy (spiral center)
+    const centerX = spiral.cx;
+    const centerY = spiral.cy;
 
     return {
-      x: cx - vbW / 2,
-      y: cy - vbH / 2,
+      x: centerX - vbW / 2,
+      y: centerY - vbH / 2,
       w: vbW,
       h: vbH,
     };
@@ -91,19 +92,19 @@
   // Is portrait?
   const isPortrait = $derived(cW / cH < 1.0);
 
-  // Distant galaxy positions — adapt to portrait/landscape
-  const dgNext = $derived(isPortrait
-    ? { cx: vb.x + vb.w * 0.30, cy: vb.y + vb.h * 0.07 }
-    : { cx: W * 0.13, cy: H * 0.15 }
-  );
-  const dgFuture = $derived(isPortrait
-    ? { cx: vb.x + vb.w * 0.72, cy: vb.y + vb.h * 0.04 }
-    : { cx: W * 0.90, cy: H * 0.10 }
-  );
-  const dgPrev = $derived(isPortrait
-    ? { cx: vb.x + vb.w * 0.30, cy: vb.y + vb.h * 0.93 }
-    : { cx: W * 0.12, cy: H * 0.88 }
-  );
+  // Distant galaxy positions — always relative to the dynamic viewBox
+  const dgNext = $derived({
+    cx: vb.x + vb.w * (isPortrait ? 0.30 : 0.10),
+    cy: vb.y + vb.h * (isPortrait ? 0.10 : 0.12),
+  });
+  const dgFuture = $derived({
+    cx: vb.x + vb.w * (isPortrait ? 0.72 : 0.88),
+    cy: vb.y + vb.h * (isPortrait ? 0.06 : 0.08),
+  });
+  const dgPrev = $derived({
+    cx: vb.x + vb.w * (isPortrait ? 0.30 : 0.15),
+    cy: vb.y + vb.h * (isPortrait ? 0.90 : 0.88),
+  });
 
   function handleUnitClick(unit: (typeof program.units)[0]) {
     if (unit.status === 'locked') return;
@@ -118,7 +119,7 @@
     <svg
       viewBox="{vb.x} {vb.y} {vb.w} {vb.h}"
       class="galaxy-svg"
-      preserveAspectRatio="xMidYMid slice"
+      preserveAspectRatio="xMidYMid meet"
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
