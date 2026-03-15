@@ -29,17 +29,34 @@
     <line x1="12" y1="2" x2="12" y2="12"/>
   </svg>
 {:else if icon === 'car'}
+  <!-- Simple Mars rover -->
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M5 17h14v-5l-2-5H7L5 12z"/>
-    <circle cx="7.5" cy="17.5" r="1.5"/>
-    <circle cx="16.5" cy="17.5" r="1.5"/>
-    <path d="M3 17h2M19 17h2"/>
+    <!-- Body -->
+    <rect x="4" y="10" width="16" height="5" rx="2"/>
+    <!-- Mast + camera -->
+    <line x1="8" y1="10" x2="8" y2="6"/>
+    <circle cx="8" cy="5" r="1.5"/>
+    <!-- Wheels -->
+    <circle cx="7" cy="18" r="2.5"/>
+    <circle cx="17" cy="18" r="2.5"/>
+    <!-- Axles -->
+    <line x1="7" y1="15" x2="7" y2="15.5"/>
+    <line x1="17" y1="15" x2="17" y2="15.5"/>
   </svg>
 {:else if icon === 'tunnel'}
+  <!-- Tunnel: semicircular entrance with road vanishing point -->
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="12" cy="12" r="10"/>
-    <circle cx="12" cy="12" r="6"/>
-    <circle cx="12" cy="12" r="2"/>
+    <!-- Outer arch -->
+    <path d="M2 20V10a10 10 0 0 1 20 0v10"/>
+    <!-- Inner arch -->
+    <path d="M6 20V11a6 6 0 0 1 12 0v9"/>
+    <!-- Road lines converging to center -->
+    <line x1="8" y1="20" x2="11" y2="13"/>
+    <line x1="16" y1="20" x2="13" y2="13"/>
+    <!-- Center dashes -->
+    <line x1="12" y1="20" x2="12" y2="14" stroke-dasharray="1.5 1.5"/>
+    <!-- Ground line -->
+    <line x1="2" y1="20" x2="22" y2="20"/>
   </svg>
 {:else if icon === 'search'}
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -47,12 +64,14 @@
     <line x1="21" y1="21" x2="16.65" y2="16.65"/>
   </svg>
 {:else if icon === 'signal'}
+  <!-- Ultrasonic waves radiating upward -->
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M2 12l5-5v10z"/>
-    <path d="M10 7l0 10"/>
-    <path d="M14 4l0 16"/>
-    <path d="M18 8l0 8"/>
-    <path d="M22 6l0 12"/>
+    <g transform="rotate(270, 12, 12)">
+    <circle cx="4" cy="12" r="1.5" fill={color} stroke="none"/>
+    <path d="M9 6c3.5 2 3.5 10 0 12"/>
+    <path d="M13 3c5.5 3 5.5 15 0 18"/>
+    <path d="M17 0.5c7 4 7 19 0 23"/>
+    </g>
   </svg>
 {:else if icon === 'alert'}
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -61,11 +80,22 @@
     <line x1="12" y1="17" x2="12.01" y2="17"/>
   </svg>
 {:else if icon === 'trophy'}
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-    <path d="M4 22h16"/>
-    <path d="M10 22V18a2 2 0 0 1 4 0v4"/>
-    <rect x="6" y="2" width="12" height="10" rx="2"/>
+  <!-- Trophy with star and sparkles -->
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none">
+    <!-- Cup body -->
+    <path d="M7 3h10v8c0 2.8-2.2 5-5 5s-5-2.2-5-5V3z" opacity="0.9"/>
+    <!-- Left handle -->
+    <path d="M7 5H5.5C4.1 5 3 6.3 3 8s1.1 3 2.5 3H7" fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round"/>
+    <!-- Right handle -->
+    <path d="M17 5h1.5C19.9 5 21 6.3 21 8s-1.1 3-2.5 3H17" fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round"/>
+    <!-- Stem -->
+    <path d="M10 16h4v2H10z" opacity="0.8"/>
+    <!-- Base -->
+    <rect x="8" y="18" width="8" height="2.5" rx="1" opacity="0.7"/>
+    <!-- Star -->
+    <path d="M12 6l1.1 2.2 2.4.3-1.7 1.7.4 2.4L12 11.4l-2.2 1.2.4-2.4-1.7-1.7 2.4-.3z" fill="rgba(255,255,255,0.85)" stroke="none"/>
+    <!-- Sparkles -->
+    <circle cx="15.5" cy="5.5" r="0.7" fill="rgba(255,255,255,0.7)"/>
+    <circle cx="16.5" cy="7.5" r="0.5" fill="rgba(255,255,255,0.5)"/>
   </svg>
 {/if}

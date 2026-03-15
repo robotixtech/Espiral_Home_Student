@@ -240,7 +240,7 @@
   }
 
   :global(.title-orbit-text) {
-    font: 900 28px/1 'Inter', system-ui, sans-serif;
+    font: 900 28px/1 'Rubik', system-ui, sans-serif;
     letter-spacing: 5px;
     text-transform: uppercase;
   }

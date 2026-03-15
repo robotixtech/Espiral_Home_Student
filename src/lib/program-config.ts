@@ -65,8 +65,8 @@ export const C450_CONFIG: ProgramConfig = {
 
   sun: {
     label: 'Open Scentia',
-    icon: 'sun',
-    href: null,
+    icon: 'trophy',
+    href: 'https://www.openscientia.com/quanta',
   },
 
   units: [

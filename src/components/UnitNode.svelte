@@ -54,6 +54,13 @@
   const labelBelow = $derived(y >= galacticCenterY);
   const labelGap = 12;
   const isActive = $derived(unit.status !== 'locked');
+
+  let selected = $state(false);
+  function onSelect() {
+    if (!isActive) return;
+    selected = true;
+    setTimeout(() => { selected = false; }, 500);
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -61,8 +68,10 @@
   class="node"
   class:clickable={isActive}
   class:locked={!isActive}
+  class:selected={selected}
   transform="translate({x}, {y})"
   tabindex={isActive ? 0 : -1}
+  onclick={onSelect}
 >
   <defs>
     <radialGradient id={gradId} cx="35%" cy="35%" r="65%">
@@ -84,6 +93,15 @@
 
   {#if isActive}
     <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" opacity="0.25" />
+    <!-- Hover glow border -->
+    <circle class="halo-ring" cx="0" cy="0" r={r + 5} fill="none"
+            stroke={colors.glow} stroke-width="0.8" opacity="0" />
+    <!-- Selected: soft ambient glow -->
+    <circle class="selected-glow" cx="0" cy="0" r={r + 12} fill="none"
+            stroke={colors.glow} stroke-width="0" opacity="0" />
+    <!-- Selected: solid border -->
+    <circle class="selected-ring" cx="0" cy="0" r={r + 5} fill="none"
+            stroke="#ffffff" stroke-width="0" opacity="0" />
   {/if}
 
   <circle
@@ -165,10 +183,48 @@
 <style>
   .node { cursor: default; outline: none; }
   .node.clickable { cursor: pointer; }
-  .node.clickable:hover { opacity: 0.88; }
+  .node.clickable:hover .halo-ring {
+    opacity: 0.7;
+    stroke-width: 2;
+  }
+
+  .halo-ring {
+    transition: opacity 0.3s ease, stroke-width 0.3s ease;
+    pointer-events: none;
+  }
+  .node.clickable:hover .halo-ring {
+    animation: border-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes border-pulse {
+    0%, 100% { opacity: 0.4; stroke-width: 0.5; }
+    50% { opacity: 0.8; stroke-width: 1.5; }
+  }
+  /* Selected state — solid border + soft ambient glow */
+  .node.selected .halo-ring {
+    animation: none !important;
+    opacity: 0.9;
+    stroke-width: 1.5;
+    transition: opacity 0.3s ease, stroke-width 0.3s ease;
+  }
+  .node.selected .selected-ring {
+    opacity: 0.6;
+    stroke-width: 1;
+    transition: opacity 0.4s ease;
+  }
+  .node.selected .selected-glow {
+    opacity: 0.25;
+    stroke-width: 6;
+    transition: opacity 0.5s ease, stroke-width 0.5s ease;
+  }
+
+  .selected-glow, .selected-ring {
+    pointer-events: none;
+    transition: opacity 0.3s ease, stroke-width 0.3s ease;
+  }
+
   .node.locked { opacity: 0.45; }
   .progress-ring { transition: stroke-dashoffset 1s ease; }
-  .lbl-name { font: 700 16.5px/1 'Inter', system-ui, sans-serif; }
-  .lbl-desc { font: 400 13px/1 'Inter', system-ui, sans-serif; }
-  .lbl-status { font: 600 11px/1 'Inter', system-ui, sans-serif; }
+  .lbl-name { font: 700 16.5px/1 'Rubik', system-ui, sans-serif; }
+  .lbl-desc { font: 400 13px/1 'Rubik', system-ui, sans-serif; }
+  .lbl-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
 </style>

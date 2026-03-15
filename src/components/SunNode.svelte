@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ProgramUnit } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
+  import UnitIcon from './UnitIcon.svelte';
 
   interface Props {
     unit: ProgramUnit;
@@ -20,8 +21,8 @@
   class="sun-node"
   transform="translate({cx}, {cy})"
   tabindex="0"
-  onclick={() => { if (unit.courseUrl && unit.courseUrl !== '#') window.open(unit.courseUrl, '_top'); }}
-  onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' && unit.courseUrl && unit.courseUrl !== '#') window.open(unit.courseUrl, '_top'); }}
+  onclick={() => { if (unit.courseUrl && unit.courseUrl !== '#') window.open(unit.courseUrl, '_blank'); }}
+  onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' && unit.courseUrl && unit.courseUrl !== '#') window.open(unit.courseUrl, '_blank'); }}
 >
   <defs>
     <radialGradient id="sun-grad" cx="40%" cy="38%" r="60%">
@@ -50,14 +51,34 @@
         0%, 100% {{ opacity: 0.15; transform: scale(1); }}
         50% {{ opacity: 0.25; transform: scale(1.08); }}
       }}
+      @keyframes sun-wave-1 {{
+        0% {{ r: {r + 10}; opacity: 0.6; stroke-width: 2; }}
+        100% {{ r: {r + 45}; opacity: 0; stroke-width: 0.3; }}
+      }}
+      @keyframes sun-wave-2 {{
+        0% {{ r: {r + 10}; opacity: 0.5; stroke-width: 1.8; }}
+        100% {{ r: {r + 45}; opacity: 0; stroke-width: 0.3; }}
+      }}
+      @keyframes sun-wave-3 {{
+        0% {{ r: {r + 10}; opacity: 0.4; stroke-width: 1.5; }}
+        100% {{ r: {r + 45}; opacity: 0; stroke-width: 0.3; }}
+      }}
     </style>
   </defs>
 
-  <!-- Pulse rings -->
-  <circle cx="0" cy="0" r={r + 14} fill="none" stroke={s.pulse} stroke-width="0.6" opacity="0.15"
+  <!-- Ambient pulse rings -->
+  <circle class="orbit-ring ring-inner" cx="0" cy="0" r={r + 14} fill="none" stroke={s.pulse} stroke-width="0.6" opacity="0.15"
           style="animation: sun-pulse 4s ease-in-out infinite; transform-origin: center;" />
-  <circle cx="0" cy="0" r={r + 26} fill="none" stroke={s.pulse} stroke-width="0.4" opacity="0.08"
+  <circle class="orbit-ring ring-outer" cx="0" cy="0" r={r + 26} fill="none" stroke={s.pulse} stroke-width="0.4" opacity="0.08"
           style="animation: sun-pulse 4s ease-in-out 1s infinite; transform-origin: center;" />
+
+  <!-- Hover: expanding wave rings (3 staggered) -->
+  <circle class="hover-wave w1" cx="0" cy="0" r={r + 10}
+          fill="none" stroke={s.g2} stroke-width="0" opacity="0" />
+  <circle class="hover-wave w2" cx="0" cy="0" r={r + 10}
+          fill="none" stroke={s.g3} stroke-width="0" opacity="0" />
+  <circle class="hover-wave w3" cx="0" cy="0" r={r + 10}
+          fill="none" stroke={s.g4} stroke-width="0" opacity="0" />
 
   <!-- Main body -->
   <circle cx="0" cy="0" r={r} fill="url(#sun-grad)" filter="url(#sun-glow)" />
@@ -65,20 +86,10 @@
   <!-- 3D highlight -->
   <circle cx="-6" cy="-8" r={r * 0.35} fill={s.highlight} />
 
-  <!-- Icon -->
-  <svg x="-13" y="-13" width="26" height="26" viewBox="0 0 24 24"
-       fill="none" stroke={s.icon} stroke-width="1.6"
-       stroke-linecap="round" stroke-linejoin="round" opacity="0.8">
-    <circle cx="12" cy="12" r="5" />
-    <line x1="12" y1="1" x2="12" y2="3" />
-    <line x1="12" y1="21" x2="12" y2="23" />
-    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-    <line x1="1" y1="12" x2="3" y2="12" />
-    <line x1="21" y1="12" x2="23" y2="12" />
-    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-  </svg>
+  <!-- Icon (from config) -->
+  <g class="sun-icon" transform="translate(-16, -16)" opacity="0.8">
+    <UnitIcon icon={unit.icon} size={32} color={s.icon} />
+  </g>
 
   <!-- Label -->
   <text y={r + 15} text-anchor="middle" fill={s.label} class="sun-label">
@@ -88,6 +99,39 @@
 
 <style>
   .sun-node { cursor: pointer; outline: none; }
-  .sun-node:hover { opacity: 0.92; }
-  .sun-label { font: 700 14.5px/1 'Inter', system-ui, sans-serif; letter-spacing: 0.5px; }
+  .sun-label { font: 700 14.5px/1 'Rubik', system-ui, sans-serif; letter-spacing: 0.5px; }
+
+  /* Orbit rings — subtle +30% on hover */
+  .orbit-ring {
+    transition: opacity 0.4s ease, stroke-width 0.4s ease;
+  }
+  .sun-node:hover .ring-inner {
+    animation: sun-tilt-inner 1.4s ease-in-out infinite !important;
+  }
+  .sun-node:hover .ring-outer {
+    animation: sun-tilt-outer 1.4s ease-in-out 0.3s infinite !important;
+  }
+  @keyframes sun-tilt-inner {
+    0%, 100% { opacity: 0.15; stroke-width: 0.6; }
+    50% { opacity: 0.45; stroke-width: 1.2; }
+  }
+  @keyframes sun-tilt-outer {
+    0%, 100% { opacity: 0.08; stroke-width: 0.4; }
+    50% { opacity: 0.25; stroke-width: 0.8; }
+  }
+
+  /* Hover waves — 3 expanding rings staggered */
+  .hover-wave {
+    pointer-events: none;
+  }
+  .sun-node:hover .w1 {
+    animation: sun-wave-1 1.5s ease-out infinite;
+  }
+  .sun-node:hover .w2 {
+    animation: sun-wave-2 1.5s ease-out 0.4s infinite;
+  }
+  .sun-node:hover .w3 {
+    animation: sun-wave-3 1.5s ease-out 0.8s infinite;
+  }
+
 </style>
