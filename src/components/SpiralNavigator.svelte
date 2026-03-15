@@ -61,23 +61,21 @@
 
   const vb = $derived.by(() => {
     const containerAR = cW / cH;
+    const contentAR = CONTENT.w / CONTENT.h;
 
-    // The viewBox always matches the container AR exactly.
-    // This means `meet` fills 100% width AND 100% height (no gaps).
-    // We keep the content width as the baseline and compute height from AR.
     let vbW: number, vbH: number;
 
-    if (containerAR >= 1) {
-      // Landscape/desktop: content width as base
-      vbW = CONTENT.w;
-      vbH = vbW / containerAR;
+    if (containerAR >= contentAR) {
+      // Landscape/desktop: keep original proportions, expand width to fill
+      vbH = CONTENT.h;
+      vbW = vbH * containerAR;
     } else {
-      // Portrait: content width as base, height expands
+      // Portrait/tablet: keep content width, expand height to match AR
       vbW = CONTENT.w;
       vbH = vbW / containerAR;
     }
 
-    // Center on the main galaxy (spiral center)
+    // Center on the main galaxy
     const centerX = spiral.cx;
     const centerY = spiral.cy;
 
