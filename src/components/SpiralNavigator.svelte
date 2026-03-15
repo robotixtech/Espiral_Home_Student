@@ -20,7 +20,7 @@
 
   let { program }: Props = $props();
 
-  const W = 970;
+  const W = 1030;
   const H = 728;
 
   const spiral: SpiralConfig = {
@@ -121,7 +121,7 @@
       </defs>
 
       <!-- Background -->
-      <rect width={W} height={H} fill="url(#bg-grad)" rx="16" opacity="0.85" />
+      <rect width={W} height={H} fill="url(#bg-grad)" opacity="0.85" />
 
 
       <!-- === PROGRAM TITLE — curved along outermost orbit === -->
