@@ -69,8 +69,11 @@
       vbH = CONTENT.h;
       vbW = vbH * containerAR;
     } else {
-      // Portrait or taller: expand height to match
-      vbW = CONTENT.w;
+      // Portrait: use a narrower virtual width so the galaxy renders bigger.
+      // Instead of keeping full content width (990), shrink it based on how
+      // portrait the screen is. This makes the galaxy fill more of the screen.
+      const portraitFactor = Math.max(0.55, containerAR / contentAR);
+      vbW = CONTENT.w * portraitFactor;
       vbH = vbW / containerAR;
     }
 
