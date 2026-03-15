@@ -58,7 +58,7 @@ const DARK: ThemeColors = {
   moon: { light: '#d1d5db', mid: '#9ca3af', dark: '#4b5563' },
   orbit: 'rgba(148,163,184,0.07)',
   spiral: 'rgba(148,163,184,0.13)',
-  progress: { stroke: '#7c6cf7', glow: '#7c6cf7', glowOpacity: '0.45' },
+  progress: { stroke: '#0075BF', glow: '#0075BF', glowOpacity: '0.45' },
   sun: {
     g1: '#fef3c7', g2: '#fbbf24', g3: '#f59e0b', g4: '#d97706',
     glow: '#f59e0b', glowOpacity: '0.3',
@@ -102,7 +102,7 @@ const LIGHT: ThemeColors = {
   moon: { light: '#e2e8f0', mid: '#cbd5e1', dark: '#94a3b8' },
   orbit: 'rgba(71,85,105,0.08)',
   spiral: 'rgba(71,85,105,0.12)',
-  progress: { stroke: '#6d5edb', glow: '#6d5edb', glowOpacity: '0.3' },
+  progress: { stroke: '#0075BF', glow: '#0075BF', glowOpacity: '0.3' },
   sun: {
     g1: '#fef9c3', g2: '#fbbf24', g3: '#f59e0b', g4: '#d97706',
     glow: '#f59e0b', glowOpacity: '0.2',

@@ -71,8 +71,8 @@ export const C450_CONFIG: ProgramConfig = {
 
   units: [
     {
-      label: 'Misión Control',
-      displayName: 'Onboarding',
+      label: 'Onboarding',
+      displayName: 'Misión Control',
       fullname: 'C450 – Misión control',
       icon: 'gear',
       href: null,
@@ -80,8 +80,8 @@ export const C450_CONFIG: ProgramConfig = {
       progress: 100,
     },
     {
-      label: 'U0',
-      displayName: 'Plataforma de lanzamiento',
+      label: 'Plataforma de lanzamiento',
+      displayName: 'U0',
       fullname: 'C450 – Unidad 0. Plataforma de lanzamiento',
       icon: 'flag',
       href: null,
@@ -89,8 +89,8 @@ export const C450_CONFIG: ProgramConfig = {
       progress: 100,
     },
     {
-      label: 'U1',
-      displayName: 'Lanzamiento de señal',
+      label: 'Lanzamiento de señal',
+      displayName: 'U1',
       fullname: 'C450 – Unidad 1. Lanzamiento de señal',
       icon: 'signal',
       href: null,
@@ -98,8 +98,8 @@ export const C450_CONFIG: ProgramConfig = {
       progress: 100,
     },
     {
-      label: 'U2',
-      displayName: 'Preparado para mover',
+      label: 'Preparado para mover',
+      displayName: 'U2',
       fullname: 'C450 – Unidad 2. Preparado para mover',
       icon: 'car',
       href: null,
@@ -107,8 +107,8 @@ export const C450_CONFIG: ProgramConfig = {
       progress: 100,
     },
     {
-      label: 'U3',
-      displayName: 'Visión de túnel',
+      label: 'Visión de túnel',
+      displayName: 'U3',
       fullname: 'C450 – Unidad 3. Visión de túnel',
       icon: 'tunnel',
       href: null,
@@ -116,8 +116,8 @@ export const C450_CONFIG: ProgramConfig = {
       progress: 45,
     },
     {
-      label: 'U4',
-      displayName: 'Análisis profundo',
+      label: 'Análisis profundo',
+      displayName: 'U4',
       fullname: 'C450 – Unidad 4. Análisis profundo',
       icon: 'search',
       href: null,
@@ -125,8 +125,8 @@ export const C450_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U5',
-      displayName: 'Señales inteligentes',
+      label: 'Señales inteligentes',
+      displayName: 'U5',
       fullname: 'C450 – Unidad 5. Señales inteligentes',
       icon: 'signal',
       href: null,
@@ -134,8 +134,8 @@ export const C450_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U6',
-      displayName: 'Respuesta a emergencias',
+      label: 'Respuesta a emergencias',
+      displayName: 'U6',
       fullname: 'C450 – Unidad 6. Respuesta a emergencias',
       icon: 'alert',
       href: null,
@@ -161,8 +161,8 @@ export const C550_CONFIG: ProgramConfig = {
 
   units: [
     {
-      label: 'Misión Control',
-      displayName: 'Onboarding',
+      label: 'Onboarding',
+      displayName: 'Misión Control',
       fullname: 'C550 – Misión control',
       icon: 'gear',
       href: null,
@@ -170,8 +170,8 @@ export const C550_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U0',
-      displayName: 'Plataforma de lanzamiento',
+      label: 'Plataforma de lanzamiento',
+      displayName: 'U0',
       fullname: 'C550 – Unidad 0. Plataforma de lanzamiento',
       icon: 'flag',
       href: null,
@@ -179,8 +179,8 @@ export const C550_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U1',
-      displayName: 'Puesta en marcha de la base Terra',
+      label: 'Puesta en marcha de la base Terra',
+      displayName: 'U1',
       fullname: 'C550 – Unidad 1. Puesta en marcha de la base Terra',
       icon: 'power',
       href: null,
@@ -188,8 +188,8 @@ export const C550_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U2',
-      displayName: 'Entrenamiento de sensores',
+      label: 'Entrenamiento de sensores',
+      displayName: 'U2',
       fullname: 'C550 – Unidad 2. Entrenamiento de sensores',
       icon: 'search',
       href: null,
@@ -197,8 +197,8 @@ export const C550_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U3',
-      displayName: 'El tiempo lo es todo',
+      label: 'El tiempo lo es todo',
+      displayName: 'U3',
       fullname: 'C550 – Unidad 3. El tiempo lo es todo',
       icon: 'gear',
       href: null,
@@ -206,8 +206,8 @@ export const C550_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U4',
-      displayName: 'Repetición desde la base Aqua',
+      label: 'Repetición desde la base Aqua',
+      displayName: 'U4',
       fullname: 'C550 – Unidad 4. Repetición desde la base Aqua',
       icon: 'signal',
       href: null,
@@ -215,8 +215,8 @@ export const C550_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U5',
-      displayName: 'Respuesta inteligente al océano',
+      label: 'Respuesta inteligente al océano',
+      displayName: 'U5',
       fullname: 'C550 – Unidad 5. Respuesta inteligente al océano',
       icon: 'alert',
       href: null,
@@ -224,8 +224,8 @@ export const C550_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U6',
-      displayName: 'Robots reactivos',
+      label: 'Robots reactivos',
+      displayName: 'U6',
       fullname: 'C550 – Unidad 6. Robots reactivos',
       icon: 'car',
       href: null,
@@ -251,8 +251,8 @@ export const C650_CONFIG: ProgramConfig = {
 
   units: [
     {
-      label: 'Misión Control',
-      displayName: 'Onboarding',
+      label: 'Onboarding',
+      displayName: 'Misión Control',
       fullname: 'C650 – Misión control',
       icon: 'gear',
       href: null,
@@ -260,8 +260,8 @@ export const C650_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U0',
-      displayName: 'Plataforma de lanzamiento',
+      label: 'Plataforma de lanzamiento',
+      displayName: 'U0',
       fullname: 'C650 – Unidad 0. Plataforma de lanzamiento',
       icon: 'flag',
       href: null,
@@ -269,8 +269,8 @@ export const C650_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U1',
-      displayName: 'Robots de alerta de emergencia',
+      label: 'Robots de alerta de emergencia',
+      displayName: 'U1',
       fullname: 'C650 – Unidad 1. Robots de alerta de emergencia',
       icon: 'alert',
       href: null,
@@ -278,8 +278,8 @@ export const C650_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U2',
-      displayName: 'Sistemas de agricultura inteligente',
+      label: 'Sistemas de agricultura inteligente',
+      displayName: 'U2',
       fullname: 'C650 – Unidad 2. Sistemas de agricultura inteligente',
       icon: 'gear',
       href: null,
@@ -287,8 +287,8 @@ export const C650_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U3',
-      displayName: 'Entrega inteligente',
+      label: 'Entrega inteligente',
+      displayName: 'U3',
       fullname: 'C650 – Unidad 3. Entrega inteligente',
       icon: 'car',
       href: null,
@@ -296,8 +296,8 @@ export const C650_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U4',
-      displayName: 'Exploradores de sensores oceánicos',
+      label: 'Exploradores de sensores oceánicos',
+      displayName: 'U4',
       fullname: 'C650 – Unidad 4. Exploradores de sensores oceánicos',
       icon: 'search',
       href: null,
@@ -305,8 +305,8 @@ export const C650_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U5',
-      displayName: 'Control de comunicaciones',
+      label: 'Control de comunicaciones',
+      displayName: 'U5',
       fullname: 'C650 – Unidad 5. Control de comunicaciones',
       icon: 'signal',
       href: null,
@@ -314,8 +314,8 @@ export const C650_CONFIG: ProgramConfig = {
       progress: 0,
     },
     {
-      label: 'U6',
-      displayName: 'Clasificación inteligente',
+      label: 'Clasificación inteligente',
+      displayName: 'U6',
       fullname: 'C650 – Unidad 6. Clasificación inteligente',
       icon: 'tunnel',
       href: null,
@@ -341,8 +341,8 @@ export const C350_CONFIG: ProgramConfig = {
 
   units: [
     {
-      label: 'Misión Control',
-      displayName: 'Onboarding',
+      label: 'Onboarding',
+      displayName: 'Misión Control',
       fullname: 'C350 – Misión control',
       icon: 'gear',
       href: null,
@@ -350,8 +350,8 @@ export const C350_CONFIG: ProgramConfig = {
       progress: 100,
     },
     {
-      label: 'U1',
-      displayName: 'Puesta en marcha de la base Terra',
+      label: 'Puesta en marcha de la base Terra',
+      displayName: 'U1',
       fullname: 'C350 – Unidad 1. Puesta en marcha de la base Terra',
       icon: 'power',
       href: null,
@@ -359,8 +359,8 @@ export const C350_CONFIG: ProgramConfig = {
       progress: 100,
     },
     {
-      label: 'U2',
-      displayName: 'Exploración',
+      label: 'Exploración',
+      displayName: 'U2',
       fullname: 'C350 – Unidad 2. Exploración',
       icon: 'search',
       href: null,
@@ -368,8 +368,8 @@ export const C350_CONFIG: ProgramConfig = {
       progress: 100,
     },
     {
-      label: 'U3',
-      displayName: 'Buen momento',
+      label: 'Buen momento',
+      displayName: 'U3',
       fullname: 'C350 – Unidad 3. Buen momento',
       icon: 'gear',
       href: null,
@@ -377,8 +377,8 @@ export const C350_CONFIG: ProgramConfig = {
       progress: 100,
     },
     {
-      label: 'U4',
-      displayName: 'Alertas de la base acuática',
+      label: 'Alertas de la base acuática',
+      displayName: 'U4',
       fullname: 'C350 – Unidad 4. Alertas de la base acuática',
       icon: 'alert',
       href: null,
@@ -386,8 +386,8 @@ export const C350_CONFIG: ProgramConfig = {
       progress: 100,
     },
     {
-      label: 'U5',
-      displayName: 'Responder y repetir',
+      label: 'Responder y repetir',
+      displayName: 'U5',
       fullname: 'C350 – Unidad 5. Responder y repetir',
       icon: 'signal',
       href: null,
@@ -395,8 +395,8 @@ export const C350_CONFIG: ProgramConfig = {
       progress: 100,
     },
     {
-      label: 'U6',
-      displayName: 'Problemas de temblor',
+      label: 'Problemas de temblor',
+      displayName: 'U6',
       fullname: 'C350 – Unidad 6. Problemas de temblor',
       icon: 'tunnel',
       href: null,

@@ -14,9 +14,17 @@
     scale?: number;
     /** Depth opacity — closer galaxies are more visible */
     opacity?: number;
+    /** Font scale multiplier (1 = default, 0.6 = 40% smaller) */
+    fontScale?: number;
   }
 
-  let { config, cx, cy, scale = 0.35, opacity = 0.45 }: Props = $props();
+  let { config, cx, cy, scale = 0.35, opacity = 0.45, fontScale = 1 }: Props = $props();
+
+  const fs = $derived({
+    label: 17.5 * fontScale,
+    nodeLabel: 10.5 * fontScale,
+    nodeName: 10 * fontScale,
+  });
 
   const theme = $derived(getTheme());
 
@@ -93,20 +101,24 @@
       <text
         y={labelY(pos)}
         text-anchor={labelAnchor(pos)}
-        class="dg-node-label"
         fill={theme.text.secondary}
         opacity="0.8"
+        font-size={fs.nodeLabel}
+        font-weight="400"
+        font-family="Inter, system-ui, sans-serif"
       >
         {cfg?.label ?? ''}
       </text>
 
       <!-- Display name -->
       <text
-        y={labelY(pos) + (pos.y >= 0 ? 11 : -11)}
+        y={labelY(pos) + (pos.y >= 0 ? 11 * fontScale : -11 * fontScale)}
         text-anchor={labelAnchor(pos)}
-        class="dg-node-name"
         fill={theme.text.secondary}
         opacity="0.55"
+        font-size={fs.nodeName}
+        font-weight="400"
+        font-family="Inter, system-ui, sans-serif"
       >
         {cfg?.displayName ?? ''}
       </text>
@@ -114,7 +126,9 @@
   {/each}
 
   <!-- Program name curved along outer orbit -->
-  <text class="dg-label" fill="#ffffff" opacity="0.6">
+  <text fill="#ffffff" opacity="0.6"
+        font-size={fs.label} font-weight="400" letter-spacing="6"
+        font-family="Inter, system-ui, sans-serif" text-transform="uppercase">
     <textPath href="#dg-label-{config.shortname}" startOffset="54%" text-anchor="middle">
       {config.fullname}
     </textPath>
@@ -126,14 +140,14 @@
     transition: opacity 0.3s;
   }
   :global(.dg-label) {
-    font: 700 16px/1 'Inter', system-ui, sans-serif;
+    font: 400 17.5px/1 'Inter', system-ui, sans-serif;
     letter-spacing: 6px;
     text-transform: uppercase;
   }
   :global(.dg-node-label) {
-    font: 700 9.5px/1 'Inter', system-ui, sans-serif;
+    font: 400 10.5px/1 'Inter', system-ui, sans-serif;
   }
   :global(.dg-node-name) {
-    font: 400 9px/1 'Inter', system-ui, sans-serif;
+    font: 400 10px/1 'Inter', system-ui, sans-serif;
   }
 </style>

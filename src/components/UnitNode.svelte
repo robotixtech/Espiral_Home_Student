@@ -163,12 +163,12 @@
 </g>
 
 <style>
-  .node { cursor: default; }
+  .node { cursor: default; outline: none; }
   .node.clickable { cursor: pointer; }
   .node.clickable:hover { opacity: 0.88; }
   .node.locked { opacity: 0.45; }
   .progress-ring { transition: stroke-dashoffset 1s ease; }
-  .lbl-name { font: 700 14px/1 'Inter', system-ui, sans-serif; }
-  .lbl-desc { font: 400 11px/1 'Inter', system-ui, sans-serif; }
-  .lbl-status { font: 600 9px/1 'Inter', system-ui, sans-serif; }
+  .lbl-name { font: 700 16.5px/1 'Inter', system-ui, sans-serif; }
+  .lbl-desc { font: 400 13px/1 'Inter', system-ui, sans-serif; }
+  .lbl-status { font: 600 11px/1 'Inter', system-ui, sans-serif; }
 </style>

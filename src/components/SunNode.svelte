@@ -87,7 +87,7 @@
 </g>
 
 <style>
-  .sun-node { cursor: pointer; }
+  .sun-node { cursor: pointer; outline: none; }
   .sun-node:hover { opacity: 0.92; }
-  .sun-label { font: 700 13px/1 'Inter', system-ui, sans-serif; letter-spacing: 0.5px; }
+  .sun-label { font: 700 14.5px/1 'Inter', system-ui, sans-serif; letter-spacing: 0.5px; }
 </style>

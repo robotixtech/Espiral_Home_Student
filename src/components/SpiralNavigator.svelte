@@ -20,8 +20,8 @@
 
   let { program }: Props = $props();
 
-  const W = 1200;
-  const H = 900;
+  const W = 970;
+  const H = 728;
 
   const spiral: SpiralConfig = {
     cx: W / 2, cy: H * 0.55,
@@ -31,7 +31,7 @@
     turns: 1.3,
   };
 
-  const nodeSize = 62;
+  const nodeSize = 68;
 
   const positions = $derived(getSpiralNodePositions(spiral, program.units.length));
   const fullPath = $derived(getSpiralSvgPath(spiral, 600));
@@ -85,12 +85,35 @@
         <path id="title-orbit"
               d="M {spiral.cx - 380},{spiral.cy} a 380,340 0 1,1 760,0 a 380,340 0 1,1 -760,0 a 380,340 0 1,1 760,0 a 380,340 0 1,1 -760,0" fill="none" />
 
-        <filter id="path-glow" x="-25%" y="-25%" width="150%" height="150%">
-          <feGaussianBlur stdDeviation="5" result="blur" />
-          <feFlood flood-color={t.progress.glow} flood-opacity={t.progress.glowOpacity} result="color" />
-          <feComposite in="color" in2="blur" operator="in" result="glow" />
+        <!-- Title text glow — intense double-layer -->
+        <filter id="title-glow" x="-30%" y="-60%" width="160%" height="220%">
+          <!-- Wide outer glow -->
+          <feGaussianBlur stdDeviation="8" in="SourceGraphic" result="blur-wide" />
+          <feFlood flood-color="#0075BF" flood-opacity="0.7" result="color-wide" />
+          <feComposite in="color-wide" in2="blur-wide" operator="in" result="glow-wide" />
+          <!-- Tight inner glow -->
+          <feGaussianBlur stdDeviation="2" in="SourceGraphic" result="blur-tight" />
+          <feFlood flood-color="#ffffff" flood-opacity="0.4" result="color-tight" />
+          <feComposite in="color-tight" in2="blur-tight" operator="in" result="glow-tight" />
           <feMerge>
-            <feMergeNode in="glow" />
+            <feMergeNode in="glow-wide" />
+            <feMergeNode in="glow-tight" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+
+        <filter id="path-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <!-- Outer wide glow -->
+          <feGaussianBlur stdDeviation="10" in="SourceGraphic" result="blur-outer" />
+          <feFlood flood-color={t.progress.glow} flood-opacity="0.3" result="color-outer" />
+          <feComposite in="color-outer" in2="blur-outer" operator="in" result="glow-outer" />
+          <!-- Inner bright glow -->
+          <feGaussianBlur stdDeviation="4" in="SourceGraphic" result="blur-inner" />
+          <feFlood flood-color="#ffffff" flood-opacity="0.2" result="color-inner" />
+          <feComposite in="color-inner" in2="blur-inner" operator="in" result="glow-inner" />
+          <feMerge>
+            <feMergeNode in="glow-outer" />
+            <feMergeNode in="glow-inner" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
@@ -102,7 +125,7 @@
 
 
       <!-- === PROGRAM TITLE — curved along outermost orbit === -->
-      <text class="title-orbit-text" fill="#ffffff" opacity="1">
+      <text class="title-orbit-text" fill="#ffffff" opacity="1" filter="url(#title-glow)">
         <textPath href="#title-orbit" startOffset="54%" text-anchor="middle">
           {program.fullname}
         </textPath>
@@ -110,28 +133,31 @@
 
       <!-- Distant galaxy: next program (C550) -->
       <!-- C550: nearby galaxy — larger, more visible -->
-      <DistantGalaxy config={NEXT_PROGRAM_CONFIG} cx={W * 0.18} cy={H * 0.15} scale={0.32} opacity={0.50} />
+      <DistantGalaxy config={NEXT_PROGRAM_CONFIG} cx={W * 0.13} cy={H * 0.15} scale={0.32} opacity={0.50} fontScale={0.7} />
       <!-- C650: farther galaxy — smaller, dimmer -->
-      <DistantGalaxy config={FUTURE_PROGRAM_CONFIG} cx={W * 0.82} cy={H * 0.16} scale={0.20} opacity={0.22} />
+      <DistantGalaxy config={FUTURE_PROGRAM_CONFIG} cx={W * 0.90} cy={H * 0.10} scale={0.20} opacity={0.22} fontScale={0.7} />
       <!-- C350: completed program — below C450 -->
-      <DistantGalaxy config={PREV_PROGRAM_CONFIG} cx={W * 0.22} cy={H * 0.88} scale={0.30} opacity={0.35} />
+      <DistantGalaxy config={PREV_PROGRAM_CONFIG} cx={W * 0.12} cy={H * 0.88} scale={0.30} opacity={0.35} fontScale={0.6} />
 
       <!-- Orbit rings -->
       {#each orbitRings as ring}
-        <path d={ring} fill="none" stroke={t.orbit} stroke-width="1" />
+        <path d={ring} fill="none" stroke={t.orbit} stroke-width="1.2" />
       {/each}
 
       <!-- Sun -->
       <SunNode unit={program.sun} cx={spiral.cx} cy={spiral.cy} />
 
       <!-- Spiral path (dashed) -->
-      <path d={fullPath} fill="none" stroke={t.spiral} stroke-width="2.5"
+      <path d={fullPath} fill="none" stroke={t.spiral} stroke-width="3"
             stroke-dasharray="12 8" stroke-linecap="round" />
 
       <!-- Progress arc -->
       {#if progressPath}
         <path d={progressPath} fill="none" stroke={t.progress.stroke}
-              stroke-width="4.5" stroke-linecap="round" filter="url(#path-glow)" />
+              stroke-width="5.5" stroke-linecap="round" filter="url(#path-glow)" />
+        <!-- Fluor highlight — thin bright core -->
+        <path d={progressPath} fill="none" stroke="rgba(255,255,255,0.35)"
+              stroke-width="1.5" stroke-linecap="round" />
       {/if}
 
       <!-- Unit nodes -->
@@ -147,6 +173,7 @@
           />
         </g>
       {/each}
+
     </svg>
   </div>
 
@@ -196,8 +223,8 @@
 
 
   :global(.title-orbit-text) {
-    font: 700 24px/1 'Inter', system-ui, sans-serif;
-    letter-spacing: 10px;
+    font: 900 28px/1 'Inter', system-ui, sans-serif;
+    letter-spacing: 5px;
     text-transform: uppercase;
   }
 </style>
