@@ -44,6 +44,25 @@ Svelte 5 + Vite + TypeScript. Font: Rubik. Deployed to GitHub Pages.
 - **C650** — Future program (distant, upper-right, smallest)
 - **C350** — Completed program (distant, lower-left)
 
+## Why navigation uses callback props (not a global store)
+
+The component is embedded as an iframe in Moodle. Each "view" (Home, UnitDetail, ActivitySlide)
+must be an **independent, encapsulated component** — not a transformation of a shared global state.
+
+**Before (removed):** `navigation.svelte.ts` was a global reactive store imported directly by
+`SpiralNavigator`, `UnitDetailView`, `ActivityNode`, and `ActivitySlideView`. This tightly coupled
+every component to the store and prevented true encapsulation.
+
+**After (current):** Navigation state (`currentView`, `selectedUnit`, `selectedActivity`) lives as
+local `$state` in `App.svelte`. Components communicate upward via **callback props**:
+- `SpiralNavigator` → `onUnitSelected(unit)`
+- `UnitDetailView`  → `onBack()`, `onActivitySelected(activity)`
+- `ActivityNode`    → `onActivitySelected(activity)`
+- `ActivitySlideView` → `onBack()`
+
+`navigation.svelte.ts` was deleted. This is the idiomatic Svelte 5 pattern.
+Do NOT reintroduce a global navigation store.
+
 ## Navigation Flow
 1. **Home** → click non-locked unit with activities → **Unit Detail**
 2. **Home** → click Onboarding → opens `robotix.com` (no activities, uses href)

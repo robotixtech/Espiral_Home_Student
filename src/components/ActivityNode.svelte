@@ -3,8 +3,6 @@
   import UnitIcon from './UnitIcon.svelte';
   import { getTheme } from '../lib/theme.svelte';
   import { STATUS_LABELS } from '../lib/program-config';
-  import { navigateToActivity } from '../lib/navigation.svelte';
-
   const theme = $derived(getTheme());
 
   interface Props {
@@ -13,9 +11,10 @@
     y: number;
     index: number;
     isFirst?: boolean;
+    onActivitySelected: (activity: Activity) => void;
   }
 
-  let { activity, x, y, index, isFirst = false }: Props = $props();
+  let { activity, x, y, index, isFirst = false, onActivitySelected }: Props = $props();
 
   const r = $derived(isFirst ? 44 : 38);
   const isActive = $derived(activity.status !== 'locked');
@@ -50,7 +49,7 @@
     e.stopPropagation();
     if (!isActive) return;
     if (activity.slides && activity.slides.length > 0) {
-      navigateToActivity(activity);
+      onActivitySelected(activity);
     } else if (activity.activityUrl && activity.activityUrl !== '#') {
       window.open(activity.activityUrl, '_blank');
     }

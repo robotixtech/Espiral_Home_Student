@@ -1,13 +1,12 @@
 <script lang="ts">
   import type { Activity } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
-  import { navigateBackToUnit } from '../lib/navigation.svelte';
-
   interface Props {
     activity: Activity;
+    onBack: () => void;
   }
 
-  let { activity }: Props = $props();
+  let { activity, onBack }: Props = $props();
 
   const theme = $derived(getTheme());
   const slides = $derived(activity.slides ?? []);
@@ -23,7 +22,7 @@
 
   function next() {
     if (isLast) {
-      navigateBackToUnit();
+      onBack();
     } else {
       currentSlide++;
     }
@@ -34,7 +33,7 @@
   <div class="overlay" class:light={isFullwidth}></div>
 
   <!-- Back -->
-  <button class="back-btn" class:dark-text={isFullwidth} onclick={() => navigateBackToUnit()}>
+  <button class="back-btn" class:dark-text={isFullwidth} onclick={() => onBack()}>
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
          stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="15 18 9 12 15 6"/>

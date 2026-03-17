@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import type { ProgramUnit, Activity } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
-  import { navigateHome } from '../lib/navigation.svelte';
   import { EMULATOR_CONFIG } from '../lib/emulator-config';
   import UnitCenterNode from './UnitCenterNode.svelte';
   import ActivityNode from './ActivityNode.svelte';
@@ -11,9 +10,11 @@
   interface Props {
     unit: ProgramUnit;
     programShortname: string;
+    onBack: () => void;
+    onActivitySelected: (activity: Activity) => void;
   }
 
-  let { unit, programShortname }: Props = $props();
+  let { unit, programShortname, onBack, onActivitySelected }: Props = $props();
 
   const theme = $derived(getTheme());
 
@@ -219,7 +220,7 @@
 
   function handleContinuar() {
     if (!continuarUnlocked) return;
-    navigateHome();
+    onBack();
   }
 </script>
 
@@ -291,8 +292,8 @@
       transform="translate({backX}, {backY})"
       role="button"
       tabindex="0"
-      onclick={() => navigateHome()}
-      onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); navigateHome(); } }}
+      onclick={() => onBack()}
+      onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onBack(); } }}
     >
       <rect x="-8" y="-16" width="110" height="32" rx="12" fill={theme.bg.center} opacity="0.6" />
       <svg x="0" y="-8" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -346,7 +347,7 @@
     {#each activities as act, i (act.id)}
       {@const pos = activityPositions[i]}
       {#if pos}
-        <ActivityNode activity={act} x={pos.x} y={pos.y} index={i} isFirst={i === 0} />
+        <ActivityNode activity={act} x={pos.x} y={pos.y} index={i} isFirst={i === 0} {onActivitySelected} />
       {/if}
     {/each}
 

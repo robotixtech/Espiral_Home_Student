@@ -1,8 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { ProgramData } from '../lib/types';
+  import type { ProgramData, ProgramUnit } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
-  import { navigateToUnit } from '../lib/navigation.svelte';
   import { PREV_PROGRAM_CONFIG, NEXT_PROGRAM_CONFIG, FUTURE_PROGRAM_CONFIG } from '../lib/program-config';
   import UnitNode from './UnitNode.svelte';
   import SunNode from './SunNode.svelte';
@@ -18,9 +17,10 @@
 
   interface Props {
     program: ProgramData;
+    onUnitSelected: (unit: ProgramUnit) => void;
   }
 
-  let { program }: Props = $props();
+  let { program, onUnitSelected }: Props = $props();
 
   // --- Content coordinate space (fixed, where the galaxy lives) ---
   const W = 1030;
@@ -108,7 +108,7 @@
   function handleUnitClick(unit: (typeof program.units)[0]) {
     if (unit.status === 'locked') return;
     if (unit.activities && unit.activities.length > 0) {
-      navigateToUnit(unit);
+      onUnitSelected(unit);
     } else if (unit.courseUrl && unit.courseUrl !== '#') {
       window.open(unit.courseUrl, '_blank');
     }

@@ -1,18 +1,22 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { AppState } from './lib/types';
+  import type { AppState, ProgramUnit, Activity } from './lib/types';
   import { getIframeConfig } from './lib/token';
   import { loadProgramFromMoodle } from './lib/program-loader';
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
   import { getEmulatedProgram, toggleEmulator, isEmulatorActive } from './lib/emulator.svelte';
-  import { getView, getSelectedUnit, getSelectedActivity } from './lib/navigation.svelte';
   import SpiralNavigator from './components/SpiralNavigator.svelte';
   import UnitDetailView from './components/UnitDetailView.svelte';
   import ActivitySlideView from './components/ActivitySlideView.svelte';
   import EmulatorToggle from './components/EmulatorToggle.svelte';
 
-  let state = $state<AppState>({ kind: 'loading' });
+  // Navigation state — owned here, passed down as callback props
+  let currentView: 'home' | 'unit-detail' | 'activity-slide' = $state('home');
+  let selectedUnit: ProgramUnit | null = $state(null);
+  let selectedActivity: Activity | null = $state(null);
+
+  let appState = $state<AppState>({ kind: 'loading' });
 
   const theme = $derived(getTheme());
 
@@ -34,15 +38,15 @@
     try {
       const config = getIframeConfig();
       const data = await loadProgramFromMoodle(config);
-      state = { kind: 'ready', data };
+      appState = { kind: 'ready', data };
     } catch (err) {
       // Fall back to mock data when no Moodle token is available
       console.warn('Using mock data:', err);
-      state = { kind: 'ready', data: MOCK_PROGRAM };
+      appState = { kind: 'ready', data: MOCK_PROGRAM };
     }
     // Auto-start emulator
-    if (state.kind === 'ready' && !isEmulatorActive()) {
-      toggleEmulator(state.data);
+    if (appState.kind === 'ready' && !isEmulatorActive()) {
+      toggleEmulator(appState.data);
     }
   });
 </script>
@@ -52,37 +56,42 @@
 </header>
 
 <main class="app-root">
-  {#if state.kind === 'loading'}
+  {#if appState.kind === 'loading'}
     <div class="state-container">
       <div class="spinner"></div>
       <p class="state-text" style:color={theme.text.secondary}>Cargando programa...</p>
     </div>
-  {:else if state.kind === 'error'}
+  {:else if appState.kind === 'error'}
     <div class="state-container">
       <div class="error-icon">!</div>
-      <p class="state-text error">{state.message}</p>
+      <p class="state-text error">{appState.message}</p>
       <button class="retry-btn" onclick={() => window.location.reload()}>
         Reintentar
       </button>
     </div>
   {:else}
     {@const allCompleted = {
-      ...state.data,
-      units: state.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100 })),
+      ...appState.data,
+      units: appState.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100 })),
     }}
-    {#if getView() === 'home'}
-      <SpiralNavigator program={getEmulatedProgram() ?? allCompleted} />
-      <EmulatorToggle program={state.data} />
-    {:else if getView() === 'unit-detail'}
-      {@const selectedUnit = getSelectedUnit()}
-      {#if selectedUnit}
-        <UnitDetailView unit={selectedUnit} programShortname={state.data.shortname} />
-      {/if}
-    {:else if getView() === 'activity-slide'}
-      {@const selectedActivity = getSelectedActivity()}
-      {#if selectedActivity}
-        <ActivitySlideView activity={selectedActivity} />
-      {/if}
+    {#if currentView === 'home'}
+      <SpiralNavigator
+        program={getEmulatedProgram() ?? allCompleted}
+        onUnitSelected={(unit) => { selectedUnit = unit; currentView = 'unit-detail'; }}
+      />
+      <EmulatorToggle program={appState.data} />
+    {:else if currentView === 'unit-detail' && selectedUnit}
+      <UnitDetailView
+        unit={selectedUnit}
+        programShortname={appState.data.shortname}
+        onBack={() => { selectedUnit = null; currentView = 'home'; }}
+        onActivitySelected={(activity) => { selectedActivity = activity; currentView = 'activity-slide'; }}
+      />
+    {:else if currentView === 'activity-slide' && selectedActivity}
+      <ActivitySlideView
+        activity={selectedActivity}
+        onBack={() => { selectedActivity = null; currentView = 'unit-detail'; }}
+      />
     {/if}
   {/if}
 </main>
