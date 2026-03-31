@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Mockups — Espiral Home Student</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#020a14;color:#f1f5f9;font-family:'Rubik',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{padding:40px 48px 28px;border-bottom:1px solid #0f2035}
+  header h1{font-size:2rem;font-weight:700;letter-spacing:-0.5px;background:linear-gradient(90deg,#60a5fa,#4ade80);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  header p{color:#94a3b8;margin-top:6px;font-size:1rem}
+  main{flex:1;padding:48px;display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px;max-width:1400px;margin:0 auto;width:100%}
+  .card{background:#0d1b2a;border:1px solid #1e3a5f;border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:14px;transition:transform .2s,box-shadow .2s;cursor:pointer;position:relative;overflow:hidden}
+  .card::before{content:'';position:absolute;inset:0;border-radius:16px;background:radial-gradient(ellipse at 50% 0%,rgba(59,130,246,.08),transparent 65%);pointer-events:none}
+  .card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(59,130,246,.18)}
+  .badge{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;font-size:.75rem;font-weight:700;letter-spacing:.5px}
+  .badge-1{background:rgba(74,222,128,.15);color:#4ade80;border:1px solid #22c55e}
+  .badge-2{background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid #3b82f6}
+  .badge-3{background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid #f59e0b}
+  .badge-4{background:rgba(167,139,250,.15);color:#a78bfa;border:1px solid #8b5cf6}
+  .badge-5{background:rgba(251,113,133,.15);color:#fb7185;border:1px solid #f43f5e}
+  .card-header{display:flex;align-items:center;gap:12px}
+  .card-header h2{font-size:1.1rem;font-weight:600;color:#f1f5f9}
+  .card p{color:#94a3b8;font-size:.9rem;line-height:1.6;flex:1}
+  .card a{display:inline-flex;align-items:center;gap:6px;color:#60a5fa;text-decoration:none;font-size:.9rem;font-weight:600;margin-top:4px;transition:color .2s}
+  .card a:hover{color:#93c5fd}
+  .card a svg{transition:transform .2s}
+  .card a:hover svg{transform:translateX(4px)}
+  .tag{display:inline-block;font-size:.72rem;font-weight:600;padding:2px 10px;border-radius:100px;letter-spacing:.5px;text-transform:uppercase}
+  footer{text-align:center;padding:24px;color:#334155;font-size:.8rem;border-top:1px solid #0f2035}
+  .stars-bg{position:fixed;inset:0;pointer-events:none;z-index:0}
+  body>*:not(.stars-bg){position:relative;z-index:1}
+</style>
+</head>
+<body>
+<canvas class="stars-bg" id="starsCanvas"></canvas>
+
+<header>
+  <h1>Mockups — Espiral Home Student</h1>
+  <p>5 propuestas de diseño alternativas al espiral &nbsp;·&nbsp; Plataforma Robotix C450</p>
+</header>
+
+<main id="cards"></main>
+
+<footer>Robotix Educational Platform &nbsp;·&nbsp; Design Proposals 2026</footer>
+
+<script>
+// Stars background
+const canvas = document.getElementById('starsCanvas');
+const ctx = canvas.getContext('2d');
+const rng = s => () => { s = Math.imul(s ^ s>>>15, 1 | s); s ^= s << 7; return ((s ^ s>>>14) >>> 0) / 2**32; };
+function drawStars() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const rand = rng(42);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  for(let i=0;i<200;i++){
+    const x=rand()*canvas.width, y=rand()*canvas.height, r=rand()*1.2+0.3;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(241,245,249,${rand()*0.4+0.05})`; ctx.fill();
+  }
+}
+drawStars();
+window.addEventListener('resize',drawStars);
+
+const mockups = [
+  { n:1, file:'mockup-1-solar-system.html', title:'Sistema Solar', badge:'badge-1',
+    desc:'El programa C450 como sol central; cada unidad orbita como un planeta con lunas de actividades.' },
+  { n:2, file:'mockup-2-tech-tree.html', title:'Árbol de Habilidades', badge:'badge-2',
+    desc:'Skill tree horizontal de izquierda a derecha; nodos de unidad conectados a sus actividades con curvas bézier.' },
+  { n:3, file:'mockup-3-metro-map.html', title:'Línea de Misiones (Metro)', badge:'badge-3',
+    desc:'Línea de metro curva con estaciones; la unidad en progreso despliega sus actividades en abanico.' },
+  { n:4, file:'mockup-4-constellations.html', title:'Mapa de Constelaciones', badge:'badge-4',
+    desc:'Campo estelar oscuro; cada unidad es una estrella con sus actividades formando una constelación única.' },
+  { n:5, file:'mockup-5-galaxy-clusters.html', title:'Clusters Galácticos', badge:'badge-5',
+    desc:'8 clusters independientes en cuadrícula 4×2; cada cluster = unidad + satélites de actividades en órbita.' },
+];
+
+const container = document.getElementById('cards');
+mockups.forEach(m => {
+  container.innerHTML += `
+  <div class="card" onclick="location.href='${m.file}'">
+    <div class="card-header">
+      <span class="badge ${m.badge}">O${m.n}</span>
+      <h2>${m.title}</h2>
+    </div>
+    <p>${m.desc}</p>
+    <a href="${m.file}">Ver mockup <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  </div>`;
+});
+</script>
+</body>
+</html>

@@ -11,12 +11,23 @@
     y: number;
     index: number;
     isFirst?: boolean;
+    /** Compact mode: smaller node for inline tree view */
+    compact?: boolean;
+    /** Angle (radians) pointing outward from the unit center — used to place the label
+     *  away from the unit so it doesn't overlap with the connecting line or unit circle. */
+    labelAngle?: number;
+    /**
+     * Tiny mode: just a small coloured dot — no icon, no label.
+     * Used for completed / locked activities in the global tree view
+     * so they don't clutter the canvas.
+     */
+    tiny?: boolean;
     onActivitySelected: (activity: Activity) => void;
   }
 
-  let { activity, x, y, index, isFirst = false, onActivitySelected }: Props = $props();
+  let { activity, x, y, index, isFirst = false, compact = false, tiny = false, labelAngle = 0, onActivitySelected }: Props = $props();
 
-  const r = $derived(isFirst ? 44 : 38);
+  const r = $derived(tiny ? 10 : compact ? 22 : (isFirst ? 44 : 38));
   const isActive = $derived(activity.status !== 'locked');
   const isInProgress = $derived(activity.status === 'in-progress');
   const isCompleted = $derived(activity.status === 'completed');
@@ -38,8 +49,18 @@
     return STATUS_LABELS.locked;
   });
 
-  const iconSize = $derived(isFirst ? 26 : 22);
+  const iconSize = $derived(compact ? 14 : (isFirst ? 26 : 22));
   const iconOff = $derived(iconSize / 2);
+
+  // Outward-direction label positioning (shared by tiny and compact modes)
+  const lblCos    = $derived(Math.cos(labelAngle));
+  const lblSin    = $derived(Math.sin(labelAngle));
+  const lblAnchor = $derived(lblCos > 0.3 ? 'start' : lblCos < -0.3 ? 'end' : 'middle');
+  const tinyLblX  = $derived((r + 11) * lblCos);
+  const tinyLblY  = $derived((r + 11) * lblSin);
+  const compLblX  = $derived((r + 14) * lblCos);
+  const compLblY  = $derived((r + 14) * lblSin);
+  const firstWord = $derived(activity.label.split(' ')[0]);
   const sw = 3;
   const pr = $derived(r - sw / 2);
   const circ = $derived(2 * Math.PI * pr);
@@ -83,6 +104,38 @@
   }
 </script>
 
+<!-- ── Tiny mode: just a coloured dot, no icon or label ──────────────── -->
+{#if tiny}
+  <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+  <g
+    class="activity-node"
+    class:clickable={isActive}
+    class:locked={!isActive}
+    transform="translate({x}, {y})"
+    tabindex={isActive ? 0 : -1}
+    role={isActive ? 'button' : undefined}
+    onclick={(e: MouseEvent) => onSelect(e)}
+    onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(e); } }}
+  >
+    <defs>
+      <radialGradient id={gradId} cx="35%" cy="35%" r="65%">
+        <stop offset="0%" stop-color={colors.g1} />
+        <stop offset="100%" stop-color={colors.g2} />
+      </radialGradient>
+    </defs>
+    <circle cx="0" cy="0" r={r}
+            fill="url(#{gradId})"
+            opacity={isActive ? 0.90 : 0.30} />
+    {#if isActive}
+      <text x={tinyLblX} y={tinyLblY} text-anchor={lblAnchor} dominant-baseline="middle"
+            class="act-tiny-label" fill={theme.text.primary}>
+        {firstWord}
+      </text>
+    {/if}
+  </g>
+
+<!-- ── Normal / compact mode ─────────────────────────────────────────── -->
+{:else}
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <g
   class="activity-node"
@@ -165,23 +218,31 @@
     </g>
   {/if}
 
-  <!-- Labels below -->
-  <g transform="translate(0, {r + 12})">
-    {#each labelLines as line, li (li)}
-      <text y={li * 15 + 2} text-anchor="middle" class="act-name" fill={theme.text.primary}>
-        {line}
-      </text>
-    {/each}
-    {#if statusText}
-      {@const labelOffset = labelLines.length * 15 + 6}
-      <rect x="-42" y={labelOffset} width="84" height="18" rx="9"
-            fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
-      <text y={labelOffset + 13} text-anchor="middle" class="act-status" fill={colors.lText}>
-        {statusText}
-      </text>
-    {/if}
-  </g>
+  <!-- Labels — compact: outward direction from unit center to avoid line/unit overlap -->
+  {#if compact}
+    <text x={compLblX} y={compLblY} text-anchor={lblAnchor} dominant-baseline="middle"
+          class="act-name-compact" fill={theme.text.primary}>
+      {firstWord}
+    </text>
+  {:else}
+    <g transform="translate(0, {r + 12})">
+      {#each labelLines as line, li (li)}
+        <text y={li * 15 + 2} text-anchor="middle" class="act-name" fill={theme.text.primary}>
+          {line}
+        </text>
+      {/each}
+      {#if statusText}
+        {@const labelOffset = labelLines.length * 15 + 6}
+        <rect x="-42" y={labelOffset} width="84" height="18" rx="9"
+              fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
+        <text y={labelOffset + 13} text-anchor="middle" class="act-status" fill={colors.lText}>
+          {statusText}
+        </text>
+      {/if}
+    </g>
+  {/if}
 </g>
+{/if}
 
 <style>
   .activity-node { cursor: default; outline: none; }
@@ -240,4 +301,6 @@
   .progress-ring { transition: stroke-dashoffset 1s ease; }
   .act-name { font: 600 13px/1 'Rubik', system-ui, sans-serif; }
   .act-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
+  .act-name-compact { font: 500 10px/1 'Rubik', system-ui, sans-serif; }
+  .act-tiny-label   { font: 400 9px/1  'Rubik', system-ui, sans-serif; pointer-events: none; }
 </style>

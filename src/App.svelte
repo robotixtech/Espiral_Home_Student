@@ -6,7 +6,7 @@
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
   import { getEmulatedProgram, toggleEmulator, isEmulatorActive } from './lib/emulator.svelte';
-  import SpiralNavigator from './components/SpiralNavigator.svelte';
+  import TreeNavigator from './components/TreeNavigator.svelte';
   import UnitDetailView from './components/UnitDetailView.svelte';
   import ActivitySlideView from './components/ActivitySlideView.svelte';
   import EmulatorToggle from './components/EmulatorToggle.svelte';
@@ -75,9 +75,15 @@
       units: appState.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100 })),
     }}
     {#if currentView === 'home'}
-      <SpiralNavigator
+      <TreeNavigator
         program={getEmulatedProgram() ?? allCompleted}
         onUnitSelected={(unit) => { selectedUnit = unit; currentView = 'unit-detail'; }}
+        onActivitySelected={(activity) => {
+          // Activity opened directly from the tree (in-progress unit inline).
+          // selectedUnit stays null so the back button returns to home.
+          selectedActivity = activity;
+          currentView = 'activity-slide';
+        }}
       />
       <EmulatorToggle program={appState.data} />
     {:else if currentView === 'unit-detail' && selectedUnit}
@@ -85,12 +91,22 @@
         unit={selectedUnit}
         programShortname={appState.data.shortname}
         onBack={() => { selectedUnit = null; currentView = 'home'; }}
-        onActivitySelected={(activity) => { selectedActivity = activity; currentView = 'activity-slide'; }}
+        onActivitySelected={(activity) => {
+          // Activity opened from UnitDetailView — selectedUnit remains set
+          // so the back button returns to unit-detail.
+          selectedActivity = activity;
+          currentView = 'activity-slide';
+        }}
       />
     {:else if currentView === 'activity-slide' && selectedActivity}
       <ActivitySlideView
         activity={selectedActivity}
-        onBack={() => { selectedActivity = null; currentView = 'unit-detail'; }}
+        onBack={() => {
+          selectedActivity = null;
+          // If we came from a unit-detail view, selectedUnit is still set → go back there.
+          // If we came directly from the tree (in-progress unit), selectedUnit is null → go home.
+          currentView = selectedUnit ? 'unit-detail' : 'home';
+        }}
       />
     {/if}
   {/if}

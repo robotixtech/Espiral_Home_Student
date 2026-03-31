@@ -14,12 +14,15 @@
     galacticCenterY: number;
     size?: number;
     index: number;
+    /** Compact mode: show only the short displayName, no status pill */
+    compact?: boolean;
   }
 
   let {
     unit, x, y,
     galacticCenterX, galacticCenterY,
     size = 62, index,
+    compact = false,
   }: Props = $props();
 
   const sw = 3.5;
@@ -54,6 +57,18 @@
   const labelBelow = $derived(y >= galacticCenterY);
   const labelGap = 12;
   const isActive = $derived(unit.status !== 'locked');
+
+  // Inward-direction label for compact mode — positions text toward galaxy center,
+  // away from the outward activity fan so they don't collide.
+  const inDx      = $derived(galacticCenterX - x);
+  const inDy      = $derived(galacticCenterY - y);
+  const inDist    = $derived(Math.sqrt(inDx * inDx + inDy * inDy));
+  const inNx      = $derived(inDist < 1 ? 0 : inDx / inDist);
+  const inNy      = $derived(inDist < 1 ? -1 : inDy / inDist);
+  const lblX      = $derived((r + 16) * inNx);
+  const lblY      = $derived((r + 16) * inNy);
+  const lblAnchor = $derived(inNx > 0.3 ? 'start' : inNx < -0.3 ? 'end' : 'middle');
+  const lblWords  = $derived(unit.label.split(' ')[0]);
   const isInProgress = $derived(unit.status === 'in-progress');
 
   let selected = $state(false);
@@ -150,38 +165,51 @@
   {/if}
 
   <!-- Labels -->
-  {#if labelBelow}
-    <g transform="translate(0, {r + labelGap})">
-      <text y="2" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
-        {unit.label}
-      </text>
-      <text y="20" text-anchor="middle" class="lbl-desc" fill={theme.text.secondary}>
-        {shortName}
-      </text>
-      {#if statusText}
-        <rect x="-42" y="28" width="84" height="18" rx="9"
-              fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
-        <text y="41" text-anchor="middle" class="lbl-status" fill={colors.lText}>
-          {statusText}
-        </text>
-      {/if}
-    </g>
+  {#if compact}
+    <!-- Compact mode: 2-line label placed inward (toward galaxy center),
+         opposite to the outward activity fan — avoids text overlap. -->
+    <text x={lblX} y={lblY} text-anchor={lblAnchor} dominant-baseline="middle"
+          class="lbl-compact" fill={theme.text.primary}>
+      {lblWords}
+    </text>
+    <text x={lblX} y={lblY + 13} text-anchor={lblAnchor} dominant-baseline="middle"
+          class="lbl-compact-sub" fill={theme.text.secondary}>
+      {unit.displayName}
+    </text>
   {:else}
-    <g transform="translate(0, {-(r + labelGap)})">
-      {#if statusText}
-        <rect x="-42" y="-48" width="84" height="18" rx="9"
-              fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
-        <text y="-35" text-anchor="middle" class="lbl-status" fill={colors.lText}>
-          {statusText}
+    {#if labelBelow}
+      <g transform="translate(0, {r + labelGap})">
+        <text y="2" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
+          {unit.label}
         </text>
-      {/if}
-      <text y="-16" text-anchor="middle" class="lbl-desc" fill={theme.text.secondary}>
-        {shortName}
-      </text>
-      <text y="3" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
-        {unit.label}
-      </text>
-    </g>
+        <text y="20" text-anchor="middle" class="lbl-desc" fill={theme.text.secondary}>
+          {shortName}
+        </text>
+        {#if statusText}
+          <rect x="-42" y="28" width="84" height="18" rx="9"
+                fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
+          <text y="41" text-anchor="middle" class="lbl-status" fill={colors.lText}>
+            {statusText}
+          </text>
+        {/if}
+      </g>
+    {:else}
+      <g transform="translate(0, {-(r + labelGap)})">
+        {#if statusText}
+          <rect x="-42" y="-48" width="84" height="18" rx="9"
+                fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
+          <text y="-35" text-anchor="middle" class="lbl-status" fill={colors.lText}>
+            {statusText}
+          </text>
+        {/if}
+        <text y="-16" text-anchor="middle" class="lbl-desc" fill={theme.text.secondary}>
+          {shortName}
+        </text>
+        <text y="3" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
+          {unit.label}
+        </text>
+      </g>
+    {/if}
   {/if}
 </g>
 
@@ -246,4 +274,6 @@
   .lbl-name { font: 700 16.5px/1 'Rubik', system-ui, sans-serif; }
   .lbl-desc { font: 400 13px/1 'Rubik', system-ui, sans-serif; }
   .lbl-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
+  .lbl-compact     { font: 700 11px/1 'Rubik', system-ui, sans-serif; }
+  .lbl-compact-sub { font: 400 10px/1 'Rubik', system-ui, sans-serif; }
 </style>

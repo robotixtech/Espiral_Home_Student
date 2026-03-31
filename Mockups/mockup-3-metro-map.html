@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Mockup 3 — Línea de Misiones (Metro)</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#020a14;color:#f1f5f9;font-family:'Rubik',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:16px;padding:20px 40px;border-bottom:1px solid #0f2035}
+  header h1{font-size:1.3rem;font-weight:700;color:#f1f5f9}
+  header p{color:#94a3b8;font-size:.88rem;margin-top:2px}
+  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:28px;padding:0 10px;border-radius:8px;font-size:.72rem;font-weight:700;letter-spacing:.5px;background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid #f59e0b}
+  .back{color:#60a5fa;text-decoration:none;font-size:.85rem;margin-left:auto;display:flex;align-items:center;gap:5px}
+  .back:hover{color:#93c5fd}
+  svg{width:100%;height:auto;display:block}
+  @keyframes station-pulse{0%,100%{opacity:1}50%{opacity:.7}}
+  footer{text-align:center;padding:16px;color:#334155;font-size:.78rem;border-top:1px solid #0f2035;margin-top:auto}
+</style>
+</head>
+<body>
+<header>
+  <span class="badge">O3</span>
+  <div><h1>Línea de Misiones (Metro)</h1><p>Propuesta 3 de 5 — Espiral Home Student</p></div>
+  <a class="back" href="index.html">← Volver al índice</a>
+</header>
+
+<div id="svgWrap"></div>
+
+<footer>Robotix Educational Platform · Mockup 3 · Línea de Misiones</footer>
+
+<script>
+const UNITS = [
+  { name:'Onboarding', short:'MC', status:'completed', pct:100 },
+  { name:'Plataforma', short:'U0', status:'completed', pct:100 },
+  { name:'Lanzamiento', short:'U1', status:'completed', pct:100 },
+  { name:'Preparado', short:'U2', status:'in-progress', pct:60 },
+  { name:'Visión Túnel', short:'U3', status:'locked', pct:0 },
+  { name:'Señales', short:'U4', status:'locked', pct:0 },
+  { name:'Respuesta', short:'U5', status:'locked', pct:0 },
+  { name:'Demo Day', short:'U6', status:'locked', pct:0 },
+];
+const ACTS = ['Preparación','Protocolo','Entrega','DemoDay','Continuar'];
+
+const STATUS = {
+  completed:{ ring:'#4ade80', fill:'#14532d', glow:'#22c55e', text:'#86efac' },
+  'in-progress':{ ring:'#60a5fa', fill:'#1e3a5f', glow:'#3b82f6', text:'#93c5fd' },
+  locked:{ ring:'#334155', fill:'#1a2035', glow:null, text:'#64748b' },
+};
+
+const rng = s => () => { s = Math.imul(s ^ s>>>15, 1 | s); s ^= s << 7; return ((s ^ s>>>14) >>> 0) / 2**32; };
+const rand = rng(55);
+
+const W=1100, H=640;
+const E=(t,a,p)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);Object.entries(a||{}).forEach(([k,v])=>e.setAttribute(k,v));p?.appendChild(e);return e;};
+const T=(txt,a,p)=>{const e=E('text',a,p);e.textContent=txt;return e;};
+
+const svg=E('svg',{viewBox:`0 0 ${W} ${H}`,xmlns:'http://www.w3.org/2000/svg'});
+svg.style.cssText='width:100%;height:auto;display:block';
+const defs=E('defs',{},svg);
+
+// Arrowhead marker
+const marker=E('marker',{id:'arrow-gray',markerWidth:'8',markerHeight:'8',refX:'6',refY:'3',orient:'auto'},defs);
+E('path',{d:'M0,0 L0,6 L8,3 z',fill:'#334155'},marker);
+const markerG=E('marker',{id:'arrow-green',markerWidth:'8',markerHeight:'8',refX:'6',refY:'3',orient:'auto'},defs);
+E('path',{d:'M0,0 L0,6 L8,3 z',fill:'#22c55e'},markerG);
+
+// Background
+E('rect',{width:W,height:H,fill:'#020a14'},svg);
+
+// Stars
+for(let i=0;i<240;i++){
+  const x=rand()*W,y=rand()*H,r=rand()*1.2+0.2;
+  E('circle',{cx:x,cy:y,r,fill:`rgba(241,245,249,${(rand()*0.32+0.04).toFixed(2)})`},svg);
+}
+
+// Title
+T('Línea de Misiones · Estaciones del programa C450',{x:W/2,y:22,'text-anchor':'middle','dominant-baseline':'middle',fill:'#94a3b8','font-size':'13','font-family':'Rubik'},svg);
+
+// Station positions
+const SX=[70,210,330,460,590,730,860,1000];
+const SY=UNITS.map((_,i)=>340+Math.sin(i*0.7-1)*60);
+
+// Build the full line path through all stations
+function buildPath(pts){
+  if(pts.length<2) return '';
+  let d=`M${pts[0].x},${pts[0].y}`;
+  for(let i=0;i<pts.length-1;i++){
+    const p0=pts[i], p1=pts[i+1];
+    const mx=(p0.x+p1.x)/2;
+    d+=` C${mx},${p0.y} ${mx},${p1.y} ${p1.x},${p1.y}`;
+  }
+  return d;
+}
+
+const allPts=UNITS.map((_,i)=>({x:SX[i],y:SY[i]}));
+const fullPath=buildPath(allPts);
+
+// Full line (gray/dashed for locked portion)
+E('path',{d:fullPath,fill:'none',stroke:'rgba(51,65,85,0.5)','stroke-width':4,'stroke-dasharray':'6 6'},svg);
+
+// Completed segment glow (up to and including index 2 = U1)
+// Glow line segments for completed stations
+const compPts=allPts.slice(0,4); // MC through U2 (index 3, in-progress, we include to that station)
+const compPath=buildPath(compPts.slice(0,3)); // just completed ones
+const compPathFull=buildPath(compPts);
+
+// Green glow for completed segment
+const lgGlow=E('linearGradient',{id:'lineGlow',x1:'0%',y1:'0%',x2:'100%',y2:'0%'},defs);
+E('stop',{offset:'0%','stop-color':'#22c55e','stop-opacity':'0.9'},lgGlow);
+E('stop',{offset:'75%','stop-color':'#22c55e','stop-opacity':'0.7'},lgGlow);
+E('stop',{offset:'100%','stop-color':'#3b82f6','stop-opacity':'0.6'},lgGlow);
+
+// Glow blur filter for line
+const lineF=E('filter',{id:'lineGlowF',x:'-5%',y:'-100%',width:'110%',height:'300%'},defs);
+E('feGaussianBlur',{stdDeviation:'4',result:'blur'},lineF);
+const lm=E('feMerge',{},lineF);
+E('feMergeNode',{in:'blur'},lm); E('feMergeNode',{in:'SourceGraphic'},lm);
+
+// Draw completed+inprogress segment in green/blue gradient
+E('path',{d:compPathFull,fill:'none',stroke:'url(#lineGlow)','stroke-width':6,'stroke-linecap':'round',filter:'url(#lineGlowF)'},svg);
+E('path',{d:compPathFull,fill:'none',stroke:'url(#lineGlow)','stroke-width':3.5,'stroke-linecap':'round'},svg);
+
+// Arrow at end of line
+const last=allPts[allPts.length-1];
+E('path',{d:`M${last.x+8},${last.y} l12,0`,fill:'none',stroke:'#334155','stroke-width':3,'marker-end':'url(#arrow-gray)'},svg);
+
+// Stations
+UNITS.forEach((u,i)=>{
+  const sc=STATUS[u.status];
+  const sx=SX[i], sy=SY[i];
+  const sr=u.status==='in-progress'?28:u.status==='completed'?22:16;
+  const isAbove=i%2===0;
+
+  // Glow behind station
+  if(sc.glow){
+    const gf=E('filter',{id:`sf${i}`,x:'-60%',y:'-60%',width:'220%',height:'220%'},defs);
+    E('feGaussianBlur',{stdDeviation:'10',result:'b'},gf);
+    const fm=E('feMerge',{},gf);
+    E('feMergeNode',{in:'b'},fm); E('feMergeNode',{in:'SourceGraphic'},fm);
+    E('circle',{cx:sx,cy:sy,r:sr+16,fill:`${sc.glow}18`,filter:`url(#sf${i})`},svg);
+  }
+
+  // Station ring + fill
+  const stGrad=E('radialGradient',{id:`sg${i}`,cx:'38%',cy:'32%',r:'65%'},defs);
+  E('stop',{offset:'0%','stop-color':sc.glow||sc.ring,'stop-opacity':'.45'},stGrad);
+  E('stop',{offset:'100%','stop-color':sc.fill},stGrad);
+
+  // Outer ring
+  E('circle',{cx:sx,cy:sy,r:sr+3,fill:'none',stroke:`${sc.ring}30`,'stroke-width':2},svg);
+  E('circle',{cx:sx,cy:sy,r:sr,fill:`url(#sg${i})`,stroke:sc.ring,'stroke-width':u.status==='in-progress'?2.5:1.8},svg);
+
+  // Short label
+  T(u.short,{x:sx,y:sy,'text-anchor':'middle','dominant-baseline':'middle',fill:sc.text,'font-size':u.status==='in-progress'?'11':'10','font-weight':'700','font-family':'Rubik'},svg);
+
+  // Progress arc for in-progress
+  if(u.status==='in-progress'){
+    const pct=u.pct/100;
+    const start=-Math.PI/2, end=start+pct*2*Math.PI;
+    const x1=sx+sr*Math.cos(start), y1=sy+sr*Math.sin(start);
+    const x2=sx+sr*Math.cos(end), y2=sy+sr*Math.sin(end);
+    E('path',{d:`M${x1},${y1} A${sr},${sr} 0 ${pct>0.5?1:0},1 ${x2},${y2}`,
+      fill:'none',stroke:sc.ring,'stroke-width':4,'stroke-linecap':'round'},svg);
+  }
+
+  // Station name
+  const labelY=isAbove?sy-sr-24:sy+sr+18;
+  T(u.name,{x:sx,y:labelY,'text-anchor':'middle',fill:sc.text,'font-size':'10.5','font-weight':'600','font-family':'Rubik'},svg);
+
+  // Vertical connector line from name to station
+  const lineY1=isAbove?sy-sr-14:sy+sr+6;
+  const lineY2=isAbove?sy-sr-4:sy+sr+2;
+  E('line',{x1:sx,y1:lineY1,x2:sx,y2:lineY2,stroke:`${sc.ring}40`,'stroke-width':1,'stroke-dasharray':'2 3'},svg);
+
+  // Activity fan for in-progress (U2, i=3): 5 dots in 180° arc above
+  if(u.status==='in-progress'){
+    const actSts=['completed','completed','completed','in-progress','locked'];
+    const fanR=55;
+    for(let j=0;j<5;j++){
+      const fanA=Math.PI + j*(Math.PI/4); // 180° to 360° (above, reversed)
+      const ax=sx+fanR*Math.cos(fanA);
+      const ay=sy+fanR*Math.sin(fanA);
+      const ast=actSts[j];
+      const asc=STATUS[ast];
+      // Connector line
+      E('line',{x1:sx,y1:sy,x2:ax,y2:ay,stroke:`${asc.ring}30`,'stroke-width':1.2,'stroke-dasharray':ast==='locked'?'3 4':'none'},svg);
+      if(asc.glow) E('circle',{cx:ax,cy:ay,r:14,fill:`${asc.glow}18`},svg);
+      E('circle',{cx:ax,cy:ay,r:10,fill:asc.fill,stroke:asc.ring,'stroke-width':1.5},svg);
+      if(ast==='completed') E('circle',{cx:ax,cy:ay,r:3.5,fill:asc.ring},svg);
+      // Activity label
+      const labA=fanA+Math.PI; // opposite direction
+      const labX=ax+Math.cos(labA)*18;
+      const labY=ay+Math.sin(labA)*14;
+      T(ACTS[j].slice(0,4),{x:labX,y:labY,'text-anchor':'middle','dominant-baseline':'middle',fill:asc.text,'font-size':'8','font-family':'Rubik'},svg);
+    }
+  }
+});
+
+// Route direction chevrons between stations (completed segment)
+for(let i=0;i<3;i++){
+  const mx=(SX[i]+SX[i+1])/2;
+  const my=(SY[i]+SY[i+1])/2;
+  T('›',{x:mx,y:my,'text-anchor':'middle','dominant-baseline':'middle',fill:'rgba(74,222,128,0.5)','font-size':'18'},svg);
+}
+
+// Legend
+const legendY=H-28;
+const legendItems=[
+  {label:'Completado',color:'#4ade80',fill:'#14532d'},
+  {label:'En curso',color:'#60a5fa',fill:'#1e3a5f'},
+  {label:'Bloqueado',color:'#334155',fill:'#1a2035'},
+];
+legendItems.forEach((li,i)=>{
+  const lx=W/2-120+i*120;
+  E('circle',{cx:lx,cy:legendY,r:7,fill:li.fill,stroke:li.color,'stroke-width':1.5},svg);
+  T(li.label,{x:lx+13,y:legendY,'dominant-baseline':'middle',fill:'#94a3b8','font-size':'10','font-family':'Rubik'},svg);
+});
+
+document.getElementById('svgWrap').appendChild(svg);
+</script>
+</body>
+</html>

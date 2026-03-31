@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Mockup 2 — Árbol de Habilidades</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#020a14;color:#f1f5f9;font-family:'Rubik',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:16px;padding:20px 40px;border-bottom:1px solid #0f2035}
+  header h1{font-size:1.3rem;font-weight:700;color:#f1f5f9}
+  header p{color:#94a3b8;font-size:.88rem;margin-top:2px}
+  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:28px;padding:0 10px;border-radius:8px;font-size:.72rem;font-weight:700;letter-spacing:.5px;background:rgba(96,165,250,.15);color:#60a5fa;border:1px solid #3b82f6}
+  .back{color:#60a5fa;text-decoration:none;font-size:.85rem;margin-left:auto;display:flex;align-items:center;gap:5px}
+  .back:hover{color:#93c5fd}
+  svg{width:100%;height:auto;display:block}
+  @keyframes heartbeat{0%,100%{transform:scale(1)}14%{transform:scale(1.08)}28%{transform:scale(1)}42%{transform:scale(1.05)}70%{transform:scale(1)}}
+  .node-ip{animation:heartbeat 2.2s ease-in-out infinite}
+  footer{text-align:center;padding:16px;color:#334155;font-size:.78rem;border-top:1px solid #0f2035;margin-top:auto}
+</style>
+</head>
+<body>
+<header>
+  <span class="badge">O2</span>
+  <div><h1>Árbol de Habilidades</h1><p>Propuesta 2 de 5 — Espiral Home Student</p></div>
+  <a class="back" href="index.html">← Volver al índice</a>
+</header>
+
+<div id="svgWrap"></div>
+
+<footer>Robotix Educational Platform · Mockup 2 · Árbol de Habilidades</footer>
+
+<script>
+const UNITS = [
+  { name:'Onboarding', short:'MC', status:'completed', pct:100 },
+  { name:'Plataforma', short:'U0', status:'completed', pct:100 },
+  { name:'Lanzamiento', short:'U1', status:'completed', pct:100 },
+  { name:'Preparado', short:'U2', status:'in-progress', pct:60 },
+  { name:'Visión Túnel', short:'U3', status:'locked', pct:0 },
+  { name:'Señales', short:'U4', status:'locked', pct:0 },
+  { name:'Respuesta', short:'U5', status:'locked', pct:0 },
+  { name:'Demo Day', short:'U6', status:'locked', pct:0 },
+];
+const ACTS = ['Preparación','Protocolo','Entrega','DemoDay','Continuar'];
+
+const STATUS = {
+  completed:{ ring:'#4ade80', fill:'#14532d', glow:'#22c55e', text:'#86efac' },
+  'in-progress':{ ring:'#60a5fa', fill:'#1e3a5f', glow:'#3b82f6', text:'#93c5fd' },
+  locked:{ ring:'#334155', fill:'#1a2035', glow:null, text:'#64748b' },
+};
+
+const rng = s => () => { s = Math.imul(s ^ s>>>15, 1 | s); s ^= s << 7; return ((s ^ s>>>14) >>> 0) / 2**32; };
+const rand = rng(77);
+
+const W=1100, H=680;
+const E=(t,a,p)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);Object.entries(a||{}).forEach(([k,v])=>e.setAttribute(k,v));p?.appendChild(e);return e;};
+const T=(txt,a,p)=>{const e=E('text',a,p);e.textContent=txt;return e;};
+
+const svg=E('svg',{viewBox:`0 0 ${W} ${H}`,xmlns:'http://www.w3.org/2000/svg'});
+svg.style.cssText='width:100%;height:auto;display:block';
+const defs=E('defs',{},svg);
+
+// Background
+E('rect',{width:W,height:H,fill:'#020a14'},svg);
+
+// Stars
+for(let i=0;i<220;i++){
+  const x=rand()*W,y=rand()*H,r=rand()*1.1+0.2;
+  E('circle',{cx:x,cy:y,r,fill:`rgba(241,245,249,${(rand()*0.3+0.04).toFixed(2)})`},svg);
+}
+
+// Subtle horizontal grid lines
+for(let yi=60;yi<H-40;yi+=50){
+  E('line',{x1:60,y1:yi,x2:W-60,y2:yi,stroke:'rgba(30,58,95,0.18)','stroke-width':1},svg);
+}
+
+// Title
+T('Árbol de Habilidades · Skill tree de izquierda a derecha',{x:W/2,y:22,'text-anchor':'middle','dominant-baseline':'middle',fill:'#94a3b8','font-size':'13','font-family':'Rubik'},svg);
+
+// Onboarding node (root)
+const ONB_X=100, ONB_Y=H/2;
+const onbSC=STATUS['completed'];
+
+// Units column: i=0..6, 7 units (index 1-7 in UNITS), MC is root
+const unitNodes=UNITS.slice(1).map((u,i)=>({
+  u, x:380, y:307+(i-3)*85
+}));
+
+// Activities: for each unit node
+const actNodes=unitNodes.map(({u,y:uy},i)=>
+  ACTS.map((_,j)=>({ x:720, y:uy+(j-2)*30 }))
+);
+
+// Determine act statuses
+function getActStatuses(unit){
+  if(unit.status==='completed') return ACTS.map(()=>'completed');
+  if(unit.status==='locked') return ACTS.map(()=>'locked');
+  // in-progress: 0-2 completed, 3 in-progress, 4 locked
+  return ['completed','completed','completed','in-progress','locked'];
+}
+
+// Draw connection: Onboarding → each unit
+unitNodes.forEach(({u,x:ux,y:uy})=>{
+  const sc=STATUS[u.status];
+  const col=u.status==='locked'?'rgba(51,65,85,0.35)':u.status==='in-progress'?'rgba(96,165,250,0.4)':'rgba(74,222,128,0.35)';
+  E('path',{d:`M${ONB_X+22},${ONB_Y} C240,${ONB_Y} 240,${uy} ${ux-22},${uy}`,
+    fill:'none',stroke:col,'stroke-width':u.status==='in-progress'?2:1.5,'stroke-dasharray':u.status==='locked'?'4 5':'none'},svg);
+});
+
+// Draw connection: each unit → its activities
+unitNodes.forEach(({u,x:ux,y:uy},i)=>{
+  const actSts=getActStatuses(u);
+  actNodes[i].forEach((an,j)=>{
+    const ast=actSts[j];
+    const col=ast==='locked'?'rgba(51,65,85,0.3)':ast==='in-progress'?'rgba(96,165,250,0.35)':'rgba(74,222,128,0.3)';
+    E('path',{d:`M${ux+22},${uy} C540,${uy} 540,${an.y} ${an.x-10},${an.y}`,
+      fill:'none',stroke:col,'stroke-width':ast==='in-progress'?1.8:1.2,'stroke-dasharray':ast==='locked'?'3 5':'none'},svg);
+  });
+});
+
+// Draw Onboarding node
+E('circle',{cx:ONB_X,cy:ONB_Y,r:26,fill:`${onbSC.glow}20`,stroke:onbSC.ring,'stroke-width':0},svg);
+const og=E('radialGradient',{id:'onbGrad',cx:'38%',cy:'32%',r:'65%'},defs);
+E('stop',{offset:'0%','stop-color':onbSC.glow,'stop-opacity':'.5'},og);
+E('stop',{offset:'100%','stop-color':onbSC.fill},og);
+E('circle',{cx:ONB_X,cy:ONB_Y,r:22,fill:'url(#onbGrad)',stroke:onbSC.ring,'stroke-width':2},svg);
+T('MC',{x:ONB_X,y:ONB_Y-3,'text-anchor':'middle','dominant-baseline':'middle',fill:onbSC.text,'font-size':'9','font-weight':'700','font-family':'Rubik'},svg);
+T('Onboarding',{x:ONB_X,y:ONB_Y+34,'text-anchor':'middle',fill:onbSC.text,'font-size':'9','font-family':'Rubik'},svg);
+
+// Draw unit nodes
+unitNodes.forEach(({u,x:ux,y:uy},i)=>{
+  const sc=STATUS[u.status];
+  const r=22;
+  const g=E('g',{},svg);
+  if(u.status==='in-progress'){
+    g.setAttribute('class','node-ip');
+    g.style.transformOrigin=`${ux}px ${uy}px`;
+    // Blue outer glow
+    E('circle',{cx:ux,cy:uy,r:r+10,fill:`${sc.glow}15`},svg);
+  }
+  const grad=E('radialGradient',{id:`ug${i}`,cx:'38%',cy:'32%',r:'65%'},defs);
+  E('stop',{offset:'0%','stop-color':sc.glow||sc.ring,'stop-opacity':'.5'},grad);
+  E('stop',{offset:'100%','stop-color':sc.fill},grad);
+  E('circle',{cx:ux,cy:uy,r:r+3,fill:`${sc.ring}12`},g);
+  E('circle',{cx:ux,cy:uy,r,fill:`url(#ug${i})`,stroke:sc.ring,'stroke-width':u.status==='in-progress'?2.5:1.8},g);
+  T(u.short,{x:ux,y:uy,'text-anchor':'middle','dominant-baseline':'middle',fill:sc.text,'font-size':'9.5','font-weight':'700','font-family':'Rubik'},g);
+  T(u.name,{x:ux,y:uy+r+13,'text-anchor':'middle',fill:sc.text,'font-size':'9','font-family':'Rubik'},svg);
+  // Progress indicator for in-progress
+  if(u.status==='in-progress'){
+    const pct=u.pct/100;
+    const startA=-Math.PI/2, endA=startA+pct*2*Math.PI;
+    const rx1=ux+r*Math.cos(startA), ry1=uy+r*Math.sin(startA);
+    const rx2=ux+r*Math.cos(endA), ry2=uy+r*Math.sin(endA);
+    const large=pct>0.5?1:0;
+    E('path',{d:`M${rx1},${ry1} A${r},${r} 0 ${large},1 ${rx2},${ry2}`,
+      fill:'none',stroke:sc.ring,'stroke-width':3.5,'stroke-linecap':'round'},svg);
+  }
+});
+
+// Draw activity nodes
+unitNodes.forEach(({u,x:ux,y:uy},i)=>{
+  const actSts=getActStatuses(u);
+  actNodes[i].forEach((an,j)=>{
+    const ast=actSts[j];
+    const sc=STATUS[ast];
+    const r=10;
+    if(sc.glow) E('circle',{cx:an.x,cy:an.y,r:r+6,fill:`${sc.glow}18`},svg);
+    const ag=E('radialGradient',{id:`ag${i}_${j}`,cx:'40%',cy:'35%',r:'60%'},defs);
+    E('stop',{offset:'0%','stop-color':sc.glow||sc.ring,'stop-opacity':'.5'},ag);
+    E('stop',{offset:'100%','stop-color':sc.fill},ag);
+    E('circle',{cx:an.x,cy:an.y,r,fill:`url(#ag${i}_${j})`,stroke:sc.ring,'stroke-width':ast==='in-progress'?2:1.2},svg);
+    // Dot inside
+    if(ast==='completed') E('circle',{cx:an.x,cy:an.y,r:3,fill:sc.ring},svg);
+    if(ast==='in-progress') E('circle',{cx:an.x,cy:an.y,r:3,fill:sc.ring,'opacity':'.8'},svg);
+    T(ACTS[j],{x:an.x+15,y:an.y,'dominant-baseline':'middle',fill:sc.text,'font-size':'9','font-family':'Rubik'},svg);
+  });
+});
+
+// Section labels
+T('ROOT',{x:ONB_X,y:42,'text-anchor':'middle',fill:'#334155','font-size':'9','font-family':'Rubik','font-weight':'700','letter-spacing':'2'},svg);
+T('UNIDADES',{x:380,y:42,'text-anchor':'middle',fill:'#334155','font-size':'9','font-family':'Rubik','font-weight':'700','letter-spacing':'2'},svg);
+T('ACTIVIDADES',{x:720,y:42,'text-anchor':'middle',fill:'#334155','font-size':'9','font-family':'Rubik','font-weight':'700','letter-spacing':'2'},svg);
+// Divider lines
+E('line',{x1:250,y1:50,x2:250,y2:H-50,stroke:'rgba(30,58,95,0.25)','stroke-width':1,'stroke-dasharray':'4 6'},svg);
+E('line',{x1:540,y1:50,x2:540,y2:H-50,stroke:'rgba(30,58,95,0.25)','stroke-width':1,'stroke-dasharray':'4 6'},svg);
+
+// Legend
+const legendY=H-28;
+const legendItems=[
+  {label:'Completado',color:'#4ade80',fill:'#14532d'},
+  {label:'En curso',color:'#60a5fa',fill:'#1e3a5f'},
+  {label:'Bloqueado',color:'#334155',fill:'#1a2035'},
+];
+legendItems.forEach((li,i)=>{
+  const lx=W/2-120+i*120;
+  E('circle',{cx:lx,cy:legendY,r:7,fill:li.fill,stroke:li.color,'stroke-width':1.5},svg);
+  T(li.label,{x:lx+13,y:legendY,'dominant-baseline':'middle',fill:'#94a3b8','font-size':'10','font-family':'Rubik'},svg);
+});
+
+document.getElementById('svgWrap').appendChild(svg);
+</script>
+</body>
+</html>

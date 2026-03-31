@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Mockup 1 — Sistema Solar</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#020a14;color:#f1f5f9;font-family:'Rubik',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:16px;padding:20px 40px;border-bottom:1px solid #0f2035}
+  header h1{font-size:1.3rem;font-weight:700;color:#f1f5f9}
+  header p{color:#94a3b8;font-size:.88rem;margin-top:2px}
+  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:28px;padding:0 10px;border-radius:8px;font-size:.72rem;font-weight:700;letter-spacing:.5px;background:rgba(74,222,128,.15);color:#4ade80;border:1px solid #22c55e}
+  .back{color:#60a5fa;text-decoration:none;font-size:.85rem;margin-left:auto;display:flex;align-items:center;gap:5px}
+  .back:hover{color:#93c5fd}
+  svg-wrap{display:block}
+  svg{width:100%;height:auto;display:block}
+  @keyframes pulse-ip{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  @keyframes glow-sun{0%,100%{opacity:.6}50%{opacity:1}}
+  .planet-ip{animation:pulse-ip 2.4s ease-in-out infinite;transform-origin:center}
+  .sun-glow{animation:glow-sun 3s ease-in-out infinite}
+  footer{text-align:center;padding:16px;color:#334155;font-size:.78rem;border-top:1px solid #0f2035;margin-top:auto}
+</style>
+</head>
+<body>
+<header>
+  <span class="badge">O1</span>
+  <div><h1>Sistema Solar</h1><p>Propuesta 1 de 5 — Espiral Home Student</p></div>
+  <a class="back" href="index.html">← Volver al índice</a>
+</header>
+
+<div id="svgWrap"></div>
+
+<footer>Robotix Educational Platform · Mockup 1 · Sistema Solar</footer>
+
+<script>
+const UNITS = [
+  { name:'Onboarding', short:'MC', status:'completed', pct:100 },
+  { name:'Plataforma', short:'U0', status:'completed', pct:100 },
+  { name:'Lanzamiento', short:'U1', status:'completed', pct:100 },
+  { name:'Preparado', short:'U2', status:'in-progress', pct:60 },
+  { name:'Visión Túnel', short:'U3', status:'locked', pct:0 },
+  { name:'Señales', short:'U4', status:'locked', pct:0 },
+  { name:'Respuesta', short:'U5', status:'locked', pct:0 },
+  { name:'Demo Day', short:'U6', status:'locked', pct:0 },
+];
+const ACTS = ['Preparación','Protocolo','Entrega','DemoDay','Continuar'];
+
+const STATUS = {
+  completed:{ ring:'#4ade80', fill:'#14532d', glow:'#22c55e', text:'#86efac' },
+  'in-progress':{ ring:'#60a5fa', fill:'#1e3a5f', glow:'#3b82f6', text:'#93c5fd' },
+  locked:{ ring:'#334155', fill:'#1a2035', glow:null, text:'#64748b' },
+};
+
+const rng = s => () => { s = Math.imul(s ^ s>>>15, 1 | s); s ^= s << 7; return ((s ^ s>>>14) >>> 0) / 2**32; };
+const rand = rng(137);
+
+const W=950, H=680, CX=470, CY=340;
+const ORBIT_R=[78,120,162,204,246,290,333,368];
+const ANGLES=[-80,-20,35,90,148,205,260,315].map(d=>d*Math.PI/180);
+const PLANET_R=[16,14,14,14,14,14,14,14];
+
+const E=(t,a,p)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);Object.entries(a||{}).forEach(([k,v])=>e.setAttribute(k,v));p?.appendChild(e);return e;};
+const T=(txt,a,p)=>{const e=E('text',a,p);e.textContent=txt;return e;};
+
+const svg=E('svg',{viewBox:`0 0 ${W} ${H}`,xmlns:'http://www.w3.org/2000/svg'});
+svg.style.cssText='width:100%;height:auto;display:block';
+
+// Defs
+const defs=E('defs',{},svg);
+
+// Filters
+['sun-glow','green-glow','blue-glow'].forEach((id,i)=>{
+  const colors=['#ffd700','#22c55e','#3b82f6'];
+  const f=E('filter',{id,x:'-50%',y:'-50%',width:'200%',height:'200%'},defs);
+  const fe=E('feGaussianBlur',{stdDeviation:'8',result:'blur'},f);
+  const fm=E('feFlood',{'flood-color':colors[i],'flood-opacity':'0.7',result:'color'},f);
+  E('feComposite',{in:'color',in2:'blur',operator:'in',result:'glow'},f);
+  const merge=E('feMerge',{},f);
+  E('feMergeNode',{in:'glow'},merge); E('feMergeNode',{in:'SourceGraphic'},merge);
+});
+
+// Background
+E('rect',{width:W,height:H,fill:'#020a14'},svg);
+
+// Stars
+for(let i=0;i<280;i++){
+  const x=rand()*W, y=rand()*H, r=rand()*1.3+0.2;
+  E('circle',{cx:x,cy:y,r,fill:`rgba(241,245,249,${(rand()*0.35+0.05).toFixed(2)})`},svg);
+}
+
+// Title inside SVG
+T('Sistema Solar · Programa C450 como sistema planetario',{x:W/2,y:24,'text-anchor':'middle','dominant-baseline':'middle',fill:'#94a3b8','font-size':'13','font-family':'Rubik'},svg);
+
+// Orbit rings
+UNITS.forEach((u,i)=>{
+  const st=u.status;
+  let stroke, dasharray='none', opacity=1;
+  if(st==='completed'){stroke='rgba(74,222,128,0.22)';dasharray='none';}
+  else if(st==='in-progress'){stroke='rgba(96,165,250,0.18)';dasharray='8 5';}
+  else{stroke='rgba(51,65,85,0.18)';dasharray='3 7';}
+  E('circle',{cx:CX,cy:CY,r:ORBIT_R[i],fill:'none',stroke,
+    'stroke-width':st==='in-progress'?1.5:1,'stroke-dasharray':dasharray},svg);
+});
+
+// Sun
+const sunGlow2=E('circle',{cx:CX,cy:CY,r:60,fill:'rgba(255,200,50,0.08)','class':'sun-glow'},svg);
+const sunGlow1=E('circle',{cx:CX,cy:CY,r:45,fill:'rgba(255,180,30,0.14)','class':'sun-glow'},svg);
+E('circle',{cx:CX,cy:CY,r:30,fill:'#7c2d12',stroke:'#fbbf24','stroke-width':2.5},svg);
+E('circle',{cx:CX,cy:CY,r:24,fill:'url(#sunGrad)'},svg);
+const sg=E('radialGradient',{id:'sunGrad',cx:'40%',cy:'35%',r:'60%'},defs);
+E('stop',{offset:'0%','stop-color':'#fef08a'},sg);
+E('stop',{offset:'60%','stop-color':'#f97316'},sg);
+E('stop',{offset:'100%','stop-color':'#7c2d12'},sg);
+E('circle',{cx:CX,cy:CY,r:24,fill:'url(#sunGrad)'},svg);
+T('C450',{x:CX,y:CY,'text-anchor':'middle','dominant-baseline':'middle',fill:'#fef9c3','font-size':'9','font-weight':'700','font-family':'Rubik'},svg);
+
+// Planets
+UNITS.forEach((u,i)=>{
+  const st=u.status;
+  const sc=STATUS[st];
+  const px=CX+ORBIT_R[i]*Math.cos(ANGLES[i]);
+  const py=CY+ORBIT_R[i]*Math.sin(ANGLES[i]);
+  const pr=PLANET_R[i];
+
+  // In-progress progress arc around orbit ring (partial)
+  if(st==='in-progress'){
+    const arcR=ORBIT_R[i];
+    const startA=ANGLES[i]-Math.PI/4;
+    const endA=ANGLES[i]+Math.PI/4;
+    const x1=CX+arcR*Math.cos(startA), y1=CY+arcR*Math.sin(startA);
+    const x2=CX+arcR*Math.cos(endA), y2=CY+arcR*Math.sin(endA);
+    E('path',{d:`M${x1},${y1} A${arcR},${arcR} 0 0,1 ${x2},${y2}`,
+      fill:'none',stroke:'#60a5fa','stroke-width':3,'stroke-linecap':'round'},svg);
+  }
+
+  // Glow
+  if(sc.glow){
+    E('circle',{cx:px,cy:py,r:pr+8,fill:`${sc.glow}22`,stroke:'none'},svg);
+  }
+
+  // Planet circle — wrap in g for animation
+  const g=E('g',{},svg);
+  if(st==='in-progress') g.setAttribute('class','planet-ip'), g.style.transformOrigin=`${px}px ${py}px`;
+
+  E('circle',{cx:px,cy:py,r:pr+2,fill:`${sc.ring}18`,stroke:sc.ring,'stroke-width':1.5},g);
+  const pg=E('radialGradient',{id:`pg${i}`,cx:'38%',cy:'32%',r:'65%'},defs);
+  E('stop',{offset:'0%','stop-color':sc.glow||sc.ring,'stop-opacity':'.6'},pg);
+  E('stop',{offset:'100%','stop-color':sc.fill},pg);
+  E('circle',{cx:px,cy:py,r:pr,fill:`url(#pg${i})`},g);
+  E('circle',{cx:px,cy:py,r:pr,fill:'none',stroke:sc.ring,'stroke-width':st==='in-progress'?2:1.5},g);
+  T(u.short,{x:px,y:py,'text-anchor':'middle','dominant-baseline':'middle',fill:sc.text,'font-size':pr>14?'8':'7','font-weight':'700','font-family':'Rubik'},g);
+
+  // Label
+  const lx=px+(px-CX>0?pr+8:-(pr+8));
+  const anch=px-CX>0?'start':'end';
+  T(u.name,{x:lx,y:py+(py-CY>0?14:0),'text-anchor':anch,fill:sc.text,'font-size':'9.5','font-family':'Rubik'},svg);
+
+  // Moons for in-progress (U2)
+  if(st==='in-progress'){
+    const MOON_ORBIT=36;
+    const actStatuses=['completed','completed','completed','in-progress','locked'];
+    for(let j=0;j<5;j++){
+      const mAngle=-Math.PI/2 + j*(2*Math.PI/5);
+      const mx=px+MOON_ORBIT*Math.cos(mAngle);
+      const my=py+MOON_ORBIT*Math.sin(mAngle);
+      const mst=actStatuses[j];
+      const mc=STATUS[mst];
+      // Moon orbit ring (faint)
+      if(j===0) E('circle',{cx:px,cy:py,r:MOON_ORBIT,fill:'none',stroke:'rgba(96,165,250,0.15)','stroke-width':1,'stroke-dasharray':'3 4'},svg);
+      if(mc.glow) E('circle',{cx:mx,cy:my,r:9,fill:`${mc.glow}20`},svg);
+      E('circle',{cx:mx,cy:my,r:5,fill:mc.fill,stroke:mc.ring,'stroke-width':1.2},svg);
+      // Activity label
+      const word=ACTS[j].split(' ')[0];
+      const lbx=mx+(Math.cos(mAngle)>0?8:-8);
+      const lby=my+(Math.sin(mAngle)>0.3?10:-5);
+      T(word,{x:lbx,y:lby,'text-anchor':Math.cos(mAngle)>0?'start':'end',fill:mc.text,'font-size':'8','font-family':'Rubik'},svg);
+    }
+  }
+});
+
+// Legend
+const legendY=H-38, legendItems=[
+  {label:'Completado',color:'#4ade80',fill:'#14532d'},
+  {label:'En curso',color:'#60a5fa',fill:'#1e3a5f'},
+  {label:'Bloqueado',color:'#334155',fill:'#1a2035'},
+];
+const lStartX=W/2 - 160;
+legendItems.forEach((li,i)=>{
+  const lx=lStartX+i*115;
+  E('circle',{cx:lx,cy:legendY,r:7,fill:li.fill,stroke:li.color,'stroke-width':1.5},svg);
+  T(li.label,{x:lx+13,y:legendY,'dominant-baseline':'middle',fill:'#94a3b8','font-size':'10','font-family':'Rubik'},svg);
+});
+
+document.getElementById('svgWrap').appendChild(svg);
+</script>
+</body>
+</html>

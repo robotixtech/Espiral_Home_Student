@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Mockup 5 — Clusters Galácticos</title>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#020a14;color:#f1f5f9;font-family:'Rubik',sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:16px;padding:20px 40px;border-bottom:1px solid #0f2035}
+  header h1{font-size:1.3rem;font-weight:700;color:#f1f5f9}
+  header p{color:#94a3b8;font-size:.88rem;margin-top:2px}
+  .badge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;height:28px;padding:0 10px;border-radius:8px;font-size:.72rem;font-weight:700;letter-spacing:.5px;background:rgba(251,113,133,.15);color:#fb7185;border:1px solid #f43f5e}
+  .back{color:#60a5fa;text-decoration:none;font-size:.85rem;margin-left:auto;display:flex;align-items:center;gap:5px}
+  .back:hover{color:#93c5fd}
+  svg{width:100%;height:auto;display:block}
+  @keyframes heartbeat{0%,100%{transform:scale(1)}14%{transform:scale(1.09)}28%{transform:scale(1)}42%{transform:scale(1.05)}70%{transform:scale(1)}}
+  @keyframes orbit-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  .cluster-ip{animation:heartbeat 2.2s ease-in-out infinite}
+  footer{text-align:center;padding:16px;color:#334155;font-size:.78rem;border-top:1px solid #0f2035;margin-top:auto}
+</style>
+</head>
+<body>
+<header>
+  <span class="badge">O5</span>
+  <div><h1>Clusters Galácticos</h1><p>Propuesta 5 de 5 — Espiral Home Student</p></div>
+  <a class="back" href="index.html">← Volver al índice</a>
+</header>
+
+<div id="svgWrap"></div>
+
+<footer>Robotix Educational Platform · Mockup 5 · Clusters Galácticos</footer>
+
+<script>
+const UNITS = [
+  { name:'Onboarding', short:'MC', status:'completed', pct:100 },
+  { name:'Plataforma', short:'U0', status:'completed', pct:100 },
+  { name:'Lanzamiento', short:'U1', status:'completed', pct:100 },
+  { name:'Preparado', short:'U2', status:'in-progress', pct:60 },
+  { name:'Visión Túnel', short:'U3', status:'locked', pct:0 },
+  { name:'Señales', short:'U4', status:'locked', pct:0 },
+  { name:'Respuesta', short:'U5', status:'locked', pct:0 },
+  { name:'Demo Day', short:'U6', status:'locked', pct:0 },
+];
+const ACTS = ['Preparación','Protocolo','Entrega','DemoDay','Continuar'];
+
+const STATUS = {
+  completed:{ ring:'#4ade80', fill:'#14532d', glow:'#22c55e', text:'#86efac' },
+  'in-progress':{ ring:'#60a5fa', fill:'#1e3a5f', glow:'#3b82f6', text:'#93c5fd' },
+  locked:{ ring:'#334155', fill:'#1a2035', glow:null, text:'#64748b' },
+};
+
+const rng = s => () => { s = Math.imul(s ^ s>>>15, 1 | s); s ^= s << 7; return ((s ^ s>>>14) >>> 0) / 2**32; };
+const rand = rng(99);
+
+const W=1100, H=620;
+const E=(t,a,p)=>{const e=document.createElementNS('http://www.w3.org/2000/svg',t);Object.entries(a||{}).forEach(([k,v])=>e.setAttribute(k,v));p?.appendChild(e);return e;};
+const T=(txt,a,p)=>{const e=E('text',a,p);e.textContent=txt;return e;};
+
+const svg=E('svg',{viewBox:`0 0 ${W} ${H}`,xmlns:'http://www.w3.org/2000/svg'});
+svg.style.cssText='width:100%;height:auto;display:block';
+const defs=E('defs',{},svg);
+
+// Arrowhead markers
+function makeArrow(id, color){
+  const m=E('marker',{id,markerWidth:'9',markerHeight:'9',refX:'7',refY:'3',orient:'auto','markerUnits':'strokeWidth'},defs);
+  E('path',{d:'M0,0 L0,6 L8,3 z',fill:color,'opacity':'.85'},m);
+}
+makeArrow('arr-green','#22c55e');
+makeArrow('arr-blue','#3b82f6');
+makeArrow('arr-gray','#334155');
+
+// Background
+E('rect',{width:W,height:H,fill:'#020a14'},svg);
+
+// Stars
+for(let i=0;i<260;i++){
+  const x=rand()*W,y=rand()*H,r=rand()*1.2+0.2;
+  E('circle',{cx:x,cy:y,r,fill:`rgba(241,245,249,${(rand()*0.35+0.04).toFixed(2)})`},svg);
+}
+
+// Title
+T('Clusters Galácticos · Cuadrícula 4×2 de sistemas autónomos',{x:W/2,y:22,'text-anchor':'middle','dominant-baseline':'middle',fill:'#94a3b8','font-size':'13','font-family':'Rubik'},svg);
+
+// Cluster centers
+const CENTERS=[
+  [138,170],[368,155],[598,170],[828,155],
+  [138,455],[368,465],[598,455],[828,465]
+];
+const ORBIT_R=48, UNIT_R=28, ACT_R=9;
+
+function getActStatuses(unit){
+  if(unit.status==='completed') return ACTS.map(()=>'completed');
+  if(unit.status==='locked') return ACTS.map(()=>'locked');
+  return ['completed','completed','completed','in-progress','locked'];
+}
+
+// Draw connecting arrows between sequential clusters (0→1→2→3→4→5→6→7)
+// Sequence: 0→1→2→3 (top row L-R), 3→4 (top-right to bottom-left), 4→5→6→7 (bottom row L-R)
+const ARROW_SEQ=[
+  [0,1],[1,2],[2,3],  // top row
+  [3,4],              // wrap down
+  [4,5],[5,6],[6,7]   // bottom row
+];
+
+ARROW_SEQ.forEach(([a,b])=>{
+  const [ax,ay]=CENTERS[a], [bx,by]=CENTERS[b];
+  const srcSt=UNITS[a].status;
+  const markId=srcSt==='completed'?'arr-green':srcSt==='in-progress'?'arr-blue':'arr-gray';
+  const col=srcSt==='completed'?'rgba(74,222,128,0.5)':srcSt==='in-progress'?'rgba(96,165,250,0.5)':'rgba(51,65,85,0.3)';
+
+  // Determine control points
+  let cx1,cy1,cx2,cy2;
+  if(a===3 && b===4){
+    // Diagonal from top-right to bottom-left
+    cx1=ax-80; cy1=ay+100;
+    cx2=bx+80; cy2=by-100;
+  } else if(ay===by || Math.abs(ay-by)<40){
+    // Same row: gentle curve
+    const midy=(ay+by)/2 + (a<4?-28:28);
+    cx1=(ax+bx)/2; cy1=midy;
+    cx2=(ax+bx)/2; cy2=midy;
+  } else {
+    cx1=ax; cy1=(ay+by)/2;
+    cx2=bx; cy2=(ay+by)/2;
+  }
+
+  // Offset endpoints to cluster edges
+  const dx=bx-ax, dy=by-ay;
+  const dist=Math.sqrt(dx*dx+dy*dy)||1;
+  const ex=ax+(dx/dist)*(ORBIT_R+UNIT_R-10);
+  const ey=ay+(dy/dist)*(ORBIT_R+UNIT_R-10);
+  const fx=bx-(dx/dist)*(ORBIT_R+UNIT_R+4);
+  const fy=by-(dy/dist)*(ORBIT_R+UNIT_R+4);
+
+  E('path',{d:`M${ex},${ey} C${cx1},${cy1} ${cx2},${cy2} ${fx},${fy}`,
+    fill:'none',stroke:col,'stroke-width':srcSt==='in-progress'?2:1.5,
+    'stroke-dasharray':srcSt==='locked'?'5 6':'none',
+    'marker-end':`url(#${markId})`},svg);
+});
+
+// Draw each cluster
+UNITS.forEach((u,i)=>{
+  const [cx,cy]=CENTERS[i];
+  const sc=STATUS[u.status];
+  const actSts=getActStatuses(u);
+
+  // Background glow nebula
+  if(sc.glow){
+    const ng=E('radialGradient',{id:`clNeb${i}`,cx:'50%',cy:'50%',r:'50%'},defs);
+    E('stop',{offset:'0%','stop-color':sc.glow,'stop-opacity':'0.12'},ng);
+    E('stop',{offset:'100%','stop-color':'#020a14','stop-opacity':'0'},ng);
+    E('circle',{cx,cy,r:ORBIT_R+38,fill:`url(#clNeb${i})`},svg);
+  }
+
+  // Orbit ring
+  E('circle',{cx,cy,r:ORBIT_R,fill:'none',
+    stroke:u.status==='locked'?'rgba(51,65,85,0.2)':u.status==='in-progress'?'rgba(96,165,250,0.2)':'rgba(74,222,128,0.15)',
+    'stroke-width':1,'stroke-dasharray':u.status==='locked'?'3 5':'none'},svg);
+
+  // Activity dots at orbit=48
+  actSts.forEach((ast,j)=>{
+    const aAngle=-Math.PI/2 + j*(2*Math.PI/5);
+    const ax=cx+ORBIT_R*Math.cos(aAngle);
+    const ay=cy+ORBIT_R*Math.sin(aAngle);
+    const asc=STATUS[ast];
+    if(asc.glow) E('circle',{cx:ax,cy:ay,r:ACT_R+5,fill:`${asc.glow}15`},svg);
+    E('circle',{cx:ax,cy:ay,r:ACT_R,fill:asc.fill,stroke:asc.ring,'stroke-width':1.4},svg);
+    if(ast==='completed') E('circle',{cx:ax,cy:ay,r:3,fill:asc.ring},svg);
+    if(ast==='in-progress'){
+      E('circle',{cx:ax,cy:ay,r:3,fill:asc.ring,'opacity':'0.9'},svg);
+    }
+    // Small activity label
+    const labR=ORBIT_R+18;
+    const lx=cx+labR*Math.cos(aAngle);
+    const ly=cy+labR*Math.sin(aAngle);
+    T(ACTS[j].slice(0,3),{x:lx,y:ly,'text-anchor':'middle','dominant-baseline':'middle',fill:asc.text,'font-size':'7.5','font-family':'Rubik'},svg);
+  });
+
+  // Unit circle with progress arc
+  const g=E('g',{},svg);
+  if(u.status==='in-progress'){
+    g.setAttribute('class','cluster-ip');
+    g.style.transformOrigin=`${cx}px ${cy}px`;
+    E('circle',{cx,cy,r:UNIT_R+12,fill:`${sc.glow}14`},svg);
+  }
+
+  const uGrad=E('radialGradient',{id:`cug${i}`,cx:'38%',cy:'32%',r:'65%'},defs);
+  E('stop',{offset:'0%','stop-color':sc.glow||sc.ring,'stop-opacity':'.55'},uGrad);
+  E('stop',{offset:'100%','stop-color':sc.fill},uGrad);
+
+  E('circle',{cx,cy,r:UNIT_R,fill:`url(#cug${i})`,stroke:sc.ring,'stroke-width':u.status==='in-progress'?2.5:1.8},g);
+
+  // Progress arc (clockwise from top)
+  if(u.pct>0){
+    const pct=u.pct/100;
+    const startA=-Math.PI/2;
+    const endA=startA+pct*2*Math.PI;
+    const rx1=cx+UNIT_R*Math.cos(startA), ry1=cy+UNIT_R*Math.sin(startA);
+    const rx2=cx+UNIT_R*Math.cos(endA), ry2=cy+UNIT_R*Math.sin(endA);
+    const large=pct>=1?1:(pct>0.5?1:0);
+    if(pct>=1){
+      E('circle',{cx,cy,r:UNIT_R,fill:'none',stroke:sc.ring,'stroke-width':3.5,'opacity':'.7'},g);
+    } else {
+      E('path',{d:`M${rx1},${ry1} A${UNIT_R},${UNIT_R} 0 ${large},1 ${rx2},${ry2}`,
+        fill:'none',stroke:sc.ring,'stroke-width':3.5,'stroke-linecap':'round'},g);
+    }
+  }
+
+  // Short label + number
+  T(u.short,{x:cx,y:cy-4,'text-anchor':'middle','dominant-baseline':'middle',fill:sc.text,'font-size':'10','font-weight':'700','font-family':'Rubik'},g);
+  T(`${i+1}`,{x:cx,y:cy+8,'text-anchor':'middle','dominant-baseline':'middle',fill:sc.text,'font-size':'8','font-family':'Rubik'},g);
+
+  // Cluster name below
+  T(u.name,{x:cx,y:cy+ORBIT_R+16,'text-anchor':'middle',fill:sc.text,'font-size':'10','font-weight':'600','font-family':'Rubik'},svg);
+
+  // Pct badge for in-progress
+  if(u.status==='in-progress'){
+    E('rect',{x:cx-16,y:cy-ORBIT_R-26,width:32,height:16,rx:4,fill:'#1e3a5f',stroke:'#3b82f6','stroke-width':1},svg);
+    T('60%',{x:cx,y:cy-ORBIT_R-18,'text-anchor':'middle','dominant-baseline':'middle',fill:'#93c5fd','font-size':'9','font-weight':'700','font-family':'Rubik'},svg);
+  }
+});
+
+// Sequence number badges in top-left of each cluster area
+UNITS.forEach((u,i)=>{
+  const [cx,cy]=CENTERS[i];
+  const sc=STATUS[u.status];
+  const bx=cx-ORBIT_R-5, by=cy-ORBIT_R-5;
+  E('circle',{cx:bx,cy:by,r:9,fill:`${sc.fill}`,stroke:`${sc.ring}60`,'stroke-width':1},svg);
+  T(`${i+1}`,{x:bx,y:by,'text-anchor':'middle','dominant-baseline':'middle',fill:sc.text,'font-size':'8','font-weight':'700','font-family':'Rubik'},svg);
+});
+
+// Legend
+const legendY=H-28;
+const legendItems=[
+  {label:'Completado',color:'#4ade80',fill:'#14532d'},
+  {label:'En curso',color:'#60a5fa',fill:'#1e3a5f'},
+  {label:'Bloqueado',color:'#334155',fill:'#1a2035'},
+];
+legendItems.forEach((li,i)=>{
+  const lx=W/2-120+i*120;
+  E('circle',{cx:lx,cy:legendY,r:7,fill:li.fill,stroke:li.color,'stroke-width':1.5},svg);
+  T(li.label,{x:lx+13,y:legendY,'dominant-baseline':'middle',fill:'#94a3b8','font-size':'10','font-family':'Rubik'},svg);
+});
+
+document.getElementById('svgWrap').appendChild(svg);
+</script>
+</body>
+</html>
