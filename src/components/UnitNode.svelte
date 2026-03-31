@@ -16,6 +16,10 @@
     index: number;
     /** Compact mode: show only the short displayName, no status pill */
     compact?: boolean;
+    /** Flip label to point outward (away from galactic center) instead of inward */
+    labelOutward?: boolean;
+    /** Distance in px from the unit's visual edge to the label center (default 16) */
+    labelGap?: number;
   }
 
   let {
@@ -23,6 +27,8 @@
     galacticCenterX, galacticCenterY,
     size = 62, index,
     compact = false,
+    labelOutward = false,
+    labelGap = 16,
   }: Props = $props();
 
   const sw = 3.5;
@@ -55,7 +61,7 @@
   const iconSize = $derived(isStart ? 28 : 24);
   const iconOff = $derived(iconSize / 2);
   const labelBelow = $derived(y >= galacticCenterY);
-  const labelGap = 12;
+  const fullLabelGap = 12;
   const isActive = $derived(unit.status !== 'locked');
 
   // Inward-direction label for compact mode — positions text toward galaxy center,
@@ -65,9 +71,12 @@
   const inDist    = $derived(Math.sqrt(inDx * inDx + inDy * inDy));
   const inNx      = $derived(inDist < 1 ? 0 : inDx / inDist);
   const inNy      = $derived(inDist < 1 ? -1 : inDy / inDist);
-  const lblX      = $derived((r + 16) * inNx);
-  const lblY      = $derived((r + 16) * inNy);
-  const lblAnchor = $derived(inNx > 0.3 ? 'start' : inNx < -0.3 ? 'end' : 'middle');
+  // labelOutward flips the radial direction so labels face away from the center
+  const lDirX     = $derived(labelOutward ? -inNx : inNx);
+  const lDirY     = $derived(labelOutward ? -inNy : inNy);
+  const lblX      = $derived((r + labelGap) * lDirX);
+  const lblY      = $derived((r + labelGap) * lDirY);
+  const lblAnchor = $derived(lDirX > 0.3 ? 'start' : lDirX < -0.3 ? 'end' : 'middle');
   const lblWords  = $derived(unit.label.split(' ')[0]);
   const isInProgress = $derived(unit.status === 'in-progress');
 
@@ -178,7 +187,7 @@
     </text>
   {:else}
     {#if labelBelow}
-      <g transform="translate(0, {r + labelGap})">
+      <g transform="translate(0, {r + fullLabelGap})">
         <text y="2" text-anchor="middle" class="lbl-name" fill={theme.text.primary}>
           {unit.label}
         </text>
@@ -194,7 +203,7 @@
         {/if}
       </g>
     {:else}
-      <g transform="translate(0, {-(r + labelGap)})">
+      <g transform="translate(0, {-(r + fullLabelGap)})">
         {#if statusText}
           <rect x="-42" y="-48" width="84" height="18" rx="9"
                 fill={colors.lBg} stroke={colors.lBorder} stroke-width="0.5" />
@@ -274,6 +283,6 @@
   .lbl-name { font: 700 16.5px/1 'Rubik', system-ui, sans-serif; }
   .lbl-desc { font: 400 13px/1 'Rubik', system-ui, sans-serif; }
   .lbl-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
-  .lbl-compact     { font: 700 11px/1 'Rubik', system-ui, sans-serif; }
-  .lbl-compact-sub { font: 400 10px/1 'Rubik', system-ui, sans-serif; }
+  .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
+  .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
 </style>

@@ -6,14 +6,6 @@
   import UnitNode from './UnitNode.svelte';
   import DistantGalaxy from './DistantGalaxy.svelte';
   import ActivityNode from './ActivityNode.svelte';
-  import {
-    type SpiralConfig,
-    getSpiralNodePositions,
-    getSpiralSvgPath,
-    getProgressSvgPath,
-    getOrbitPaths,
-    getProgressFraction,
-  } from '../lib/spiral-math';
   import { getActivityOrbitPositions } from '../lib/tree-math';
 
   interface Props {
@@ -24,65 +16,55 @@
 
   let { program, onUnitSelected, onActivitySelected }: Props = $props();
 
-  // ── Canvas coordinate space ──────────────────────────────────────────────
-  // Larger canvas to accommodate activity fans around every unit.
-  const W = 1300;
-  const H = 950;
+  // ── Canvas ───────────────────────────────────────────────────────────────
+  const W = 1400;
+  const H = 1000;
+  const cx = W / 2;   // 700
+  const cy = H / 2;   // 500
 
-  // Spiral — smaller than original so activity fans fit within the canvas.
-  const spiral: SpiralConfig = {
-    cx: W / 2,        // 650
-    cy: H * 0.53,     // ≈ 504 — slight downward offset for title text
-    r0x: 110, r0y: 90,
-    r1x: 310, r1y: 265,
-    startAngle: -Math.PI / 2,
-    turns: 1.85,
-  };
+  // ── Solar System Layout ──────────────────────────────────────────────────
+  // Each unit is a planet on its own orbit ring around the central sun (C450).
+  //
+  // Planets are placed using the golden angle (~137.5°) between successive
+  // orbits.  This irrational step guarantees that no two adjacent-ring planets
+  // ever align radially, so activity-moon rings on neighbouring orbits cannot
+  // overlap each other regardless of orbit step size.
+  const SUN_R       = 38;
+  const ORBIT_STEP  = 72;   // px between consecutive orbit radii
+  const ORBIT_START = 85;   // radius of the innermost orbit
+  const ACT_ORBIT   = 50;   // distance from planet centre to moon centre
+  const UNIT_SIZE   = 68;   // diameter passed to UnitNode (r = 34)
+  // Label must clear the moon ring: r(34) + ACT_ORBIT(50) + tiny_r(10) = 94px
+  const LABEL_GAP   = 68;   // r + LABEL_GAP > 94  → label floats beyond moons
 
-  const cx = spiral.cx;
-  const cy = spiral.cy;
-
-  // Activity nodes hug the unit circle — tiny dots (r=10) sit ~6px from the unit edge
-  const ACT_ORBIT = 50;
-  const UNIT_SIZE = 68;
+  const GOLDEN      = 137.508 * Math.PI / 180;  // golden angle in radians
+  const START_ANGLE = -Math.PI / 2;             // first planet starts at 12 o'clock
 
   const t = $derived(getTheme());
 
-  // ── Positions ────────────────────────────────────────────────────────────
+  // One orbit radius per unit, growing outward
+  const orbitRadii = $derived(program.units.map((_, i) => ORBIT_START + i * ORBIT_STEP));
 
-  // All units placed on the spiral — Onboarding is at the innermost point (t=0).
-  const spiralPositions = $derived(getSpiralNodePositions(spiral, program.units.length));
-  const unitPositions   = $derived(spiralPositions);
+  // Planet positions: each unit rotated by an additional golden angle from the previous
+  const unitPositions = $derived(
+    program.units.map((_, i) => {
+      const a = START_ANGLE + i * GOLDEN;
+      const r = ORBIT_START + i * ORBIT_STEP;
+      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+    }),
+  );
 
-  // Spiral visual paths
-  const fullPath     = $derived(getSpiralSvgPath(spiral, 600));
-  const orbitRings   = $derived(getOrbitPaths(spiral));
-  const progressFrac = $derived(getProgressFraction(program.units));
-  const progressPath = $derived(getProgressSvgPath(spiral, progressFrac, 600));
+  // ── Activity moons ───────────────────────────────────────────────────────
 
-  /**
-   * Derive activity display states from the unit's status and progress.
-   *
-   * - locked unit     → all activities locked
-   * - completed unit  → all activities completed
-   * - in-progress     → activities unlock/complete proportionally to unit.progress
-   *                     Each activity covers (100 / count)% of unit progress.
-   *
-   * This is a pure derivation — no separate emulator needed for activities.
-   * The home emulator drives unit.progress; activity states follow automatically.
-   */
   function displayActivities(unit: ProgramUnit): Activity[] {
     const raw = unit.activities ?? [];
     if (raw.length === 0) return raw;
-
     if (unit.status === 'locked') {
       return raw.map(a => ({ ...a, status: 'locked'    as const, progress: 0   }));
     }
     if (unit.status === 'completed') {
       return raw.map(a => ({ ...a, status: 'completed' as const, progress: 100 }));
     }
-
-    // in-progress: each activity spans (100 / count)% of unit progress
     const count       = raw.length;
     const perActivity = 100 / count;
     return raw.map((act, i) => {
@@ -99,17 +81,11 @@
     });
   }
 
-  // Activity positions — full 360° ring tightly around each unit.
   const activityPositions = $derived.by(() =>
     program.units.map((unit, i) => {
       if (!unit.activities?.length) return [] as { x: number; y: number }[];
       const uPos = unitPositions[i];
-      return getActivityOrbitPositions(
-        uPos.x, uPos.y,
-        cx, cy,
-        unit.activities.length,
-        ACT_ORBIT,
-      );
+      return getActivityOrbitPositions(uPos.x, uPos.y, cx, cy, unit.activities.length, ACT_ORBIT);
     }),
   );
 
@@ -147,7 +123,6 @@
 
   const isPortrait = $derived(cW / cH < 1.0);
 
-  // Distant galaxy positions
   const dgNext   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.30 : 0.10), cy: vb.y + vb.h * (isPortrait ? 0.10 : 0.12) });
   const dgFuture = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.72 : 0.88), cy: vb.y + vb.h * (isPortrait ? 0.06 : 0.08) });
   const dgPrev   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.30 : 0.15), cy: vb.y + vb.h * (isPortrait ? 0.90 : 0.88) });
@@ -156,7 +131,6 @@
 
   function handleUnitClick(unit: ProgramUnit) {
     if (unit.status === 'locked') return;
-    // in-progress units: activities shown inline — unit node itself is not a nav target
     if (unit.status === 'in-progress' && unit.activities && unit.activities.length > 0) return;
     if (unit.activities && unit.activities.length > 0) {
       onUnitSelected(unit);
@@ -164,8 +138,6 @@
       window.open(unit.courseUrl, '_blank');
     }
   }
-
-
 </script>
 
 <div class="galaxy-container" bind:this={containerEl}>
@@ -177,92 +149,93 @@
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>
-        <radialGradient id="tree-bg-grad" cx="50%" cy="50%" r="60%">
+        <!-- Background -->
+        <radialGradient id="ss-bg" cx="50%" cy="50%" r="60%">
           <stop offset="0%"   stop-color={t.bg.center} />
           <stop offset="60%"  stop-color={t.bg.mid} />
           <stop offset="100%" stop-color={t.bg.edge} />
         </radialGradient>
 
-        <!-- Title orbit path -->
-        <path id="tree-title-orbit"
-              d="M {cx - 380},{cy} a 380,340 0 1,1 760,0 a 380,340 0 1,1 -760,0 a 380,340 0 1,1 760,0 a 380,340 0 1,1 -760,0"
-              fill="none" />
+        <!-- Sun body gradient -->
+        <radialGradient id="ss-sun" cx="35%" cy="35%" r="65%">
+          <stop offset="0%"   stop-color="#fff9c4" />
+          <stop offset="50%"  stop-color="#fbbf24" />
+          <stop offset="100%" stop-color="#b45309" />
+        </radialGradient>
 
-        <!-- Title glow -->
-        <filter id="tree-title-glow" x="-30%" y="-60%" width="160%" height="220%">
-          <feGaussianBlur stdDeviation="8"  in="SourceGraphic" result="blur-wide" />
-          <feFlood flood-color="#0075BF" flood-opacity="0.7" result="color-wide" />
-          <feComposite in="color-wide" in2="blur-wide" operator="in" result="glow-wide" />
-          <feGaussianBlur stdDeviation="2"  in="SourceGraphic" result="blur-tight" />
-          <feFlood flood-color="#ffffff"  flood-opacity="0.4" result="color-tight" />
-          <feComposite in="color-tight" in2="blur-tight" operator="in" result="glow-tight" />
+        <!-- Sun glow -->
+        <filter id="ss-sun-glow" x="-100%" y="-100%" width="300%" height="300%">
+          <feGaussianBlur stdDeviation="16" in="SourceGraphic" result="blur" />
+          <feFlood flood-color="#f59e0b" flood-opacity="0.45" result="color" />
+          <feComposite in="color" in2="blur" operator="in" result="glow" />
           <feMerge>
-            <feMergeNode in="glow-wide" />
-            <feMergeNode in="glow-tight" />
+            <feMergeNode in="glow" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
 
-        <!-- Progress arc glow -->
-        <filter id="tree-path-glow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="10" in="SourceGraphic" result="blur-outer" />
-          <feFlood flood-color={t.progress.glow} flood-opacity="0.3" result="color-outer" />
-          <feComposite in="color-outer" in2="blur-outer" operator="in" result="glow-outer" />
-          <feGaussianBlur stdDeviation="4"  in="SourceGraphic" result="blur-inner" />
-          <feFlood flood-color="#ffffff"  flood-opacity="0.2" result="color-inner" />
-          <feComposite in="color-inner" in2="blur-inner" operator="in" result="glow-inner" />
+        <!-- Orbit-ring glow for in-progress arc -->
+        <filter id="ss-orbit-glow" x="-10%" y="-10%" width="120%" height="120%">
+          <feGaussianBlur stdDeviation="3" in="SourceGraphic" result="blur" />
           <feMerge>
-            <feMergeNode in="glow-outer" />
-            <feMergeNode in="glow-inner" />
+            <feMergeNode in="blur" />
             <feMergeNode in="SourceGraphic" />
           </feMerge>
         </filter>
-
       </defs>
 
       <!-- Background -->
-      <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#tree-bg-grad)" opacity="0.85" />
-
-      <!-- Program title -->
-      <text class="title-orbit-text" fill="#ffffff" filter="url(#tree-title-glow)">
-        <textPath href="#tree-title-orbit" startOffset="54%" text-anchor="middle">
-          {program.fullname}
-        </textPath>
-      </text>
+      <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#ss-bg)" opacity="0.88" />
 
       <!-- Distant galaxies -->
       <DistantGalaxy config={NEXT_PROGRAM_CONFIG}   cx={dgNext.cx}   cy={dgNext.cy}   scale={0.32} opacity={0.50} fontScale={0.7} />
       <DistantGalaxy config={FUTURE_PROGRAM_CONFIG} cx={dgFuture.cx} cy={dgFuture.cy} scale={0.20} opacity={0.22} fontScale={0.7} />
       <DistantGalaxy config={PREV_PROGRAM_CONFIG}   cx={dgPrev.cx}   cy={dgPrev.cy}   scale={0.30} opacity={0.35} fontScale={0.6} />
 
-      <!-- Orbit rings (decorative ellipses following spiral curvature) -->
-      {#each orbitRings as ring, i (i)}
-        <path d={ring} fill="none" stroke={t.orbit} stroke-width="1.2" />
+      <!-- ── Orbit rings — one per unit ──────────────────────────────── -->
+      {#each program.units as unit, i (unit.id)}
+        {@const orbR = orbitRadii[i]}
+        {@const orbC = 2 * Math.PI * orbR}
+        {#if unit.status === 'completed'}
+          <circle cx={cx} cy={cy} r={orbR} fill="none"
+                  stroke={t.unit.completed.glow} stroke-width="1" opacity="0.22" />
+        {:else if unit.status === 'in-progress'}
+          <!-- Faint base ring -->
+          <circle cx={cx} cy={cy} r={orbR} fill="none"
+                  stroke={t.unit.inProgress.ring} stroke-width="0.8"
+                  stroke-dasharray="5 8" opacity="0.18" />
+          <!-- Progress arc (starts at 12 o'clock via rotate) -->
+          {@const dashLen = orbC * (unit.progress / 100)}
+          <circle cx={cx} cy={cy} r={orbR} fill="none"
+                  stroke={t.unit.inProgress.glow} stroke-width="2.5"
+                  stroke-dasharray="{dashLen} {orbC}"
+                  stroke-linecap="round"
+                  transform="rotate(-90, {cx}, {cy})"
+                  opacity="0.55"
+                  filter="url(#ss-orbit-glow)" />
+        {:else}
+          <circle cx={cx} cy={cy} r={orbR} fill="none"
+                  stroke="rgba(255,255,255,0.05)" stroke-width="0.8"
+                  stroke-dasharray="3 8" />
+        {/if}
       {/each}
 
-      <!-- Spiral path — background dashed line (units 1..n-1) -->
-      <path d={fullPath} fill="none" stroke={t.spiral} stroke-width="3"
-            stroke-dasharray="12 8" stroke-linecap="round" />
+      <!-- ── Central Sun ─────────────────────────────────────────────── -->
+      <circle cx={cx} cy={cy} r={SUN_R + 36} fill="#f59e0b" opacity="0.04" />
+      <circle cx={cx} cy={cy} r={SUN_R + 20} fill="#fbbf24" opacity="0.06" />
+      <circle cx={cx} cy={cy} r={SUN_R}
+              fill="url(#ss-sun)" filter="url(#ss-sun-glow)" />
+      <text x={cx} y={cy + 1} text-anchor="middle" dominant-baseline="middle"
+            class="sun-label" fill="#fff">
+        {program.shortname}
+      </text>
 
-      <!-- Progress arc (glowing, covers all units on spiral) -->
-      {#if progressPath}
-        <path d={progressPath} fill="none" stroke={t.progress.stroke}
-              stroke-width="5.5" stroke-linecap="round" filter="url(#tree-path-glow)" />
-        <path d={progressPath} fill="none" stroke="rgba(255,255,255,0.35)"
-              stroke-width="1.5" stroke-linecap="round" />
-      {/if}
-
-      <!-- ── Activity fans — ALL units with activities ───────────────── -->
-      <!-- Rendered before unit nodes so unit circles sit on top of lines -->
+      <!-- ── Activity moons (rendered below planet nodes) ───────────── -->
       {#each program.units as unit, i (unit.id)}
         {#if unit.activities && unit.activities.length > 0}
-          {@const uPos  = unitPositions[i]}
-          {@const acts  = displayActivities(unit)}
-          {@const aPos  = activityPositions[i]}
-
-          <!-- Activity nodes orbit tightly around the unit (no connecting lines):
-               in-progress → compact (full size, icon + label)
-               completed / locked → tiny (small dot, no icon or label) -->
+          {@const uPos = unitPositions[i]}
+          {@const acts = displayActivities(unit)}
+          {@const aPos = activityPositions[i]}
           {#each acts as act, j (act.id)}
             {#if aPos[j]}
               <ActivityNode
@@ -280,7 +253,7 @@
         {/if}
       {/each}
 
-      <!-- ── Unit nodes (on top of lines and activity nodes) ────────── -->
+      <!-- ── Planet nodes (rendered on top of moons) ────────────────── -->
       {#each program.units as unit, i (unit.id)}
         {@const uPos = unitPositions[i]}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -297,6 +270,8 @@
             size={UNIT_SIZE}
             index={i}
             compact={true}
+            labelOutward={true}
+            labelGap={LABEL_GAP}
           />
         </g>
       {/each}
@@ -329,9 +304,8 @@
     display: block;
   }
 
-  :global(.title-orbit-text) {
-    font: 900 28px/1 'Rubik', system-ui, sans-serif;
-    letter-spacing: 5px;
-    text-transform: uppercase;
+  :global(.sun-label) {
+    font: 700 13px/1 'Rubik', system-ui, sans-serif;
+    letter-spacing: 1px;
   }
 </style>

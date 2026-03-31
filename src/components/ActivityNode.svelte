@@ -301,6 +301,6 @@
   .progress-ring { transition: stroke-dashoffset 1s ease; }
   .act-name { font: 600 13px/1 'Rubik', system-ui, sans-serif; }
   .act-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
-  .act-name-compact { font: 500 10px/1 'Rubik', system-ui, sans-serif; }
-  .act-tiny-label   { font: 400 9px/1  'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .act-name-compact { font: 500 13px/1 'Rubik', system-ui, sans-serif; }
+  .act-tiny-label   { font: 400 11px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
 </style>
