@@ -20,6 +20,8 @@
     labelOutward?: boolean;
     /** Distance in px from the unit's visual edge to the label center (default 16) */
     labelGap?: number;
+    /** When false, suppress the compact label (label is drawn externally, e.g. as a curved textPath) */
+    showLabel?: boolean;
   }
 
   let {
@@ -29,6 +31,7 @@
     compact = false,
     labelOutward = false,
     labelGap = 16,
+    showLabel = true,
   }: Props = $props();
 
   const sw = 3.5;
@@ -175,16 +178,16 @@
 
   <!-- Labels -->
   {#if compact}
-    <!-- Compact mode: 2-line label placed inward (toward galaxy center),
-         opposite to the outward activity fan — avoids text overlap. -->
-    <text x={lblX} y={lblY} text-anchor={lblAnchor} dominant-baseline="middle"
-          class="lbl-compact" fill={theme.text.primary}>
-      {lblWords}
-    </text>
-    <text x={lblX} y={lblY + 13} text-anchor={lblAnchor} dominant-baseline="middle"
-          class="lbl-compact-sub" fill={theme.text.secondary}>
-      {unit.displayName}
-    </text>
+    {#if showLabel}
+      <text x={lblX} y={lblY} text-anchor={lblAnchor} dominant-baseline="middle"
+            class="lbl-compact" fill={theme.text.primary}>
+        {lblWords}
+      </text>
+      <text x={lblX} y={lblY + 13} text-anchor={lblAnchor} dominant-baseline="middle"
+            class="lbl-compact-sub" fill={theme.text.secondary}>
+        {unit.displayName}
+      </text>
+    {/if}
   {:else}
     {#if labelBelow}
       <g transform="translate(0, {r + fullLabelGap})">

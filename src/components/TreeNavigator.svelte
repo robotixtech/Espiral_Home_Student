@@ -137,6 +137,28 @@
   function onMouseLeave() { isDragging = false; }
   function resetView()    { zoomScale = 1; panX = 0; panY = 0; }
 
+  // ── Orbit arc label paths ─────────────────────────────────────────────────
+  // Labels follow the curvature of each orbit ring, placed just inside the ring.
+  // Top-half arcs (sin ≤ 0) are clockwise → text reads L-to-R.
+  // Bottom-half arcs (sin > 0) are counter-clockwise → text reads L-to-R.
+  const LABEL_CHAR_W = 7.2; // avg char width at 12px Rubik
+
+  function orbitLabelPath(r: number, a: number, span: number): string {
+    if (Math.sin(a) <= 0) {
+      const sx = cx + r * Math.cos(a - span);
+      const sy = cy + r * Math.sin(a - span);
+      const ex = cx + r * Math.cos(a + span);
+      const ey = cy + r * Math.sin(a + span);
+      return `M ${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey}`;
+    } else {
+      const sx = cx + r * Math.cos(a + span);
+      const sy = cy + r * Math.sin(a + span);
+      const ex = cx + r * Math.cos(a - span);
+      const ey = cy + r * Math.sin(a - span);
+      return `M ${sx} ${sy} A ${r} ${r} 0 0 0 ${ex} ${ey}`;
+    }
+  }
+
   // ── Interaction ──────────────────────────────────────────────────────────
 
   function handleUnitClick(unit: ProgramUnit) {
@@ -198,6 +220,17 @@
           <feGaussianBlur stdDeviation="3" in="SourceGraphic" result="blur" />
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
+        <!-- Orbit arc paths for curved unit labels -->
+        <!-- Labels are shifted clockwise past the unit circle so they don't overlap it. -->
+        {#each program.units as unit, i (unit.id)}
+          {@const unitAngle = START_ANGLE + i * GOLDEN}
+          {@const lr = orbitRadii[i] - 15}
+          {@const span = Math.max((unit.label.length * LABEL_CHAR_W) / (2 * lr) + 0.15, 0.38)}
+          {@const unitR = (UNIT_SIZE / 2) * (i === 0 ? 1.15 : 1)}
+          {@const clearAngle = Math.asin(Math.min((unitR + 10) / Math.max(lr, 1), 0.99))}
+          {@const labelAngle = unitAngle + clearAngle + span + 0.06}
+          <path id="ulp-{i}" d={orbitLabelPath(lr, labelAngle, span)} fill="none" />
+        {/each}
       </defs>
 
       <!-- Static background (not affected by zoom) -->
@@ -235,6 +268,16 @@
                     stroke="rgba(255,255,255,0.05)" stroke-width="0.8"
                     stroke-dasharray="3 8" />
           {/if}
+        {/each}
+
+        <!-- Curved orbit arc labels (full unit name, follows orbit ring) -->
+        {#each program.units as unit, i (unit.id)}
+          <text class="orbit-label" fill={unit.status === 'locked' ? t.text.secondary : t.text.primary}
+                opacity={unit.status === 'locked' ? 0.5 : 1}>
+            <textPath href="#ulp-{i}" startOffset="50%" text-anchor="middle">
+              {unit.label}
+            </textPath>
+          </text>
         {/each}
 
         <!-- Central Sun -->
@@ -289,6 +332,7 @@
               compact={true}
               labelOutward={true}
               labelGap={LABEL_GAP}
+              showLabel={false}
             />
           </g>
         {/each}
@@ -321,6 +365,11 @@
   :global(.sun-label) {
     font: 700 15px/1 'Rubik', system-ui, sans-serif;
     letter-spacing: 1px;
+  }
+  :global(.orbit-label) {
+    font: 600 12px/1 'Rubik', system-ui, sans-serif;
+    letter-spacing: 0.3px;
+    pointer-events: none;
   }
 
   /* ── Zoom HUD ── */

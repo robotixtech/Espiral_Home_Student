@@ -91,8 +91,8 @@ export const C450_CONFIG: ProgramConfig = {
 
   units: [
     {
-      label: 'Onboarding',
-      displayName: 'Misión Control',
+      label: 'Misión Control',
+      displayName: 'MC',
       fullname: 'C450 – Misión control',
       icon: 'gear',
       href: 'https://www.robotix.com',
