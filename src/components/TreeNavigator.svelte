@@ -27,7 +27,7 @@
   const ACT_ORBIT   = 65;    // distance from planet centre to moon centre
   const LABEL_GAP   = 80;    // from planet edge to label; clears moon ring (65+10=75)
   const ORBIT_STEP  = 68;    // px between consecutive orbit radii (+10%)
-  const SUN_R       = 13;    // sun radius (25% of original 50)
+  const SUN_R       = 9;     // sun radius
   const ORBIT_START = 80;    // radius of innermost orbit
 
   // Golden angle (~137.5°): irrational step so no two adjacent-orbit planets
