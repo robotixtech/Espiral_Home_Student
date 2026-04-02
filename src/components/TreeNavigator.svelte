@@ -6,7 +6,7 @@
   import UnitNode from './UnitNode.svelte';
   import DistantGalaxy from './DistantGalaxy.svelte';
   import ActivityNode from './ActivityNode.svelte';
-  import { getActivityOrbitPositions } from '../lib/tree-math';
+  import { getActivityOrbitPositions, getActivityOrbitPositionsFixed } from '../lib/tree-math';
 
   interface Props {
     program: ProgramData;
@@ -23,11 +23,11 @@
   const cy = 430;   // vertical centre (slight upward bias)
 
   // ── B: Node sizes (larger for legibility on 14" displays) ────────────────
-  const SUN_R       = 50;    // sun radius
   const UNIT_SIZE   = 85;    // planet diameter → r ≈ 42 (regular) / 49 (first)
   const ACT_ORBIT   = 65;    // distance from planet centre to moon centre
   const LABEL_GAP   = 80;    // from planet edge to label; clears moon ring (65+10=75)
-  const ORBIT_STEP  = 62;    // px between consecutive orbit radii
+  const ORBIT_STEP  = 68;    // px between consecutive orbit radii (+10%)
+  const SUN_R       = 13;    // sun radius (25% of original 50)
   const ORBIT_START = 80;    // radius of innermost orbit
 
   // Golden angle (~137.5°): irrational step so no two adjacent-orbit planets
@@ -38,6 +38,22 @@
   const t = $derived(getTheme());
 
   const orbitRadii    = $derived(program.units.map((_, i) => ORBIT_START + i * ORBIT_STEP));
+  const progLblR      = $derived(ORBIT_START + (program.units.length - 1) * ORBIT_STEP + 20);
+
+  // Effective unit status: 'completed' as soon as all mandatory (non-Continuar) activities are done.
+  // "Continuar" is optional — it must not block the unit from turning green.
+  const effectiveStatuses = $derived(
+    program.units.map(unit => {
+      if (unit.status === 'locked' || unit.status === 'completed') return unit.status;
+      const all = unit.activities ?? [];
+      const mandatory = all.filter(a => a.label !== 'Continuar');
+      if (mandatory.length === 0 || all.length === 0) return unit.status;
+      const threshold = (mandatory.length / all.length) * 100;
+      return unit.progress >= threshold
+        ? ('completed' as const)
+        : ('in-progress' as const);
+    }),
+  );
   const unitPositions = $derived(
     program.units.map((_, i) => {
       const a = START_ANGLE + i * GOLDEN;
@@ -67,6 +83,11 @@
     program.units.map((unit, i) => {
       if (!unit.activities?.length) return [] as { x: number; y: number }[];
       const uPos = unitPositions[i];
+      // Pin "DemoDay" to 6 o'clock (π/2) so every unit has the same activity layout.
+      const demoDayIdx = unit.activities.findIndex(a => a.label === 'DemoDay');
+      if (demoDayIdx >= 0) {
+        return getActivityOrbitPositionsFixed(uPos.x, uPos.y, unit.activities.length, ACT_ORBIT, demoDayIdx);
+      }
       return getActivityOrbitPositions(uPos.x, uPos.y, cx, cy, unit.activities.length, ACT_ORBIT);
     }),
   );
@@ -136,6 +157,24 @@
   function onMouseUp()    { isDragging = false; }
   function onMouseLeave() { isDragging = false; }
   function resetView()    { zoomScale = 1; panX = 0; panY = 0; }
+
+  // ── Unit label helpers ───────────────────────────────────────────────────
+  // Splits a label into lines of at most maxChars characters.
+  function splitUnitLabel(text: string, maxChars = 15): string[] {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      if (current && (current + ' ' + word).length > maxChars) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = current ? current + ' ' + word : word;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  }
 
   // ── Orbit arc label paths ─────────────────────────────────────────────────
   // Labels follow the curvature of each orbit ring, placed just inside the ring.
@@ -210,8 +249,8 @@
           <stop offset="50%"  stop-color="#fbbf24" />
           <stop offset="100%" stop-color="#b45309" />
         </radialGradient>
-        <filter id="ss-sun-glow" x="-100%" y="-100%" width="300%" height="300%">
-          <feGaussianBlur stdDeviation="18" in="SourceGraphic" result="blur" />
+        <filter id="ss-sun-glow" x="-200%" y="-200%" width="500%" height="500%">
+          <feGaussianBlur stdDeviation="8" in="SourceGraphic" result="blur" />
           <feFlood flood-color="#f59e0b" flood-opacity="0.45" result="color" />
           <feComposite in="color" in2="blur" operator="in" result="glow" />
           <feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge>
@@ -220,17 +259,14 @@
           <feGaussianBlur stdDeviation="3" in="SourceGraphic" result="blur" />
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
-        <!-- Orbit arc paths for curved unit labels -->
-        <!-- Labels are shifted clockwise past the unit circle so they don't overlap it. -->
-        {#each program.units as unit, i (unit.id)}
-          {@const unitAngle = START_ANGLE + i * GOLDEN}
-          {@const lr = orbitRadii[i] - 15}
-          {@const span = Math.max((unit.label.length * LABEL_CHAR_W) / (2 * lr) + 0.15, 0.38)}
-          {@const unitR = (UNIT_SIZE / 2) * (i === 0 ? 1.15 : 1)}
-          {@const clearAngle = Math.asin(Math.min((unitR + 10) / Math.max(lr, 1), 0.99))}
-          {@const labelAngle = unitAngle + clearAngle + span + 0.06}
-          <path id="ulp-{i}" d={orbitLabelPath(lr, labelAngle, span)} fill="none" />
-        {/each}
+        <!-- Subtle drop shadow for program title -->
+        <filter id="text-shadow" x="-20%" y="-20%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000" flood-opacity="0.55" />
+        </filter>
+        <!-- Program name label path — same double-loop pattern as DistantGalaxy, at outermost orbit -->
+        <path id="c450-prog-lbl"
+              d="M {cx - progLblR},{cy} a {progLblR},{progLblR} 0 1,1 {progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {-progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {-progLblR * 2},0"
+              fill="none" />
       </defs>
 
       <!-- Static background (not affected by zoom) -->
@@ -248,10 +284,11 @@
         {#each program.units as unit, i (unit.id)}
           {@const orbR = orbitRadii[i]}
           {@const orbC = 2 * Math.PI * orbR}
-          {#if unit.status === 'completed'}
+          {@const effSt = effectiveStatuses[i]}
+          {#if effSt === 'completed'}
             <circle cx={cx} cy={cy} r={orbR} fill="none"
                     stroke={t.unit.completed.glow} stroke-width="1" opacity="0.22" />
-          {:else if unit.status === 'in-progress'}
+          {:else if effSt === 'in-progress'}
             <circle cx={cx} cy={cy} r={orbR} fill="none"
                     stroke={t.unit.inProgress.ring} stroke-width="0.8"
                     stroke-dasharray="5 8" opacity="0.18" />
@@ -270,24 +307,38 @@
           {/if}
         {/each}
 
-        <!-- Curved orbit arc labels (full unit name, follows orbit ring) -->
+        <!-- Horizontal unit labels — above both the unit sphere and its activity moons -->
         {#each program.units as unit, i (unit.id)}
-          <text class="orbit-label" fill={unit.status === 'locked' ? t.text.secondary : t.text.primary}
-                opacity={unit.status === 'locked' ? 0.5 : 1}>
-            <textPath href="#ulp-{i}" startOffset="50%" text-anchor="middle">
-              {unit.label}
-            </textPath>
+          {@const uPos = unitPositions[i]}
+          {@const hasActs = (unit.activities?.length ?? 0) > 0}
+          {@const topClear = hasActs ? ACT_ORBIT + 20 : (UNIT_SIZE / 2) * (i === 0 ? 1.15 : 1) + 12}
+          {@const lines = splitUnitLabel(unit.label)}
+          {@const lineH = 15}
+          {@const lblBaseY = uPos.y - topClear}
+          <text
+            x={uPos.x}
+            y={lblBaseY - (lines.length - 1) * lineH}
+            text-anchor="middle"
+            class="unit-lbl"
+            fill={effectiveStatuses[i] === 'locked' ? t.text.secondary : t.text.primary}
+            opacity={effectiveStatuses[i] === 'locked' ? 0.45 : 1}
+          >
+            {#each lines as line, li (li)}
+              <tspan x={uPos.x} dy={li === 0 ? 0 : lineH}>{line}</tspan>
+            {/each}
           </text>
         {/each}
 
         <!-- Central Sun -->
-        <circle cx={cx} cy={cy} r={SUN_R + 40} fill="#f59e0b" opacity="0.04" />
-        <circle cx={cx} cy={cy} r={SUN_R + 22} fill="#fbbf24" opacity="0.07" />
+        <circle cx={cx} cy={cy} r={SUN_R + 10} fill="#f59e0b" opacity="0.04" />
+        <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="#fbbf24" opacity="0.07" />
         <circle cx={cx} cy={cy} r={SUN_R}
                 fill="url(#ss-sun)" filter="url(#ss-sun-glow)" />
-        <text x={cx} y={cy + 1} text-anchor="middle" dominant-baseline="middle"
-              class="sun-label" fill="#fff">
-          {program.shortname}
+        <!-- Program shortname curved outside the sun -->
+        <text fill="#ffffff" opacity="0.92" class="prog-label" filter="url(#text-shadow)">
+          <textPath href="#c450-prog-lbl" startOffset="54%" text-anchor="middle">
+            {program.shortname}
+          </textPath>
         </text>
 
         <!-- Activity moons (below planet nodes) -->
@@ -322,7 +373,7 @@
             onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') handleUnitClick(unit); }}
           >
             <UnitNode
-              {unit}
+              unit={{ ...unit, status: effectiveStatuses[i] }}
               x={uPos.x}
               y={uPos.y}
               galacticCenterX={cx}
@@ -362,13 +413,14 @@
   }
   .galaxy-svg { width: 100%; height: 100%; display: block; }
 
-  :global(.sun-label) {
-    font: 700 15px/1 'Rubik', system-ui, sans-serif;
-    letter-spacing: 1px;
+  :global(.prog-label) {
+    font: 800 26px/1 'Rubik', system-ui, sans-serif;
+    letter-spacing: 8px;
+    text-transform: uppercase;
   }
-  :global(.orbit-label) {
-    font: 600 12px/1 'Rubik', system-ui, sans-serif;
-    letter-spacing: 0.3px;
+  :global(.unit-lbl) {
+    font: 600 13px/1 'Rubik', system-ui, sans-serif;
+    letter-spacing: 0.2px;
     pointer-events: none;
   }
 

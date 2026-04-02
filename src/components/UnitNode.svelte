@@ -151,15 +151,6 @@
       class="progress-ring"
     />
 
-    {#if unit.status === 'completed'}
-      <g transform="translate({r * 0.62}, {-r * 0.62})">
-        <circle cx="0" cy="0" r="8" fill={theme.badge.fill} stroke={theme.badge.stroke} stroke-width="1.5" />
-        <svg x="-4.5" y="-4.5" width="9" height="9" viewBox="0 0 24 24" fill="none"
-             stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="20 6 9 17 4 12"/>
-        </svg>
-      </g>
-    {/if}
   {/if}
 
   {#if !isActive}

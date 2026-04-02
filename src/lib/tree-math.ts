@@ -58,6 +58,30 @@ export function getActivityOrbitPositions(
 }
 
 /**
+ * Place `count` activity nodes in a full 360° ring with a fixed layout:
+ * the activity at `pinnedIndex` is pinned to `pinnedAngle` (default = π/2,
+ * i.e. 6 o'clock — directly below the unit).
+ * All units share the same visual activity layout regardless of their
+ * position in the galaxy.
+ */
+export function getActivityOrbitPositionsFixed(
+  unitX: number,
+  unitY: number,
+  count: number,
+  orbit: number,
+  pinnedIndex: number,
+  pinnedAngle: number = Math.PI / 2,
+): Point[] {
+  if (count === 0) return [];
+  const step = (2 * Math.PI) / count;
+  const startAngle = pinnedAngle - step * pinnedIndex;
+  return Array.from({ length: count }, (_, i) => {
+    const a = startAngle + step * i;
+    return { x: unitX + orbit * Math.cos(a), y: unitY + orbit * Math.sin(a) };
+  });
+}
+
+/**
  * Generate an SVG path string for a decorative circle (using arc commands
  * so the path is a proper closed loop, not a single-point degenerate shape).
  */
