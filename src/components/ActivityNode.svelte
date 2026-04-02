@@ -125,8 +125,15 @@
     </defs>
     <circle cx="0" cy="0" r={r}
             fill="url(#{gradId})"
-            opacity={isActive ? 0.90 : 0.30} />
-    {#if isActive}
+            opacity={isActive ? 0.90 : 0.35} />
+    {#if !isActive}
+      <svg x="-5" y="-6" width="10" height="12" viewBox="0 0 24 24"
+           fill="none" stroke={colors.icon} stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" opacity="0.7">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    {:else}
       <text x={tinyLblX} y={tinyLblY} text-anchor={lblAnchor} dominant-baseline="middle"
             class="act-tiny-label" fill={theme.text.primary}>
         {firstWord}

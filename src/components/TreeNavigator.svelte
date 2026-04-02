@@ -113,7 +113,7 @@
 
   const dgNext   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.30 : 0.10), cy: vb.y + vb.h * (isPortrait ? 0.10 : 0.12) });
   const dgFuture = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.72 : 0.88), cy: vb.y + vb.h * (isPortrait ? 0.06 : 0.08) });
-  const dgPrev   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.30 : 0.15), cy: vb.y + vb.h * (isPortrait ? 0.90 : 0.88) });
+  const dgPrev   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.20 : 0.05), cy: vb.y + vb.h * (isPortrait ? 0.90 : 0.88) });
 
   // ── C: Zoom / Pan ─────────────────────────────────────────────────────────
   // State: translate(panX, panY) scale(zoomScale) applied to all content.

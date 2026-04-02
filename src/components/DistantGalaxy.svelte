@@ -1,11 +1,7 @@
 <script lang="ts">
   import type { ProgramConfig } from '../lib/program-config';
   import { getTheme } from '../lib/theme.svelte';
-  import {
-    type SpiralConfig,
-    getSpiralNodePositions,
-    getSpiralSvgPath,
-  } from '../lib/spiral-math';
+  import { getActivityOrbitPositions, getActivityOrbitPositionsFixed } from '../lib/tree-math';
 
   interface Props {
     config: ProgramConfig;
@@ -14,140 +10,132 @@
     scale?: number;
     /** Depth opacity — closer galaxies are more visible */
     opacity?: number;
-    /** Font scale multiplier (1 = default, 0.6 = 40% smaller) */
+    /** Font scale multiplier */
     fontScale?: number;
   }
 
   let { config, cx, cy, scale = 0.35, opacity = 0.45, fontScale = 1 }: Props = $props();
 
-  const fs = $derived({
-    label: 17.5 * fontScale,
-    nodeLabel: 10.5 * fontScale,
-    nodeName: 10 * fontScale,
-  });
+  const t = $derived(getTheme());
 
-  const theme = $derived(getTheme());
+  // Same layout constants as TreeNavigator, scaled down
+  const SUN_R       = $derived(9  * scale);
+  const UNIT_R      = $derived(42 * scale);   // half of UNIT_SIZE=85, roughly
+  const ACT_ORBIT   = $derived(65 * scale);
+  const ORBIT_STEP  = $derived(68 * scale);
+  const ORBIT_START = $derived(80 * scale);
+  const GOLDEN      = 137.508 * Math.PI / 180;
+  const START_ANGLE = -Math.PI / 2;
 
-  const miniSpiral = $derived<SpiralConfig>({
-    cx: 0, cy: 0,
-    r0x: 145 * scale,
-    r0y: 125 * scale,
-    r1x: 355 * scale,
-    r1y: 315 * scale,
-    startAngle: -Math.PI / 2,
-    turns: 1.3,
-  });
+  const unitPositions = $derived(
+    config.units.map((_, i) => {
+      const a = START_ANGLE + i * GOLDEN;
+      const r = ORBIT_START + i * ORBIT_STEP;
+      return { x: r * Math.cos(a), y: r * Math.sin(a) };
+    }),
+  );
 
-  const nodePositions = $derived(getSpiralNodePositions(miniSpiral, config.units.length));
-  const spiralPath = $derived(getSpiralSvgPath(miniSpiral, 200));
+  const progLblR = $derived(ORBIT_START + (config.units.length - 1) * ORBIT_STEP + 20 * scale);
 
-  const orbitRx = $derived(250 * scale);
-  const orbitRy = $derived(220 * scale);
-  const labelRx = $derived(390 * scale);
-  const labelRy = $derived(350 * scale);
+  const activityPositions = $derived(
+    config.units.map((unit, i) => {
+      if (!unit.activities?.length) return [] as { x: number; y: number }[];
+      const uPos = unitPositions[i];
+      const demoDayIdx = unit.activities.findIndex(a => a.label === 'DemoDay');
+      if (demoDayIdx >= 0) {
+        return getActivityOrbitPositionsFixed(uPos.x, uPos.y, unit.activities.length, ACT_ORBIT, demoDayIdx);
+      }
+      return getActivityOrbitPositions(uPos.x, uPos.y, 0, 0, unit.activities.length, ACT_ORBIT);
+    }),
+  );
 
-  const nodeR = 5;
-  const sunR = 8;
-
-  // Determine label position: push outward from galaxy center
-  function labelY(pos: { x: number; y: number }): number {
-    return pos.y >= 0 ? nodeR + 12 : -(nodeR + 5);
-  }
-  function labelAnchor(_pos: { x: number; y: number }): string {
-    return 'middle';
+  function unitColors(status: string) {
+    switch (status) {
+      case 'completed':  return t.unit.completed;
+      case 'in-progress': return t.unit.inProgress;
+      default:           return t.unit.locked;
+    }
   }
 </script>
 
-<g transform="translate({cx}, {cy})" class="distant-galaxy" opacity={opacity}>
+<g transform="translate({cx}, {cy})" opacity={opacity}>
   <defs>
-    <radialGradient id="dg-core-{config.shortname}" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color={theme.sun.g2} stop-opacity="0.15" />
-      <stop offset="100%" stop-color={theme.sun.g2} stop-opacity="0" />
+    <radialGradient id="dg-sun-{config.shortname}" cx="35%" cy="35%" r="65%">
+      <stop offset="0%"   stop-color="#fff9c4" />
+      <stop offset="50%"  stop-color="#fbbf24" />
+      <stop offset="100%" stop-color="#b45309" />
     </radialGradient>
-
-    <!-- Double-loop for label textPath -->
-    <path id="dg-label-{config.shortname}"
-          d="M {-labelRx},0 a {labelRx},{labelRy} 0 1,1 {labelRx * 2},0 a {labelRx},{labelRy} 0 1,1 {-labelRx * 2},0 a {labelRx},{labelRy} 0 1,1 {labelRx * 2},0 a {labelRx},{labelRy} 0 1,1 {-labelRx * 2},0"
+    {#each config.units as unit, i (unit.label)}
+      <radialGradient id="dg-u-{config.shortname}-{i}" cx="35%" cy="35%" r="65%">
+        <stop offset="0%"   stop-color={unitColors(unit.status).g1} />
+        <stop offset="100%" stop-color={unitColors(unit.status).g2} />
+      </radialGradient>
+    {/each}
+    <!-- Program label path — double-loop arc -->
+    <path id="dg-lbl-{config.shortname}"
+          d="M {-progLblR},0 a {progLblR},{progLblR} 0 1,1 {progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {-progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {-progLblR * 2},0"
           fill="none" />
   </defs>
 
-  <!-- Core glow -->
-  <ellipse cx="0" cy="0" rx={orbitRx * 1.3} ry={orbitRy * 1.3}
-           fill="url(#dg-core-{config.shortname})" />
-
-  <!-- Orbit ring -->
-  <ellipse cx="0" cy="0" rx={orbitRx} ry={orbitRy}
-           fill="none" stroke={theme.orbit} stroke-width="0.6" />
-
-  <!-- Mini spiral path -->
-  <path d={spiralPath} fill="none"
-        stroke={theme.spiral} stroke-width="1.2"
-        stroke-dasharray="5 5" stroke-linecap="round" />
-
-  <!-- Sun -->
-  <circle cx="0" cy="0" r={sunR} fill={theme.sun.g2} opacity="0.6" />
-  <circle cx="0" cy="0" r={sunR * 1.8} fill="none"
-          stroke={theme.sun.g2} stroke-width="0.4" opacity="0.25" />
-
-  <!-- Unit nodes with labels -->
-  {#each nodePositions as pos, i (i)}
-    {@const cfg = config.units[i]}
-    <g transform="translate({pos.x}, {pos.y})">
-      <!-- Node dot -->
-      <circle cx="0" cy="0" r={nodeR}
-              fill={theme.text.secondary} opacity="0.5" />
-
-      <!-- Unit label -->
-      <text
-        y={labelY(pos)}
-        text-anchor={labelAnchor(pos)}
-        fill={theme.text.secondary}
-        opacity="0.8"
-        font-size={fs.nodeLabel}
-        font-weight="400"
-        font-family="Rubik, system-ui, sans-serif"
-      >
-        {cfg?.label ?? ''}
-      </text>
-
-      <!-- Display name -->
-      <text
-        y={labelY(pos) + (pos.y >= 0 ? 11 * fontScale : -11 * fontScale)}
-        text-anchor={labelAnchor(pos)}
-        fill={theme.text.secondary}
-        opacity="0.55"
-        font-size={fs.nodeName}
-        font-weight="400"
-        font-family="Rubik, system-ui, sans-serif"
-      >
-        {cfg?.displayName ?? ''}
-      </text>
-    </g>
+  <!-- Orbit rings -->
+  {#each config.units as _unit, i (_unit.label)}
+    {@const r = ORBIT_START + i * ORBIT_STEP}
+    <circle cx="0" cy="0" r={r} fill="none"
+            stroke="rgba(255,255,255,0.05)" stroke-width="0.5"
+            stroke-dasharray="3 6" />
   {/each}
 
-  <!-- Program name curved along outer orbit -->
-  <text fill="#ffffff" opacity="0.6"
-        font-size={fs.label} font-weight="400" letter-spacing="6"
-        font-family="Rubik, system-ui, sans-serif" text-transform="uppercase">
-    <textPath href="#dg-label-{config.shortname}" startOffset="54%" text-anchor="middle">
+  <!-- Sun -->
+  <circle cx="0" cy="0" r={SUN_R * 1.8} fill="#f59e0b" opacity="0.05" />
+  <circle cx="0" cy="0" r={SUN_R}       fill="url(#dg-sun-{config.shortname})" opacity="0.8" />
+
+  <!-- Activity moons (tiny dots) -->
+  {#each config.units as unit, i (unit.label)}
+    {#if unit.activities?.length}
+      {@const aPos = activityPositions[i]}
+      {#each unit.activities as act, j (j)}
+        {#if aPos[j]}
+          <circle cx={aPos[j].x} cy={aPos[j].y}
+                  r={3.5 * scale}
+                  fill={unitColors(act.status).g2}
+                  opacity={act.status === 'locked' ? 0.25 : 0.70} />
+        {/if}
+      {/each}
+    {/if}
+  {/each}
+
+  <!-- Unit nodes -->
+  {#each config.units as unit, i (unit.label)}
+    {@const uPos = unitPositions[i]}
+    {@const r = UNIT_R * (i === 0 ? 1.15 : 1)}
+    <circle cx={uPos.x} cy={uPos.y} r={r}
+            fill="url(#dg-u-{config.shortname}-{i})"
+            opacity={unit.status === 'locked' ? 0.40 : 0.85} />
+    {#if unit.status === 'locked'}
+      <!-- Lock icon scaled for tiny node -->
+      <svg x={uPos.x - r * 0.45} y={uPos.y - r * 0.55}
+           width={r * 0.9} height={r * 1.1}
+           viewBox="0 0 24 24" fill="none"
+           stroke={unitColors(unit.status).icon} stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round" opacity="0.6">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    {/if}
+  {/each}
+
+  <!-- Program label curved at outermost orbit -->
+  <text fill="#ffffff" opacity="0.55"
+        font-size={31.2 * fontScale * scale} font-weight="400" letter-spacing={6 * scale}
+        font-family="Rubik, system-ui, sans-serif">
+    <textPath href="#dg-lbl-{config.shortname}" startOffset="54%" text-anchor="middle">
       {config.fullname}
     </textPath>
   </text>
 </g>
 
 <style>
-  .distant-galaxy {
+  g {
     transition: opacity 0.3s;
-  }
-  :global(.dg-label) {
-    font: 400 17.5px/1 'Rubik', system-ui, sans-serif;
-    letter-spacing: 6px;
-    text-transform: uppercase;
-  }
-  :global(.dg-node-label) {
-    font: 400 10.5px/1 'Rubik', system-ui, sans-serif;
-  }
-  :global(.dg-node-name) {
-    font: 400 10px/1 'Rubik', system-ui, sans-serif;
   }
 </style>
