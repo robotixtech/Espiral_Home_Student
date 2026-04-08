@@ -200,11 +200,26 @@
 
   // ── Interaction ──────────────────────────────────────────────────────────
 
-  function handleUnitClick(unit: ProgramUnit) {
-    if (unit.status === 'locked') return;
-    if (unit.status === 'in-progress' && unit.activities && unit.activities.length > 0) return;
-    if (unit.activities && unit.activities.length > 0) onUnitSelected(unit);
-    else if (unit.courseUrl && unit.courseUrl !== '#') window.open(unit.courseUrl, '_blank');
+  // True when ALL activities (including "Continuar") are completed for a unit.
+  // This is the trigger for auto-hiding the moons.
+  const allActivitiesCompleted = $derived(
+    program.units.map(unit => {
+      const acts = unit.activities ?? [];
+      if (acts.length === 0) return false;
+      return displayActivities(unit).every(a => a.status === 'completed');
+    }),
+  );
+
+  // Tracks units whose moon visibility has been manually toggled by the user.
+  // XOR with the default: toggled=false → show when not all completed, hide when all completed.
+  //                       toggled=true  → reverse of above.
+  let toggledUnits = $state(new Set<number>());
+
+  function handleUnitClick(unit: ProgramUnit, _i: number) {
+    if ((unit.activities?.length ?? 0) === 0) return;
+    const next = new Set(toggledUnits);
+    if (next.has(unit.id)) { next.delete(unit.id); } else { next.add(unit.id); }
+    toggledUnits = next;
   }
 
   onMount(() => {
@@ -311,7 +326,8 @@
         {#each program.units as unit, i (unit.id)}
           {@const uPos = unitPositions[i]}
           {@const hasActs = (unit.activities?.length ?? 0) > 0}
-          {@const topClear = hasActs ? ACT_ORBIT + 20 : (UNIT_SIZE / 2) * (i === 0 ? 1.15 : 1) + 12}
+          {@const moonsShown = hasActs && (allActivitiesCompleted[i] === toggledUnits.has(unit.id))}
+          {@const topClear = moonsShown ? ACT_ORBIT + 20 : (((UNIT_SIZE / 2) * (i === 0 ? 1.15 : 1) + 12) * 1.05)}
           {@const lines = splitUnitLabel(unit.label)}
           {@const lineH = 15}
           {@const lblBaseY = uPos.y - topClear}
@@ -341,9 +357,9 @@
           </textPath>
         </text>
 
-        <!-- Activity moons (below planet nodes) -->
+        <!-- Activity moons: hidden when all activities green (incl. Continuar), toggleable by click -->
         {#each program.units as unit, i (unit.id)}
-          {#if unit.activities && unit.activities.length > 0}
+          {#if unit.activities && unit.activities.length > 0 && (allActivitiesCompleted[i] === toggledUnits.has(unit.id))}
             {@const uPos = unitPositions[i]}
             {@const acts = displayActivities(unit)}
             {@const aPos = activityPositions[i]}
@@ -369,8 +385,8 @@
           {@const uPos = unitPositions[i]}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <g
-            onclick={() => handleUnitClick(unit)}
-            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') handleUnitClick(unit); }}
+            onclick={() => handleUnitClick(unit, i)}
+            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') handleUnitClick(unit, i); }}
           >
             <UnitNode
               unit={{ ...unit, status: effectiveStatuses[i] }}

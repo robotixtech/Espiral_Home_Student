@@ -15,7 +15,7 @@ export interface EmulatorConfig {
 }
 
 export const EMULATOR_CONFIG: EmulatorConfig = {
-  tickMs: 225,
+  tickMs: 440,
   progressStep: 5,
   pauseBetweenUnitsMs: 1200,
   pauseBeforeRestartMs: 12000,

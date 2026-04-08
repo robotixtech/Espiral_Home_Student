@@ -64,11 +64,13 @@
       emuActivityIdx++;
 
       if (emuActivityIdx >= baseActivities.length) {
-        // All done — pause then restart
+        // All done — collapse and pause then restart
+        activitiesCollapsed = true;
         emuTimer = setTimeout(() => {
           if (!emuActive) return;
           emuActivityIdx = 0;
           emuProgress = 0;
+          activitiesCollapsed = false;
           scheduleEmuTick();
         }, EMULATOR_CONFIG.pauseBeforeRestartMs);
         return;
@@ -91,10 +93,12 @@
     if (emuActive) {
       emuActive = false;
       if (emuTimer) { clearTimeout(emuTimer); emuTimer = null; }
+      activitiesCollapsed = true; // EMU OFF = all completed = collapse
     } else {
       emuActive = true;
       emuActivityIdx = 0;
       emuProgress = 0;
+      activitiesCollapsed = false;
       scheduleEmuTick();
     }
   }
@@ -108,6 +112,14 @@
   const allMandatoryDone = $derived(
     activities.length > 0 && activities.every(a => a.status === 'completed')
   );
+
+  // Collapse/expand activity spheres
+  let activitiesCollapsed = $state(false);
+  const activitiesVisible = $derived(!activitiesCollapsed);
+
+  function toggleCollapse() {
+    if (allMandatoryDone) activitiesCollapsed = !activitiesCollapsed;
+  }
 
   const centerUnit = $derived<ProgramUnit>(
     allMandatoryDone
@@ -311,47 +323,69 @@
     />
 
     <!-- Connection lines: activities -->
-    {#each activities as act, i (act.id)}
-      {@const pos = activityPositions[i]}
-      {#if pos}
-        {@const ls = lineStyleFor(act.status)}
-        <line
-          x1={centerX} y1={centerY}
-          x2={pos.x} y2={pos.y}
-          stroke={lineColorFor(act.status)}
-          stroke-width={ls.width}
-          stroke-dasharray={ls.dasharray}
-          opacity={ls.opacity}
-          stroke-linecap="round"
-          filter={lineGlowFilter(act.status)}
-        />
-      {/if}
-    {/each}
+    {#if activitiesVisible}
+      {#each activities as act, i (act.id)}
+        {@const pos = activityPositions[i]}
+        {#if pos}
+          {@const ls = lineStyleFor(act.status)}
+          <line
+            x1={centerX} y1={centerY}
+            x2={pos.x} y2={pos.y}
+            stroke={lineColorFor(act.status)}
+            stroke-width={ls.width}
+            stroke-dasharray={ls.dasharray}
+            opacity={ls.opacity}
+            stroke-linecap="round"
+            filter={lineGlowFilter(act.status)}
+          />
+        {/if}
+      {/each}
 
-    <!-- Connection line: Continuar -->
-    <line
-      x1={centerX} y1={centerY}
-      x2={continuarPos.x} y2={continuarPos.y}
-      stroke={continuarColors.glow || lineColorFor('locked')}
-      stroke-width={continuarLineStyle.width}
-      stroke-dasharray={continuarLineStyle.dasharray}
-      opacity={continuarLineStyle.opacity}
-      stroke-linecap="round"
-      filter={continuarUnlocked ? 'url(#line-glow-purple)' : undefined}
-    />
+      <!-- Connection line: Continuar -->
+      <line
+        x1={centerX} y1={centerY}
+        x2={continuarPos.x} y2={continuarPos.y}
+        stroke={continuarColors.glow || lineColorFor('locked')}
+        stroke-width={continuarLineStyle.width}
+        stroke-dasharray={continuarLineStyle.dasharray}
+        opacity={continuarLineStyle.opacity}
+        stroke-linecap="round"
+        filter={continuarUnlocked ? 'url(#line-glow-purple)' : undefined}
+      />
+    {/if}
 
     <!-- Center node -->
-    <UnitCenterNode unit={centerUnit} {programShortname} cx={centerX} cy={centerY} />
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+    <g
+      class:center-toggle={allMandatoryDone}
+      role={allMandatoryDone ? 'button' : undefined}
+      tabindex={allMandatoryDone ? 0 : undefined}
+      onclick={allMandatoryDone ? toggleCollapse : undefined}
+      onkeydown={allMandatoryDone ? (e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCollapse(); } } : undefined}
+    >
+      <UnitCenterNode unit={centerUnit} {programShortname} cx={centerX} cy={centerY} />
+    </g>
+    {#if allMandatoryDone}
+      <text
+        x={centerX} y={centerY + 102}
+        text-anchor="middle"
+        class="collapse-hint"
+        fill={theme.text.secondary}
+      >{activitiesCollapsed ? '▼ ver actividades' : '▲ ocultar'}</text>
+    {/if}
 
     <!-- Activity nodes -->
-    {#each activities as act, i (act.id)}
-      {@const pos = activityPositions[i]}
-      {#if pos}
-        <ActivityNode activity={act} x={pos.x} y={pos.y} index={i} isFirst={i === 0} {onActivitySelected} />
-      {/if}
-    {/each}
+    {#if activitiesVisible}
+      {#each activities as act, i (act.id)}
+        {@const pos = activityPositions[i]}
+        {#if pos}
+          <ActivityNode activity={act} x={pos.x} y={pos.y} index={i} isFirst={i === 0} {onActivitySelected} />
+        {/if}
+      {/each}
+    {/if}
 
     <!-- Continuar node -->
+    {#if activitiesVisible}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <g
       class="continuar-node"
@@ -392,6 +426,7 @@
         Continuar
       </text>
     </g>
+    {/if}
     <!-- Activity emulator toggle -->
     <g
       class="emu-btn"
@@ -486,5 +521,16 @@
   .emu-text {
     font: 600 10px/1 'Rubik', system-ui, sans-serif;
     letter-spacing: 0.5px;
+  }
+
+  .center-toggle {
+    cursor: pointer;
+    outline: none;
+  }
+
+  .collapse-hint {
+    font: 400 11px/1 'Rubik', system-ui, sans-serif;
+    pointer-events: none;
+    opacity: 0.6;
   }
 </style>

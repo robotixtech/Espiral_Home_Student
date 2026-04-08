@@ -89,9 +89,9 @@
   <circle cx="0" cy="0" r={SUN_R * 1.8} fill="#f59e0b" opacity="0.05" />
   <circle cx="0" cy="0" r={SUN_R}       fill="url(#dg-sun-{config.shortname})" opacity="0.8" />
 
-  <!-- Activity moons (tiny dots) -->
+  <!-- Activity moons (tiny dots) — hidden when unit completed -->
   {#each config.units as unit, i (unit.label)}
-    {#if unit.activities?.length}
+    {#if unit.activities?.length && unit.status !== 'completed'}
       {@const aPos = activityPositions[i]}
       {#each unit.activities as act, j (j)}
         {#if aPos[j]}
