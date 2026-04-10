@@ -206,7 +206,6 @@
   let lastTX = 0, lastTY = 0;
 
   function onTouchStart(e: TouchEvent) {
-    e.preventDefault();
     if (autoAnimFrame !== null) { cancelAnimationFrame(autoAnimFrame); autoAnimFrame = null; }
     if (e.touches.length === 1) {
       isDragging = true;
@@ -258,7 +257,7 @@
     // Double-tap (two taps within 300ms) resets view
     if (e.changedTouches.length === 1) {
       const now = Date.now();
-      if (now - lastTapTime < 300) resetView();
+      if (now - lastTapTime < 300) { e.preventDefault(); resetView(); }
       lastTapTime = now;
     }
   }
@@ -338,7 +337,7 @@
     ro.observe(containerEl);
     // Wheel + touch must be non-passive to call preventDefault()
     svgEl?.addEventListener('wheel',      onWheel,      { passive: false });
-    svgEl?.addEventListener('touchstart', onTouchStart, { passive: false });
+    svgEl?.addEventListener('touchstart', onTouchStart, { passive: true });
     svgEl?.addEventListener('touchmove',  onTouchMove,  { passive: false });
     svgEl?.addEventListener('touchend',   onTouchEnd,   { passive: false });
     return () => {
