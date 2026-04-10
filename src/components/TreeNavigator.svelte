@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import type { ProgramData, ProgramUnit, Activity } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
   import { PREV_PROGRAM_CONFIG, NEXT_PROGRAM_CONFIG, FUTURE_PROGRAM_CONFIG } from '../lib/program-config';
@@ -38,7 +38,12 @@
   const t = $derived(getTheme());
 
   const orbitRadii    = $derived(program.units.map((_, i) => ORBIT_START + i * ORBIT_STEP));
-  const progLblR      = $derived(ORBIT_START + (program.units.length - 1) * ORBIT_STEP + 20);
+  const progLblR      = $derived(ORBIT_START + (program.units.length - 1) * ORBIT_STEP + 85);
+
+  // Outermost completed orbit radius — used for the sun pulse animation
+  const lastCompletedIdx = $derived(
+    effectiveStatuses.reduce((last, st, i) => st === 'completed' ? i : last, -1)
+  );
 
   // Effective unit status: 'completed' as soon as all mandatory (non-Continuar) activities are done.
   // "Continuar" is optional — it must not block the unit from turning green.
@@ -125,9 +130,41 @@
   let panY       = $state(0.0);
   let isDragging = $state(false);
   let lastMX = 0, lastMY = 0;
+  let autoAnimFrame: number | null = null;
 
   const zoomPct       = $derived(Math.round(zoomScale * 100));
   const zoomTransform = $derived(`translate(${panX},${panY}) scale(${zoomScale})`);
+
+  // ── Auto-center on the in-progress unit ──────────────────────────────────
+  const inProgressIdx = $derived(effectiveStatuses.findIndex(s => s === 'in-progress'));
+
+  $effect(() => {
+    const idx = inProgressIdx;        // única dependencia reactiva
+    if (idx < 0) return;
+
+    const pos = untrack(() => unitPositions[idx]);  // sin suscripción
+    const scale   = untrack(() => zoomScale);
+    const startPX = untrack(() => panX);
+    const startPY = untrack(() => panY);
+
+    const targetPX = cx - pos.x * scale;
+    const targetPY = cy - pos.y * scale;
+    const dX = targetPX - startPX;
+    const dY = targetPY - startPY;
+
+    if (autoAnimFrame !== null) { cancelAnimationFrame(autoAnimFrame); autoAnimFrame = null; }
+
+    const duration = 750;
+    const t0 = performance.now();
+    function step(now: number) {
+      const p    = Math.min((now - t0) / duration, 1);
+      const ease = 1 - (1 - p) ** 3; // cubic-out
+      panX = startPX + dX * ease;
+      panY = startPY + dY * ease;
+      autoAnimFrame = p < 1 ? requestAnimationFrame(step) : null;
+    }
+    autoAnimFrame = requestAnimationFrame(step);
+  });
 
   function onWheel(e: WheelEvent) {
     e.preventDefault();
@@ -143,6 +180,7 @@
 
   function onMouseDown(e: MouseEvent) {
     if (e.button !== 0) return;
+    if (autoAnimFrame !== null) { cancelAnimationFrame(autoAnimFrame); autoAnimFrame = null; }
     isDragging = true; lastMX = e.clientX; lastMY = e.clientY;
   }
 
@@ -156,7 +194,10 @@
 
   function onMouseUp()    { isDragging = false; }
   function onMouseLeave() { isDragging = false; }
-  function resetView()    { zoomScale = 1; panX = 0; panY = 0; }
+  function resetView() {
+    if (autoAnimFrame !== null) { cancelAnimationFrame(autoAnimFrame); autoAnimFrame = null; }
+    zoomScale = 1; panX = 0; panY = 0;
+  }
 
   // ── Unit label helpers ───────────────────────────────────────────────────
   // Splits a label into lines of at most maxChars characters.
@@ -180,7 +221,7 @@
   // Labels follow the curvature of each orbit ring, placed just inside the ring.
   // Top-half arcs (sin ≤ 0) are clockwise → text reads L-to-R.
   // Bottom-half arcs (sin > 0) are counter-clockwise → text reads L-to-R.
-  const LABEL_CHAR_W = 7.2; // avg char width at 12px Rubik
+  const LABEL_CHAR_W = 9.0; // avg char width at 16px Rubik
 
   function orbitLabelPath(r: number, a: number, span: number): string {
     if (Math.sin(a) <= 0) {
@@ -254,6 +295,14 @@
       ondblclick={resetView}
     >
       <defs>
+        <!-- Solar light gradient — used by sun pulse fill -->
+        <radialGradient id="sun-light-grad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stop-color="#fff9c4" stop-opacity="0.42" />
+          <stop offset="18%"  stop-color="#fbbf24" stop-opacity="0.30" />
+          <stop offset="42%"  stop-color="#f59e0b" stop-opacity="0.16" />
+          <stop offset="68%"  stop-color="#d97706" stop-opacity="0.07" />
+          <stop offset="100%" stop-color="#92400e" stop-opacity="0" />
+        </radialGradient>
         <radialGradient id="ss-bg" cx="50%" cy="50%" r="60%">
           <stop offset="0%"   stop-color={t.bg.center} />
           <stop offset="60%"  stop-color={t.bg.mid} />
@@ -290,6 +339,44 @@
       <!-- ── Zoomable content ───────────────────────────────────────── -->
       <g transform={zoomTransform}>
 
+        <!-- ── Outer HUD ring ────────────────────────────────────────────── -->
+        {#if true}
+          {@const outerR   = orbitRadii[orbitRadii.length - 1] + 60}
+          {@const hud      = 'rgba(0,180,255,0.85)'}
+          {@const hudFaint = 'rgba(0,180,255,0.4)'}
+          {@const ticks    = 72}
+          <!-- Outer border circle -->
+          <circle cx={cx} cy={cy} r={outerR + 4} fill="none" stroke={hud} stroke-width="1" opacity="1" />
+          <!-- Inner border circle -->
+          <circle cx={cx} cy={cy} r={outerR - 14} fill="none" stroke={hud} stroke-width="0.7" opacity="0.75" />
+          <!-- Travelling light: same size as tick marks, loops via SVG animate -->
+          {@const sweepC = 2 * Math.PI * (outerR + 4)}
+          <circle cx={cx} cy={cy} r={outerR + 4} fill="none"
+                  stroke="rgba(0,190,255,0.95)" stroke-width="6"
+                  stroke-dasharray="{sweepC / ticks / 2} {sweepC - sweepC / ticks / 2}" stroke-linecap="square"
+                  transform="rotate(-90, {cx}, {cy})">
+            <animate attributeName="stroke-dashoffset"
+                     from="0" to="{-sweepC}"
+                     dur="8s" repeatCount="indefinite" />
+          </circle>
+
+          <!-- Tick marks -->
+          {#each Array.from({length: ticks}, (_, k) => k) as k}
+            {@const ang     = (k / ticks) * 2 * Math.PI - Math.PI / 2}
+            {@const isMajor = k % 6 === 0}
+            {@const r1 = outerR + 4}
+            {@const r2 = isMajor ? outerR - 10 : outerR - 4}
+            <line
+              x1={cx + r1 * Math.cos(ang)} y1={cy + r1 * Math.sin(ang)}
+              x2={cx + r2 * Math.cos(ang)} y2={cy + r2 * Math.sin(ang)}
+              stroke={hud}
+              stroke-width={isMajor ? 2.5 : 1.5}
+              stroke-linecap="square"
+              opacity={isMajor ? 1 : 0.65}
+            />
+          {/each}
+        {/if}
+
         <!-- Distant galaxies -->
         <DistantGalaxy config={NEXT_PROGRAM_CONFIG}   cx={dgNext.cx}   cy={dgNext.cy}   scale={0.32} opacity={0.50} fontScale={0.7} />
         <DistantGalaxy config={FUTURE_PROGRAM_CONFIG} cx={dgFuture.cx} cy={dgFuture.cy} scale={0.20} opacity={0.22} fontScale={0.7} />
@@ -300,27 +387,46 @@
           {@const orbR = orbitRadii[i]}
           {@const orbC = 2 * Math.PI * orbR}
           {@const effSt = effectiveStatuses[i]}
+          {@const unitAngleDeg = (START_ANGLE + i * GOLDEN) * 180 / Math.PI}
           {#if effSt === 'completed'}
             <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke={t.unit.completed.glow} stroke-width="1" opacity="0.22" />
+                    stroke="rgba(0,180,255,0.85)" stroke-width="1" opacity="0.55" />
           {:else if effSt === 'in-progress'}
             <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke={t.unit.inProgress.ring} stroke-width="0.8"
-                    stroke-dasharray="5 8" opacity="0.18" />
+                    stroke="rgba(0,180,255,0.85)" stroke-width="1"
+                    stroke-dasharray="5 8" opacity="0.25" />
             {@const dashLen = orbC * (unit.progress / 100)}
             <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke={t.unit.inProgress.glow} stroke-width="2.5"
+                    stroke="rgba(0,180,255,0.85)" stroke-width="1"
                     stroke-dasharray="{dashLen} {orbC}"
                     stroke-linecap="round"
-                    transform="rotate(-90, {cx}, {cy})"
-                    opacity="0.55"
-                    filter="url(#ss-orbit-glow)" />
+                    transform="rotate({unitAngleDeg}, {cx}, {cy})"
+                    opacity="0.55" />
           {:else}
             <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke="rgba(255,255,255,0.05)" stroke-width="0.8"
-                    stroke-dasharray="3 8" />
+                    stroke="rgba(0,180,255,0.85)" stroke-width="1"
+                    stroke-dasharray="4 7" opacity="0.55" />
           {/if}
         {/each}
+
+        <!-- Sun pulse — light waves emanating from the sun to completed orbits -->
+        {#if lastCompletedIdx >= 0}
+          {@const pulseR = orbitRadii[lastCompletedIdx]}
+          <g transform="translate({cx}, {cy})">
+            {#each [0, 1.4, 2.8] as delay (delay)}
+              <!-- Gradient fill: soft solar light -->
+              <circle cx="0" cy="0" r={pulseR}
+                      fill="url(#sun-light-grad)"
+                      class="sun-pulse"
+                      style="animation-delay: {delay}s" />
+              <!-- Stroke ring: propagating line -->
+              <circle cx="0" cy="0" r={pulseR} fill="none"
+                      stroke={t.sun.g1} stroke-width="1.2"
+                      class="sun-pulse"
+                      style="animation-delay: {delay}s" />
+            {/each}
+          </g>
+        {/if}
 
         <!-- Horizontal unit labels — above both the unit sphere and its activity moons -->
         {#each program.units as unit, i (unit.id)}
@@ -329,7 +435,7 @@
           {@const moonsShown = hasActs && (allActivitiesCompleted[i] === toggledUnits.has(unit.id))}
           {@const topClear = moonsShown ? ACT_ORBIT + 20 : (((UNIT_SIZE / 2) * (i === 0 ? 1.15 : 1) + 12) * 1.05)}
           {@const lines = splitUnitLabel(unit.label)}
-          {@const lineH = 15}
+          {@const lineH = 19}
           {@const lblBaseY = uPos.y - topClear}
           <text
             x={uPos.x}
@@ -346,8 +452,10 @@
         {/each}
 
         <!-- Central Sun -->
-        <circle cx={cx} cy={cy} r={SUN_R + 10} fill="#f59e0b" opacity="0.04" />
-        <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="#fbbf24" opacity="0.07" />
+        <circle cx={cx} cy={cy} r={SUN_R + 38} fill="#f59e0b" opacity="0.03" />
+        <circle cx={cx} cy={cy} r={SUN_R + 22} fill="#fbbf24" opacity="0.05" />
+        <circle cx={cx} cy={cy} r={SUN_R + 10} fill="#fbbf24" opacity="0.09" />
+        <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="#fff9c4" opacity="0.13" />
         <circle cx={cx} cy={cy} r={SUN_R}
                 fill="url(#ss-sun)" filter="url(#ss-sun-glow)" />
         <!-- Program shortname curved outside the sun -->
@@ -429,13 +537,24 @@
   }
   .galaxy-svg { width: 100%; height: 100%; display: block; }
 
-  :global(.prog-label) {
-    font: 800 26px/1 'Rubik', system-ui, sans-serif;
+  .sun-pulse {
+    transform-origin: 0 0;
+    animation: sun-pulse 4.2s ease-out infinite;
+    opacity: 0;
+  }
+  @keyframes sun-pulse {
+    0%   { transform: scale(0.04); opacity: 0.80; }
+    35%  { opacity: 0.55; }
+    100% { transform: scale(1);    opacity: 0; }
+  }
+
+:global(.prog-label) {
+    font: 800 32px/1 'Rubik', system-ui, sans-serif;
     letter-spacing: 8px;
     text-transform: uppercase;
   }
   :global(.unit-lbl) {
-    font: 600 13px/1 'Rubik', system-ui, sans-serif;
+    font: 600 16px/1 'Rubik', system-ui, sans-serif;
     letter-spacing: 0.2px;
     pointer-events: none;
   }
