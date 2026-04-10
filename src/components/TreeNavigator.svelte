@@ -201,6 +201,69 @@
     zoomScale = 1; panX = 0; panY = 0;
   }
 
+  // ── Touch support (tablet / mobile) ──────────────────────────────────────
+  let lastTouchDist = 0;  // distance between two fingers for pinch-zoom
+  let lastTX = 0, lastTY = 0;
+
+  function onTouchStart(e: TouchEvent) {
+    e.preventDefault();
+    if (autoAnimFrame !== null) { cancelAnimationFrame(autoAnimFrame); autoAnimFrame = null; }
+    if (e.touches.length === 1) {
+      isDragging = true;
+      lastTX = e.touches[0].clientX;
+      lastTY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      lastTouchDist = Math.hypot(
+        e.touches[1].clientX - e.touches[0].clientX,
+        e.touches[1].clientY - e.touches[0].clientY,
+      );
+    }
+  }
+
+  function onTouchMove(e: TouchEvent) {
+    e.preventDefault();
+    if (!svgEl) return;
+    const rect = svgEl.getBoundingClientRect();
+
+    if (e.touches.length === 1 && isDragging) {
+      // Single finger: pan
+      panX += (e.touches[0].clientX - lastTX) * vb.w / rect.width;
+      panY += (e.touches[0].clientY - lastTY) * vb.h / rect.height;
+      lastTX = e.touches[0].clientX;
+      lastTY = e.touches[0].clientY;
+    } else if (e.touches.length === 2) {
+      // Two fingers: pinch-zoom toward midpoint
+      const dist = Math.hypot(
+        e.touches[1].clientX - e.touches[0].clientX,
+        e.touches[1].clientY - e.touches[0].clientY,
+      );
+      if (lastTouchDist > 0) {
+        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        const mx = vb.x + (midX - rect.left) / rect.width  * vb.w;
+        const my = vb.y + (midY - rect.top)  / rect.height * vb.h;
+        const ns = Math.max(0.35, Math.min(5, zoomScale * (dist / lastTouchDist)));
+        panX = mx - (mx - panX) * (ns / zoomScale);
+        panY = my - (my - panY) * (ns / zoomScale);
+        zoomScale = ns;
+      }
+      lastTouchDist = dist;
+    }
+  }
+
+  function onTouchEnd(e: TouchEvent) {
+    if (e.touches.length === 0) isDragging = false;
+    if (e.touches.length < 2)   lastTouchDist = 0;
+    // Double-tap (two taps within 300ms) resets view
+    if (e.changedTouches.length === 1) {
+      const now = Date.now();
+      if (now - lastTapTime < 300) resetView();
+      lastTapTime = now;
+    }
+  }
+  let lastTapTime = 0;
+
   // ── Unit label helpers ───────────────────────────────────────────────────
   // Splits a label into lines of at most maxChars characters.
   function splitUnitLabel(text: string, maxChars = 15): string[] {
@@ -273,8 +336,11 @@
       cH = entry.contentRect.height;
     });
     ro.observe(containerEl);
-    // Wheel must be non-passive to call preventDefault()
-    svgEl?.addEventListener('wheel', onWheel, { passive: false });
+    // Wheel + touch must be non-passive to call preventDefault()
+    svgEl?.addEventListener('wheel',      onWheel,      { passive: false });
+    svgEl?.addEventListener('touchstart', onTouchStart, { passive: false });
+    svgEl?.addEventListener('touchmove',  onTouchMove,  { passive: false });
+    svgEl?.addEventListener('touchend',   onTouchEnd,   { passive: false });
     return () => {
       ro.disconnect();
       svgEl?.removeEventListener('wheel', onWheel);
