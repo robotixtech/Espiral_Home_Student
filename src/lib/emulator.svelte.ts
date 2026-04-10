@@ -58,14 +58,15 @@ function scheduleTick(baseProgram: ProgramData): void {
   timer = setTimeout(() => tick(baseProgram), EMULATOR_CONFIG.tickMs);
 }
 
-/** Progress threshold at which a unit is considered complete for unlock purposes.
- *  "Continuar" is optional — only mandatory activities count toward unlocking. */
+/** Progress threshold at which a unit unlocks the next one.
+ *  Triggered when DemoDay (the 4th activity) is completed.
+ *  "Continuar" is optional and does not block unlocking. */
 function mandatoryThreshold(unit: ProgramUnit): number {
   const acts = unit.activities ?? [];
   if (acts.length === 0) return 100;
-  const mandatory = acts.filter(a => a.label !== 'Continuar');
-  if (mandatory.length === 0) return 100;
-  return (mandatory.length / acts.length) * 100;
+  const demoDayIdx = acts.findIndex(a => a.label === 'DemoDay');
+  if (demoDayIdx < 0) return 100;
+  return ((demoDayIdx + 1) / acts.length) * 100;
 }
 
 function tick(baseProgram: ProgramData): void {

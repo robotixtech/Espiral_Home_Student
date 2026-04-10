@@ -45,15 +45,17 @@
     effectiveStatuses.reduce((last, st, i) => st === 'completed' ? i : last, -1)
   );
 
-  // Effective unit status: 'completed' as soon as all mandatory (non-Continuar) activities are done.
-  // "Continuar" is optional — it must not block the unit from turning green.
+  // Effective unit status: 'completed' as soon as DemoDay is done.
+  // "Continuar" is optional and must not block the unit from turning green or unlocking the next one.
   const effectiveStatuses = $derived(
     program.units.map(unit => {
       if (unit.status === 'locked' || unit.status === 'completed') return unit.status;
       const all = unit.activities ?? [];
-      const mandatory = all.filter(a => a.label !== 'Continuar');
-      if (mandatory.length === 0 || all.length === 0) return unit.status;
-      const threshold = (mandatory.length / all.length) * 100;
+      if (all.length === 0) return unit.status;
+      const demoDayIdx = all.findIndex(a => a.label === 'DemoDay');
+      const threshold = demoDayIdx >= 0
+        ? ((demoDayIdx + 1) / all.length) * 100
+        : 100; // no DemoDay → require full completion
       return unit.progress >= threshold
         ? ('completed' as const)
         : ('in-progress' as const);
