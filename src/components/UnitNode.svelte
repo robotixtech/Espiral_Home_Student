@@ -258,7 +258,7 @@
     transition: opacity 0.3s ease, stroke-width 0.3s ease;
   }
 
-  .node.locked { opacity: 0.80; }
+  .node.locked { opacity: 1.0; }
 
   /* Heartbeat pulse for in-progress units */
   .heartbeat {

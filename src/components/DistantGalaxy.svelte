@@ -20,7 +20,7 @@
 
   // Same layout constants as TreeNavigator, scaled down
   const SUN_R       = $derived(9  * scale);
-  const UNIT_R      = $derived(42 * scale);   // half of UNIT_SIZE=85, roughly
+  const UNIT_R      = $derived(42 * scale);
   const ACT_ORBIT   = $derived(65 * scale);
   const ORBIT_STEP  = $derived(68 * scale);
   const ORBIT_START = $derived(80 * scale);
@@ -35,7 +35,9 @@
     }),
   );
 
-  const progLblR = $derived(ORBIT_START + (config.units.length - 1) * ORBIT_STEP + 20 * scale);
+  // Label outside the outermost orbit (no radar ring here)
+  const lastOrbitR = $derived(ORBIT_START + (config.units.length - 1) * ORBIT_STEP);
+  const progLblR   = $derived(lastOrbitR + 28 * scale);
 
   const activityPositions = $derived(
     config.units.map((unit, i) => {
@@ -49,22 +51,14 @@
     }),
   );
 
-  function unitColors(status: string) {
-    switch (status) {
-      case 'completed':  return t.unit.completed;
-      case 'in-progress': return t.unit.inProgress;
-      default:           return t.unit.locked;
-    }
+  // Distant galaxies always render as fully locked (not yet accessible)
+  function unitColors(_status: string) {
+    return t.unit.locked;
   }
 </script>
 
 <g transform="translate({cx}, {cy})" opacity={opacity}>
   <defs>
-    <radialGradient id="dg-sun-{config.shortname}" cx="35%" cy="35%" r="65%">
-      <stop offset="0%"   stop-color="#fff9c4" />
-      <stop offset="50%"  stop-color="#fbbf24" />
-      <stop offset="100%" stop-color="#b45309" />
-    </radialGradient>
     {#each config.units as unit, i (unit.label)}
       <radialGradient id="dg-u-{config.shortname}-{i}" cx="35%" cy="35%" r="65%">
         <stop offset="0%"   stop-color={unitColors(unit.status).g1} />
@@ -77,28 +71,28 @@
           fill="none" />
   </defs>
 
-  <!-- Orbit rings -->
-  {#each config.units as _unit, i (_unit.label)}
-    {@const r = ORBIT_START + i * ORBIT_STEP}
+  <!-- Orbit rings — same style as C450 (no radar border) -->
+  {#each config.units as unit, i (unit.label)}
+    {@const r    = ORBIT_START + i * ORBIT_STEP}
+    {@const orbC = 2 * Math.PI * r}
+    {@const unitAngleDeg = (START_ANGLE + i * GOLDEN) * 180 / Math.PI}
+    <!-- All orbits locked style -->
     <circle cx="0" cy="0" r={r} fill="none"
-            stroke="rgba(255,255,255,0.05)" stroke-width="0.5"
-            stroke-dasharray="3 6" />
+            stroke="rgba(0,180,255,0.85)" stroke-width={scale}
+            stroke-dasharray="{4 * scale} {7 * scale}" opacity="0.55" />
   {/each}
 
-  <!-- Sun -->
-  <circle cx="0" cy="0" r={SUN_R * 1.8} fill="#f59e0b" opacity="0.05" />
-  <circle cx="0" cy="0" r={SUN_R}       fill="url(#dg-sun-{config.shortname})" opacity="0.8" />
 
-  <!-- Activity moons (tiny dots) — hidden when unit completed -->
+  <!-- Activity moons (tiny dots) — all locked -->
   {#each config.units as unit, i (unit.label)}
-    {#if unit.activities?.length && unit.status !== 'completed'}
+    {#if unit.activities?.length}
       {@const aPos = activityPositions[i]}
-      {#each unit.activities as act, j (j)}
+      {#each unit.activities as _act, j (j)}
         {#if aPos[j]}
           <circle cx={aPos[j].x} cy={aPos[j].y}
                   r={3.5 * scale}
-                  fill={unitColors(act.status).g2}
-                  opacity={act.status === 'locked' ? 0.25 : 0.70} />
+                  fill={unitColors('locked').g2}
+                  opacity="0.25" />
         {/if}
       {/each}
     {/if}
@@ -110,9 +104,8 @@
     {@const r = UNIT_R * (i === 0 ? 1.15 : 1)}
     <circle cx={uPos.x} cy={uPos.y} r={r}
             fill="url(#dg-u-{config.shortname}-{i})"
-            opacity={unit.status === 'locked' ? 0.40 : 0.85} />
-    {#if unit.status === 'locked'}
-      <!-- Lock icon scaled for tiny node -->
+            opacity="0.80" />
+    {#if true}
       <svg x={uPos.x - r * 0.45} y={uPos.y - r * 0.55}
            width={r * 0.9} height={r * 1.1}
            viewBox="0 0 24 24" fill="none"
@@ -124,7 +117,7 @@
     {/if}
   {/each}
 
-  <!-- Program label curved at outermost orbit -->
+  <!-- Program label curved just outside the outermost orbit -->
   <text fill="#ffffff" opacity="0.55"
         font-size={31.2 * fontScale * scale} font-weight="400" letter-spacing={6 * scale}
         font-family="Rubik, system-ui, sans-serif">

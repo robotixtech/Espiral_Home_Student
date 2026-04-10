@@ -38,7 +38,7 @@
   const t = $derived(getTheme());
 
   const orbitRadii    = $derived(program.units.map((_, i) => ORBIT_START + i * ORBIT_STEP));
-  const progLblR      = $derived(ORBIT_START + (program.units.length - 1) * ORBIT_STEP + 85);
+  const progLblR      = $derived(orbitRadii[orbitRadii.length - 1] + 160);
 
   // Outermost completed orbit radius — used for the sun pulse animation
   const lastCompletedIdx = $derived(
@@ -116,9 +116,9 @@
 
   const isPortrait = $derived(cW / cH < 1.0);
 
-  const dgNext   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.30 : 0.10), cy: vb.y + vb.h * (isPortrait ? 0.10 : 0.12) });
-  const dgFuture = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.72 : 0.88), cy: vb.y + vb.h * (isPortrait ? 0.06 : 0.08) });
-  const dgPrev   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.20 : 0.05), cy: vb.y + vb.h * (isPortrait ? 0.90 : 0.88) });
+  const dgNext   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.22 : 0.06), cy: vb.y + vb.h * (isPortrait ? 0.07 : 0.08) });
+  const dgFuture = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.80 : 0.93), cy: vb.y + vb.h * (isPortrait ? 0.04 : 0.05) });
+  const dgPrev   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.14 : 0.03), cy: vb.y + vb.h * (isPortrait ? 0.94 : 0.93) });
 
   // ── C: Zoom / Pan ─────────────────────────────────────────────────────────
   // State: translate(panX, panY) scale(zoomScale) applied to all content.
@@ -256,7 +256,8 @@
   //                       toggled=true  → reverse of above.
   let toggledUnits = $state(new Set<number>());
 
-  function handleUnitClick(unit: ProgramUnit, _i: number) {
+  function handleUnitClick(unit: ProgramUnit, i: number) {
+    if (effectiveStatuses[i] === 'locked') return;
     if ((unit.activities?.length ?? 0) === 0) return;
     const next = new Set(toggledUnits);
     if (next.has(unit.id)) { next.delete(unit.id); } else { next.add(unit.id); }
@@ -295,27 +296,19 @@
       ondblclick={resetView}
     >
       <defs>
-        <!-- Solar light gradient — used by sun pulse fill -->
-        <radialGradient id="sun-light-grad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"   stop-color="#fff9c4" stop-opacity="0.42" />
-          <stop offset="18%"  stop-color="#fbbf24" stop-opacity="0.30" />
-          <stop offset="42%"  stop-color="#f59e0b" stop-opacity="0.16" />
-          <stop offset="68%"  stop-color="#d97706" stop-opacity="0.07" />
-          <stop offset="100%" stop-color="#92400e" stop-opacity="0" />
-        </radialGradient>
         <radialGradient id="ss-bg" cx="50%" cy="50%" r="60%">
           <stop offset="0%"   stop-color={t.bg.center} />
           <stop offset="60%"  stop-color={t.bg.mid} />
           <stop offset="100%" stop-color={t.bg.edge} />
         </radialGradient>
         <radialGradient id="ss-sun" cx="35%" cy="35%" r="65%">
-          <stop offset="0%"   stop-color="#fff9c4" />
-          <stop offset="50%"  stop-color="#fbbf24" />
-          <stop offset="100%" stop-color="#b45309" />
+          <stop offset="0%"   stop-color="#d4ffcc" />
+          <stop offset="50%"  stop-color="#39ff14" />
+          <stop offset="100%" stop-color="#006622" />
         </radialGradient>
         <filter id="ss-sun-glow" x="-200%" y="-200%" width="500%" height="500%">
           <feGaussianBlur stdDeviation="8" in="SourceGraphic" result="blur" />
-          <feFlood flood-color="#f59e0b" flood-opacity="0.45" result="color" />
+          <feFlood flood-color="#39ff14" flood-opacity="0.50" result="color" />
           <feComposite in="color" in2="blur" operator="in" result="glow" />
           <feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
@@ -341,7 +334,7 @@
 
         <!-- ── Outer HUD ring ────────────────────────────────────────────── -->
         {#if true}
-          {@const outerR   = orbitRadii[orbitRadii.length - 1] + 60}
+          {@const outerR   = orbitRadii[orbitRadii.length - 1] + 120}
           {@const hud      = 'rgba(0,180,255,0.85)'}
           {@const hudFaint = 'rgba(0,180,255,0.4)'}
           {@const ticks    = 72}
@@ -356,7 +349,7 @@
                   stroke-dasharray="{sweepC / ticks / 2} {sweepC - sweepC / ticks / 2}" stroke-linecap="square"
                   transform="rotate(-90, {cx}, {cy})">
             <animate attributeName="stroke-dashoffset"
-                     from="0" to="{-sweepC}"
+                     from="0" to="{sweepC}"
                      dur="8s" repeatCount="indefinite" />
           </circle>
 
@@ -378,9 +371,9 @@
         {/if}
 
         <!-- Distant galaxies -->
-        <DistantGalaxy config={NEXT_PROGRAM_CONFIG}   cx={dgNext.cx}   cy={dgNext.cy}   scale={0.32} opacity={0.50} fontScale={0.7} />
-        <DistantGalaxy config={FUTURE_PROGRAM_CONFIG} cx={dgFuture.cx} cy={dgFuture.cy} scale={0.20} opacity={0.22} fontScale={0.7} />
-        <DistantGalaxy config={PREV_PROGRAM_CONFIG}   cx={dgPrev.cx}   cy={dgPrev.cy}   scale={0.30} opacity={0.35} fontScale={0.6} />
+        <DistantGalaxy config={NEXT_PROGRAM_CONFIG}   cx={dgNext.cx}   cy={dgNext.cy}   scale={0.32} opacity={0.70} fontScale={0.7} />
+        <DistantGalaxy config={FUTURE_PROGRAM_CONFIG} cx={dgFuture.cx} cy={dgFuture.cy} scale={0.20} opacity={0.62} fontScale={0.7} />
+        <DistantGalaxy config={PREV_PROGRAM_CONFIG}   cx={dgPrev.cx}   cy={dgPrev.cy}   scale={0.30} opacity={0.75} fontScale={0.6} />
 
         <!-- Orbit rings -->
         {#each program.units as unit, i (unit.id)}
@@ -409,22 +402,54 @@
           {/if}
         {/each}
 
-        <!-- Sun pulse — light waves emanating from the sun to completed orbits -->
+        <!-- Radar sweep — rotating lighthouse beam reaching completed orbits -->
         {#if lastCompletedIdx >= 0}
-          {@const pulseR = orbitRadii[lastCompletedIdx]}
-          <g transform="translate({cx}, {cy})">
-            {#each [0, 1.4, 2.8] as delay (delay)}
-              <!-- Gradient fill: soft solar light -->
-              <circle cx="0" cy="0" r={pulseR}
-                      fill="url(#sun-light-grad)"
-                      class="sun-pulse"
-                      style="animation-delay: {delay}s" />
-              <!-- Stroke ring: propagating line -->
-              <circle cx="0" cy="0" r={pulseR} fill="none"
-                      stroke={t.sun.g1} stroke-width="1.2"
-                      class="sun-pulse"
-                      style="animation-delay: {delay}s" />
-            {/each}
+          {@const pulseR   = orbitRadii[lastCompletedIdx]}
+          {@const beamDeg  = 30}
+          {@const trailDeg = 110}
+          {@const toRad    = (d: number) => d * Math.PI / 180}
+          {@const sx  = cx + pulseR}
+          {@const sy  = cy}
+          {@const bx  = cx + pulseR * Math.cos(-toRad(beamDeg))}
+          {@const by  = cy + pulseR * Math.sin(-toRad(beamDeg))}
+          {@const tx  = cx + pulseR * Math.cos(-toRad(trailDeg))}
+          {@const ty  = cy + pulseR * Math.sin(-toRad(trailDeg))}
+          <defs>
+            <!-- Main beam: bright near sun, fades radially outward -->
+            <radialGradient id="sweep-beam-grad" cx={cx} cy={cy} r={pulseR}
+                            gradientUnits="userSpaceOnUse">
+              <stop offset="0%"   stop-color="#d4ffcc" stop-opacity="0.05" />
+              <stop offset="10%"  stop-color="#39ff14" stop-opacity="0.72" />
+              <stop offset="55%"  stop-color="#00cc44" stop-opacity="0.38" />
+              <stop offset="100%" stop-color="#006622" stop-opacity="0" />
+            </radialGradient>
+            <!-- Trail: very faint fade-off behind the beam -->
+            <radialGradient id="sweep-trail-grad" cx={cx} cy={cy} r={pulseR}
+                            gradientUnits="userSpaceOnUse">
+              <stop offset="0%"   stop-color="#39ff14" stop-opacity="0.04" />
+              <stop offset="45%"  stop-color="#00cc44" stop-opacity="0.13" />
+              <stop offset="100%" stop-color="#006622" stop-opacity="0" />
+            </radialGradient>
+            <clipPath id="sweep-clip">
+              <circle cx={cx} cy={cy} r={pulseR} />
+            </clipPath>
+          </defs>
+
+          <g clip-path="url(#sweep-clip)">
+            <!-- Trailing glow (wide, faint) -->
+            <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {tx} {ty} Z"
+                  fill="url(#sweep-trail-grad)">
+              <animateTransform attributeName="transform" type="rotate"
+                                from="0 {cx} {cy}" to="360 {cx} {cy}"
+                                dur="6s" repeatCount="indefinite" />
+            </path>
+            <!-- Leading beam (narrow, bright) -->
+            <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {bx} {by} Z"
+                  fill="url(#sweep-beam-grad)">
+              <animateTransform attributeName="transform" type="rotate"
+                                from="0 {cx} {cy}" to="360 {cx} {cy}"
+                                dur="6s" repeatCount="indefinite" />
+            </path>
           </g>
         {/if}
 
@@ -452,10 +477,10 @@
         {/each}
 
         <!-- Central Sun -->
-        <circle cx={cx} cy={cy} r={SUN_R + 38} fill="#f59e0b" opacity="0.03" />
-        <circle cx={cx} cy={cy} r={SUN_R + 22} fill="#fbbf24" opacity="0.05" />
-        <circle cx={cx} cy={cy} r={SUN_R + 10} fill="#fbbf24" opacity="0.09" />
-        <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="#fff9c4" opacity="0.13" />
+        <circle cx={cx} cy={cy} r={SUN_R + 38} fill="#39ff14" opacity="0.03" />
+        <circle cx={cx} cy={cy} r={SUN_R + 22} fill="#39ff14" opacity="0.05" />
+        <circle cx={cx} cy={cy} r={SUN_R + 10} fill="#39ff14" opacity="0.10" />
+        <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="#d4ffcc" opacity="0.15" />
         <circle cx={cx} cy={cy} r={SUN_R}
                 fill="url(#ss-sun)" filter="url(#ss-sun-glow)" />
         <!-- Program shortname curved outside the sun -->
@@ -494,7 +519,7 @@
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <g
             onclick={() => handleUnitClick(unit, i)}
-            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') handleUnitClick(unit, i); }}
+            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' && effectiveStatuses[i] !== 'locked') handleUnitClick(unit, i); }}
           >
             <UnitNode
               unit={{ ...unit, status: effectiveStatuses[i] }}
@@ -537,16 +562,6 @@
   }
   .galaxy-svg { width: 100%; height: 100%; display: block; }
 
-  .sun-pulse {
-    transform-origin: 0 0;
-    animation: sun-pulse 4.2s ease-out infinite;
-    opacity: 0;
-  }
-  @keyframes sun-pulse {
-    0%   { transform: scale(0.04); opacity: 0.80; }
-    35%  { opacity: 0.55; }
-    100% { transform: scale(1);    opacity: 0; }
-  }
 
 :global(.prog-label) {
     font: 800 32px/1 'Rubik', system-ui, sans-serif;
