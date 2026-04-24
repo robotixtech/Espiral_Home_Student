@@ -10,6 +10,7 @@ export interface ProgramUnit {
   fullname: string;
   status: UnitStatus;
   progress: number; // 0–100
+  grade?: number;   // average grade 0–10; badge awarded when >= 6
   courseUrl: string;
   icon: UnitIcon;
   activities?: Activity[];

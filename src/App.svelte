@@ -10,6 +10,7 @@
   import UnitDetailView from './components/UnitDetailView.svelte';
   import ActivitySlideView from './components/ActivitySlideView.svelte';
   import EmulatorToggle from './components/EmulatorToggle.svelte';
+  import BadgePanel from './components/BadgePanel.svelte';
 
   // Navigation state — owned here, passed down as callback props
   let currentView: 'home' | 'unit-detail' | 'activity-slide' = $state('home');
@@ -86,6 +87,7 @@
         }}
       />
       <EmulatorToggle program={appState.data} />
+      <BadgePanel program={getEmulatedProgram() ?? allCompleted} />
     {:else if currentView === 'unit-detail' && selectedUnit}
       <UnitDetailView
         unit={selectedUnit}

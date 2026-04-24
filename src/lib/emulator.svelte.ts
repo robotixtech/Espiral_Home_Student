@@ -89,7 +89,7 @@ function tick(baseProgram: ProgramData): void {
 
     if (unitIndex >= totalUnits) {
       // All units done — pause, then restart
-      snapshot = buildSnapshot(baseProgram, totalUnits - 1, 100, false);
+      snapshot = buildSnapshot(baseProgram, totalUnits, 100, false);
       timer = setTimeout(() => {
         if (!active) return;
         unitIndex = 0;
@@ -126,7 +126,7 @@ function buildSnapshot(
 ): ProgramData {
   const units: ProgramUnit[] = base.units.map((u, i) => {
     if (i < activeIdx) {
-      return { ...u, status: 'completed', progress: 100 };
+      return { ...u, status: 'completed', progress: 100, grade: 7 };
     }
     if (i === activeIdx) {
       return { ...u, status: 'in-progress', progress: Math.min(progress, 100) };
