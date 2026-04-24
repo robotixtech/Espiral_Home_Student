@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ProgramData } from '../lib/types';
   import { badgeUrl, hasBadge, isBadgeEarned } from '../lib/badges';
+  import { getEmulatedProgram } from '../lib/emulator.svelte';
 
   interface Props {
     program: ProgramData;
@@ -8,16 +9,21 @@
 
   let { program }: Props = $props();
 
-  const badgeUnits = $derived(
-    program.units
+  // $derived.by() reads snapshot directly from the emulator, establishing a
+  // reactive dependency on it. This avoids relying solely on prop propagation
+  // (which can silently drop updates in Svelte 5 when the value comes from an
+  // external $state via a function call).
+  const badgeUnits = $derived.by(() => {
+    const prog = getEmulatedProgram() ?? program;
+    return prog.units
       .filter(u => hasBadge(u.displayName))
       .sort((a, b) => parseInt(a.displayName.slice(1)) - parseInt(b.displayName.slice(1)))
       .map(u => ({
         unit: u,
         earned: isBadgeEarned(u),
-        src: badgeUrl(program.shortname, u.displayName),
-      }))
-  );
+        src: badgeUrl(prog.shortname, u.displayName),
+      }));
+  });
 
   const earnedCount = $derived(badgeUnits.filter(b => b.earned).length);
 </script>
