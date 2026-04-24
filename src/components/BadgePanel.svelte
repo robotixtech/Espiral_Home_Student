@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { ProgramData } from '../lib/types';
+  import { badgeUrl, hasBadge, isBadgeEarned } from '../lib/badges';
 
   interface Props {
     program: ProgramData;
@@ -7,100 +8,266 @@
 
   let { program }: Props = $props();
 
-  // Same effective-status logic as TreeNavigator — a unit is 'completed'
-  // as soon as DemoDay is done (Continuar is optional).
-  function effectiveStatus(unit: typeof program.units[0]): 'completed' | 'in-progress' | 'locked' {
-    if (unit.status === 'locked' || unit.status === 'completed') return unit.status;
-    const all = unit.activities ?? [];
-    if (all.length === 0) return unit.status;
-    const demoDayIdx = all.findIndex(a => a.label === 'DemoDay');
-    const threshold = demoDayIdx >= 0 ? ((demoDayIdx + 1) / all.length) * 100 : 100;
-    return unit.progress >= threshold ? 'completed' : 'in-progress';
-  }
-
-  // Only units U1–U6 have badge files (C450_U1.png … C450_U6.png).
-  // displayName must match /^U[1-9]/ to qualify.
   const badgeUnits = $derived(
     program.units
-      .filter(u => /^U[1-9]\d*$/.test(u.displayName))
+      .filter(u => hasBadge(u.displayName))
       .sort((a, b) => parseInt(a.displayName.slice(1)) - parseInt(b.displayName.slice(1)))
       .map(u => ({
         unit: u,
-        earned: effectiveStatus(u) === 'completed' && (u.grade ?? 0) >= 6,
-        src: `${import.meta.env.BASE_URL}badges/${program.shortname}_${u.displayName}.png`,
+        earned: isBadgeEarned(u),
+        src: badgeUrl(program.shortname, u.displayName),
       }))
   );
+
+  const earnedCount = $derived(badgeUnits.filter(b => b.earned).length);
 </script>
 
-<div class="badge-panel" aria-label="Badges obtenidos">
-  {#each badgeUnits as item (item.unit.id)}
-    <div
-      class="badge-slot"
-      class:earned={item.earned}
-      title={item.earned ? `${item.unit.label} — Badge obtenido` : `${item.unit.label} — Sin obtener`}
-    >
-      <img src={item.src} alt="Badge {item.unit.displayName}" class="badge-img" />
-      {#if !item.earned}
-        <div class="badge-lock">
-          <!-- Lock icon SVG -->
-          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="lock-icon">
-            <rect x="5" y="11" width="14" height="10" rx="2" fill="rgba(0,10,30,0.72)" stroke="rgba(255,255,255,0.45)" stroke-width="1.5"/>
-            <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="rgba(255,255,255,0.45)" stroke-width="1.5" stroke-linecap="round"/>
-            <circle cx="12" cy="16" r="1.5" fill="rgba(255,255,255,0.55)"/>
-          </svg>
+<div class="badge-panel" aria-label="Panel de insignias">
+
+  <!-- Corner bracket accents -->
+  <span class="bracket tl"></span>
+  <span class="bracket tr"></span>
+  <span class="bracket bl"></span>
+  <span class="bracket br"></span>
+
+  <!-- Scan line sweep -->
+  <div class="scanline" aria-hidden="true"></div>
+
+  <!-- Header -->
+  <header class="panel-header">
+    <svg class="header-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <polygon points="8,1 10.5,6 16,6.9 12,10.8 12.9,16 8,13.4 3.1,16 4,10.8 0,6.9 5.5,6" fill="rgba(80,180,255,0.7)" stroke="rgba(80,180,255,0.4)" stroke-width="0.5"/>
+    </svg>
+    <span class="panel-label">INSIGNIAS</span>
+    <svg class="header-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <polygon points="8,1 10.5,6 16,6.9 12,10.8 12.9,16 8,13.4 3.1,16 4,10.8 0,6.9 5.5,6" fill="rgba(80,180,255,0.7)" stroke="rgba(80,180,255,0.4)" stroke-width="0.5"/>
+    </svg>
+  </header>
+
+  <!-- Badge grid -->
+  <div class="badge-grid">
+    {#each badgeUnits as item (item.unit.id)}
+      <div class="badge-cell" title={item.earned ? `${item.unit.label} — Insignia obtenida` : `${item.unit.label} — Sin obtener`}>
+        <div class="badge-slot" class:earned={item.earned}>
+          <!-- Slot well ring -->
+          <div class="slot-ring"></div>
+
+          {#if item.earned}
+            <img src={item.src} alt="Insignia {item.unit.displayName}" class="badge-img" />
+          {:else}
+            <!-- Grey placeholder — no badge design visible -->
+            <div class="badge-placeholder"></div>
+            <div class="badge-lock">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="lock-icon">
+                <rect x="5" y="11" width="14" height="10" rx="2" fill="rgba(0,8,24,0.82)" stroke="rgba(255,255,255,0.38)" stroke-width="1.5"/>
+                <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="rgba(255,255,255,0.38)" stroke-width="1.5" stroke-linecap="round"/>
+                <circle cx="12" cy="16" r="1.5" fill="rgba(255,255,255,0.5)"/>
+              </svg>
+            </div>
+          {/if}
         </div>
-      {/if}
-    </div>
-  {/each}
+        <span class="unit-label">{item.unit.displayName}</span>
+      </div>
+    {/each}
+  </div>
+
+  <!-- Footer counter -->
+  <footer class="panel-footer">
+    <span class="counter">{earnedCount}<span class="counter-sep">/</span>{badgeUnits.length}</span>
+    <span class="counter-label">OBTENIDAS</span>
+  </footer>
+
 </div>
 
 <style>
+  /* ── Panel container ──────────────────────────────── */
   .badge-panel {
     position: fixed;
-    right: 14px;
+    right: 16px;
     top: calc(61px + (100vh - 61px) / 2);
     transform: translateY(-50%);
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
     z-index: 60;
     pointer-events: none;
+
+    width: 218px;
+    padding: 14px 14px 12px;
+
+    background:
+      linear-gradient(160deg, rgba(0,12,34,0.97) 0%, rgba(0,22,56,0.94) 100%);
+
+    border: 1px solid rgba(70,150,255,0.28);
+    border-radius: 10px;
+
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.9),
+      inset 0 1px 0 rgba(255,255,255,0.05),
+      inset 0 -1px 0 rgba(0,0,0,0.4),
+      0 8px 40px rgba(0,0,0,0.7),
+      0 0 28px rgba(40,100,220,0.12);
+
+    overflow: hidden;
   }
 
+  /* ── Corner bracket accents ───────────────────────── */
+  .bracket {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-color: rgba(80,160,255,0.55);
+    border-style: solid;
+    pointer-events: none;
+  }
+  .bracket.tl { top: 5px; left: 5px;  border-width: 1.5px 0 0 1.5px; border-radius: 2px 0 0 0; }
+  .bracket.tr { top: 5px; right: 5px; border-width: 1.5px 1.5px 0 0; border-radius: 0 2px 0 0; }
+  .bracket.bl { bottom: 5px; left: 5px;  border-width: 0 0 1.5px 1.5px; border-radius: 0 0 0 2px; }
+  .bracket.br { bottom: 5px; right: 5px; border-width: 0 1.5px 1.5px 0; border-radius: 0 0 2px 0; }
+
+  /* ── Scan line sweep ──────────────────────────────── */
+  .scanline {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      rgba(80,160,255,0.04) 45%,
+      rgba(80,160,255,0.07) 50%,
+      rgba(80,160,255,0.04) 55%,
+      transparent 100%
+    );
+    background-size: 100% 200%;
+    animation: scanline-sweep 6s linear infinite;
+    z-index: 1;
+  }
+
+  @keyframes scanline-sweep {
+    0%   { background-position: 0% -100%; }
+    100% { background-position: 0% 200%; }
+  }
+
+  /* ── Header ───────────────────────────────────────── */
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    margin-bottom: 12px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid rgba(70,140,255,0.18);
+    position: relative;
+    z-index: 2;
+  }
+
+  .panel-label {
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: rgba(110,180,255,0.8);
+    text-shadow: 0 0 8px rgba(80,160,255,0.5);
+  }
+
+  .header-icon {
+    width: 10px;
+    height: 10px;
+    flex-shrink: 0;
+  }
+
+  /* ── Badge grid ───────────────────────────────────── */
+  .badge-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ── Badge cell (circle + label) ─────────────────── */
+  .badge-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* ── Badge slot (the circle) ──────────────────────── */
   .badge-slot {
     position: relative;
-    width: 68px;
-    height: 68px;
-    border-radius: 50%;
+    width: 88px;
+    height: 88px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
-  /* Earned: full colour + glow + pop animation */
+  /* Inset "instrument well" ring */
+  .slot-ring {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 1px solid rgba(60,120,200,0.2);
+    background: radial-gradient(circle at 50% 30%, rgba(255,255,255,0.03), rgba(0,0,0,0.25));
+    box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
+
+  /* Earned: colour + glow + pop-in */
+  .badge-slot.earned .slot-ring {
+    border-color: rgba(57,255,20,0.3);
+    box-shadow:
+      inset 0 2px 6px rgba(0,0,0,0.4),
+      0 0 10px rgba(57,255,20,0.2);
+  }
+
   .badge-slot.earned {
-    filter: drop-shadow(0 0 8px rgba(57, 255, 20, 0.55))
-            drop-shadow(0 0 18px rgba(57, 255, 20, 0.25));
-    animation: badge-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    filter: drop-shadow(0 0 7px rgba(57,255,20,0.6))
+            drop-shadow(0 0 20px rgba(57,255,20,0.22));
+    animation: badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
 
   @keyframes badge-pop {
-    from { transform: scale(0.4); opacity: 0; }
+    from { transform: scale(0.35); opacity: 0; }
     to   { transform: scale(1);   opacity: 1; }
   }
 
   .badge-img {
-    width: 68px;
-    height: 68px;
+    width: 88px;
+    height: 88px;
     object-fit: contain;
     border-radius: 50%;
     display: block;
-    /* Locked state: greyscale + dark overlay via sibling .badge-lock */
+    position: relative;
+    z-index: 1;
   }
 
-  /* Dim + greyscale the image when not yet earned */
-  .badge-slot:not(.earned) .badge-img {
-    filter: grayscale(1) brightness(0.35);
+  /* Locked placeholder — plain grey circle, no badge design */
+  .badge-placeholder {
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 42% 36%, rgba(75,88,110,0.7), rgba(28,36,52,0.9));
+    border: 2px solid rgba(80,100,140,0.3);
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+  }
+
+  /* Unit label */
+  .unit-label {
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: rgba(100,155,230,0.6);
+    text-align: center;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .badge-slot.earned + .unit-label,
+  .badge-cell:has(.earned) .unit-label {
+    color: rgba(130,220,110,0.75);
+    text-shadow: 0 0 6px rgba(57,255,20,0.3);
   }
 
   /* Lock overlay */
@@ -111,28 +278,84 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 2;
   }
 
   .lock-icon {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
   }
 
-  /* Landscape phones — tighter layout */
+  /* ── Footer counter ───────────────────────────────── */
+  .panel-footer {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 11px;
+    padding-top: 9px;
+    border-top: 1px solid rgba(70,140,255,0.18);
+    position: relative;
+    z-index: 2;
+  }
+
+  .counter {
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(140,200,255,0.9);
+    text-shadow: 0 0 10px rgba(80,160,255,0.6);
+    line-height: 1;
+  }
+
+  .counter-sep {
+    color: rgba(80,140,220,0.55);
+    margin: 0 1px;
+  }
+
+  .counter-label {
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    font-size: 8px;
+    letter-spacing: 0.18em;
+    color: rgba(80,140,220,0.6);
+    line-height: 1;
+  }
+
+  /* ── Landscape phones ─────────────────────────────── */
   @media (max-height: 500px) {
     .badge-panel {
-      right: 6px;
-      gap: 5px;
+      right: 8px;
+      width: 158px;
+      padding: 9px 9px 8px;
       top: calc(36px + (100vh - 36px) / 2);
     }
     .badge-slot,
-    .badge-img {
-      width: 44px;
-      height: 44px;
+    .badge-img,
+    .badge-placeholder {
+      width: 63px;
+      height: 63px;
     }
-    .lock-icon {
-      width: 18px;
-      height: 18px;
+    .badge-grid { gap: 8px; }
+    .lock-icon  { width: 22px; height: 22px; }
+    .panel-label { font-size: 8px; }
+    .counter { font-size: 13px; }
+    .unit-label { font-size: 8px; }
+  }
+
+  /* ── Portrait phones ──────────────────────────────── */
+  @media (max-width: 600px) and (orientation: portrait) {
+    .badge-panel {
+      right: 8px;
+      width: 176px;
+      padding: 10px 10px 9px;
+      top: calc(40px + (100vh - 40px) / 2);
     }
+    .badge-slot,
+    .badge-img,
+    .badge-placeholder {
+      width: 71px;
+      height: 71px;
+    }
+    .badge-grid { gap: 10px; }
   }
 </style>
