@@ -73,7 +73,7 @@
   {:else}
     {@const allCompleted = {
       ...appState.data,
-      units: appState.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100 })),
+      units: appState.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100, grade: 7 })),
     }}
     {#if currentView === 'home'}
       <TreeNavigator

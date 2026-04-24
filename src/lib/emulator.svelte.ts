@@ -129,7 +129,8 @@ function buildSnapshot(
       return { ...u, status: 'completed', progress: 100, grade: 7 };
     }
     if (i === activeIdx) {
-      return { ...u, status: 'in-progress', progress: Math.min(progress, 100) };
+      const grade = progress >= mandatoryThreshold(u) ? 7 : undefined;
+      return { ...u, status: 'in-progress', progress: Math.min(progress, 100), grade };
     }
     if (i === activeIdx + 1 && nextUnlocked) {
       return { ...u, status: 'in-progress', progress: 0 };
