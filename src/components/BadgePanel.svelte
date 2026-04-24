@@ -58,11 +58,11 @@
             <!-- Grey placeholder — no badge design visible -->
             <div class="badge-placeholder"></div>
             <div class="badge-lock">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="lock-icon">
-                <rect x="5" y="11" width="14" height="10" rx="2" fill="rgba(0,8,24,0.82)" stroke="rgba(255,255,255,0.38)" stroke-width="1.5"/>
-                <path d="M8 11V7a4 4 0 0 1 8 0v4" stroke="rgba(255,255,255,0.38)" stroke-width="1.5" stroke-linecap="round"/>
-                <circle cx="12" cy="16" r="1.5" fill="rgba(255,255,255,0.5)"/>
-              </svg>
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="lock-icon"
+                 stroke="rgba(255,255,255,0.55)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
             </div>
           {/if}
         </div>
@@ -89,7 +89,7 @@
     z-index: 60;
     pointer-events: none;
 
-    width: 218px;
+    width: 258px;
     padding: 14px 14px 12px;
 
     background:
@@ -193,8 +193,8 @@
   /* ── Badge slot (the circle) ──────────────────────── */
   .badge-slot {
     position: relative;
-    width: 88px;
-    height: 88px;
+    width: 110px;
+    height: 110px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -231,8 +231,8 @@
   }
 
   .badge-img {
-    width: 88px;
-    height: 88px;
+    width: 110px;
+    height: 110px;
     object-fit: contain;
     border-radius: 50%;
     display: block;
@@ -242,8 +242,8 @@
 
   /* Locked placeholder — plain grey circle, no badge design */
   .badge-placeholder {
-    width: 88px;
-    height: 88px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
     background: radial-gradient(circle at 42% 36%, rgba(75,88,110,0.7), rgba(28,36,52,0.9));
     border: 2px solid rgba(80,100,140,0.3);
@@ -325,15 +325,15 @@
   @media (max-height: 500px) {
     .badge-panel {
       right: 8px;
-      width: 158px;
+      width: 192px;
       padding: 9px 9px 8px;
       top: calc(36px + (100vh - 36px) / 2);
     }
     .badge-slot,
     .badge-img,
     .badge-placeholder {
-      width: 63px;
-      height: 63px;
+      width: 78px;
+      height: 78px;
     }
     .badge-grid { gap: 8px; }
     .lock-icon  { width: 22px; height: 22px; }
@@ -346,15 +346,15 @@
   @media (max-width: 600px) and (orientation: portrait) {
     .badge-panel {
       right: 8px;
-      width: 176px;
+      width: 216px;
       padding: 10px 10px 9px;
       top: calc(40px + (100vh - 40px) / 2);
     }
     .badge-slot,
     .badge-img,
     .badge-placeholder {
-      width: 71px;
-      height: 71px;
+      width: 88px;
+      height: 88px;
     }
     .badge-grid { gap: 10px; }
   }
