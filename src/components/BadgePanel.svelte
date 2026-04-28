@@ -345,4 +345,61 @@
     }
     .badge-grid { gap: 10px; }
   }
+
+  /* ── Tablets / iPads en portrait ─────────────────── */
+  @media (min-width: 601px) and (orientation: portrait) {
+    .badge-panel {
+      /* Reposicionar al bottom-center */
+      top: auto;
+      right: auto;
+      bottom: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+
+      /* Layout horizontal */
+      width: auto;
+      max-width: calc(100vw - 32px);
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 16px;
+    }
+
+    /* Header: separador vertical derecho en lugar de horizontal inferior */
+    .panel-header {
+      margin-bottom: 0;
+      padding-bottom: 0;
+      border-bottom: none;
+      padding-right: 14px;
+      border-right: 1px solid rgba(70,140,255,0.18);
+      flex-shrink: 0;
+    }
+
+    /* Grid: fila única horizontal */
+    .badge-grid {
+      grid-template-columns: unset;
+      grid-auto-flow: column;
+      grid-auto-columns: auto;
+      gap: 10px;
+    }
+
+    .badge-slot,
+    .badge-img {
+      width: 82px;
+      height: 82px;
+    }
+
+    /* Footer: separador vertical izquierdo en lugar de horizontal superior */
+    .panel-footer {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: none;
+      padding-left: 14px;
+      border-left: 1px solid rgba(70,140,255,0.18);
+      flex-direction: column;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+  }
 </style>
