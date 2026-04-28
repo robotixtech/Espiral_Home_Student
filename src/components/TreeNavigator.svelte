@@ -170,6 +170,10 @@
   // ── Touch support (tablet / mobile) ──────────────────────────────────────
   let lastTouchDist = 0;  // distance between two fingers for pinch-zoom
   let lastTX = 0, lastTY = 0;
+  // Tracks whether the current gesture involved 2+ fingers. Prevents the
+  // double-tap detector from firing when both pinch fingers lift sequentially
+  // within 300ms, which would incorrectly call resetView().
+  let gestureWasMultiTouch = false;
 
   function onTouchStart(e: TouchEvent) {
     if (e.touches.length === 1) {
@@ -178,6 +182,7 @@
       lastTY = e.touches[0].clientY;
     } else if (e.touches.length === 2) {
       isDragging = false;
+      gestureWasMultiTouch = true;
       lastTouchDist = Math.hypot(
         e.touches[1].clientX - e.touches[0].clientX,
         e.touches[1].clientY - e.touches[0].clientY,
@@ -217,13 +222,18 @@
   }
 
   function onTouchEnd(e: TouchEvent) {
-    if (e.touches.length === 0) isDragging = false;
-    if (e.touches.length < 2)   lastTouchDist = 0;
-    // Double-tap (two taps within 300ms) resets view
-    if (e.changedTouches.length === 1) {
-      const now = Date.now();
-      if (now - lastTapTime < 300) { e.preventDefault(); resetView(); }
-      lastTapTime = now;
+    if (e.touches.length < 2) lastTouchDist = 0;
+    if (e.touches.length === 0) {
+      isDragging = false;
+      // Double-tap resets view — only for genuine single-finger taps.
+      // Skip if the gesture involved 2 fingers: both pinch fingers lifting
+      // sequentially would otherwise trigger resetView() within 300ms.
+      if (!gestureWasMultiTouch && e.changedTouches.length === 1) {
+        const now = Date.now();
+        if (now - lastTapTime < 300) { e.preventDefault(); resetView(); }
+        lastTapTime = now;
+      }
+      gestureWasMultiTouch = false;
     }
   }
   let lastTapTime = 0;
