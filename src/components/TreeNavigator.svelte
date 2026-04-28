@@ -168,14 +168,48 @@
   }
 
   // ── Touch support (tablet / mobile) ──────────────────────────────────────
-  let lastTouchDist = 0;  // distance between two fingers for pinch-zoom
+  let lastTouchDist = 0;
   let lastTX = 0, lastTY = 0;
-  // Tracks whether the current gesture involved 2+ fingers. Prevents the
-  // double-tap detector from firing when both pinch fingers lift sequentially
-  // within 300ms, which would incorrectly call resetView().
+  // Prevents double-tap detector from firing when both pinch fingers lift
+  // sequentially within 300ms, which would incorrectly call resetView().
   let gestureWasMultiTouch = false;
 
+  // Cached at touchstart to avoid getBoundingClientRect() reflow on every move.
+  let cachedRect: DOMRect | null = null;
+
+  // rAF throttling: capture touch deltas each event, apply once per display frame.
+  let rafId: number | null = null;
+  let pendingPanDx = 0, pendingPanDy = 0;
+  let pendingZoomRatio = 1;
+  let pendingZoomMidX = 0, pendingZoomMidY = 0;
+  let hasPendingZoom = false;
+
+  function applyPendingTouch() {
+    rafId = null;
+    const rect = cachedRect;
+    if (!rect) return;
+
+    if (hasPendingZoom) {
+      const mx = vb.x + (pendingZoomMidX - rect.left) / rect.width  * vb.w;
+      const my = vb.y + (pendingZoomMidY - rect.top)  / rect.height * vb.h;
+      const ns = Math.max(0.35, Math.min(5, zoomScale * pendingZoomRatio));
+      panX = mx - (mx - panX) * (ns / zoomScale);
+      panY = my - (my - panY) * (ns / zoomScale);
+      zoomScale = ns;
+      pendingZoomRatio = 1;
+      hasPendingZoom = false;
+    }
+
+    if (pendingPanDx !== 0 || pendingPanDy !== 0) {
+      panX += pendingPanDx * vb.w / rect.width;
+      panY += pendingPanDy * vb.h / rect.height;
+      pendingPanDx = 0;
+      pendingPanDy = 0;
+    }
+  }
+
   function onTouchStart(e: TouchEvent) {
+    if (svgEl) cachedRect = svgEl.getBoundingClientRect();
     if (e.touches.length === 1) {
       isDragging = true;
       lastTX = e.touches[0].clientX;
@@ -192,32 +226,31 @@
 
   function onTouchMove(e: TouchEvent) {
     e.preventDefault();
-    if (!svgEl) return;
-    const rect = svgEl.getBoundingClientRect();
+    if (!cachedRect) return;
 
     if (e.touches.length === 1 && isDragging) {
-      // Single finger: pan
-      panX += (e.touches[0].clientX - lastTX) * vb.w / rect.width;
-      panY += (e.touches[0].clientY - lastTY) * vb.h / rect.height;
+      // Accumulate pixel deltas — applied in bulk on the next rAF tick.
+      pendingPanDx += e.touches[0].clientX - lastTX;
+      pendingPanDy += e.touches[0].clientY - lastTY;
       lastTX = e.touches[0].clientX;
       lastTY = e.touches[0].clientY;
     } else if (e.touches.length === 2) {
-      // Two fingers: pinch-zoom toward midpoint
       const dist = Math.hypot(
         e.touches[1].clientX - e.touches[0].clientX,
         e.touches[1].clientY - e.touches[0].clientY,
       );
       if (lastTouchDist > 0) {
-        const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-        const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-        const mx = vb.x + (midX - rect.left) / rect.width  * vb.w;
-        const my = vb.y + (midY - rect.top)  / rect.height * vb.h;
-        const ns = Math.max(0.35, Math.min(5, zoomScale * (dist / lastTouchDist)));
-        panX = mx - (mx - panX) * (ns / zoomScale);
-        panY = my - (my - panY) * (ns / zoomScale);
-        zoomScale = ns;
+        // Accumulate zoom ratio product; use latest midpoint as focal point.
+        pendingZoomMidX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        pendingZoomMidY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        pendingZoomRatio *= dist / lastTouchDist;
+        hasPendingZoom = true;
       }
       lastTouchDist = dist;
+    }
+
+    if (rafId === null) {
+      rafId = requestAnimationFrame(applyPendingTouch);
     }
   }
 
@@ -318,6 +351,7 @@
     return () => {
       ro.disconnect();
       svgEl?.removeEventListener('wheel', onWheel);
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
   });
 </script>
@@ -372,7 +406,7 @@
       <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#ss-bg)" opacity="0.88" />
 
       <!-- ── Zoomable content ───────────────────────────────────────── -->
-      <g transform={zoomTransform}>
+      <g transform={zoomTransform} style="will-change: transform">
 
         <!-- ── Outer HUD ring ────────────────────────────────────────────── -->
         {#if true}

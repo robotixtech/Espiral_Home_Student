@@ -211,6 +211,65 @@ mapeo manual.
 
 ---
 
+## 6. Internacionalización (i18n)
+
+**Descripción:** Los textos visibles de la interfaz (etiquetas del panel de insignias y similares)
+deben mostrarse en el idioma que el usuario tiene configurado en Moodle. La aplicación resuelve
+el idioma en el siguiente orden de preferencia:
+
+1. Parámetro URL `?lang=XX` — establecido por Moodle al incrustar el iframe **(recomendado)**.
+2. Idioma del navegador (`navigator.language`) — como fallback.
+3. Español (`es`) — como idioma por defecto.
+
+**Implementación actual:** `src/lib/i18n.ts` — módulo central de traducciones.
+
+- La función `t(key)` devuelve la cadena traducida para el locale resuelto.
+- Los idiomas disponibles hoy son: `es`, `en`, `ca`, `fr`, `de`, `pt`, `eu`.
+- Para añadir un nuevo idioma: añadir una entrada en el objeto `translations` de `i18n.ts`.
+- Para añadir un nuevo texto traducible: añadir la clave en **todos** los locales existentes.
+
+**Cómo pasar el idioma desde Moodle al iframe:**
+
+> **Aviso:** Los mecanismos descritos a continuación son orientativos para Moodle Workplace 4.5.
+> Verifica contra la documentación oficial y tu configuración antes de implementarlos.
+
+### Opción A — Recurso URL con sustitución de variables (recomendado para pruebas rápidas)
+
+En Moodle, al crear un **Recurso URL** que apunta al iframe, se puede usar la sustitución de
+variables de URL del plugin `filter_urls`. Añadir el parámetro `lang` a la URL del recurso:
+
+```
+https://robotixtech.github.io/Espiral_Home_Student/?lang={userlang}
+```
+
+La variable `{userlang}` (o `{lang}` según la versión del filtro) es reemplazada por Moodle con
+el código de idioma del usuario antes de servir la página. Verificar en **Administración del
+sitio → Filtros → Gestionar filtros** que el filtro de variables de URL esté activo.
+
+### Opción B — Herramienta externa LTI
+
+Si el componente se publica como **Herramienta externa LTI**, Moodle incluye automáticamente el
+parámetro `launch_presentation_locale` en el payload de lanzamiento. En ese flujo, el backend
+LTI deberá reenviar el locale al iframe como parámetro `?lang=` en la URL de redirección.
+
+### Opción C — `postMessage` (integración avanzada)
+
+Si hay código JavaScript en la página Moodle que envuelve el iframe, puede enviarse el idioma
+del usuario mediante `postMessage` inmediatamente después de la carga:
+
+```javascript
+// En la página Moodle (mismo origen o con targetOrigin correcto)
+document.querySelector('iframe#espiral').contentWindow.postMessage(
+  { type: 'moodle:lang', lang: M.str.langconfig?.thislanguage ?? 'es' },
+  'https://robotixtech.github.io'
+);
+```
+
+Para soportar esta opción en la app, añadir un listener en `src/lib/i18n.ts` y actualizar el
+locale reactivamente; requiere convertir `_locale` a un `$state` de Svelte 5.
+
+---
+
 ## Orden de implementación recomendado
 
 | Prioridad | Tarea | Impacto | Complejidad |

@@ -2,6 +2,7 @@
   import type { ProgramData } from '../lib/types';
   import { badgeUrl, hasBadge, isBadgeEarned } from '../lib/badges';
   import { getEmulatedProgram } from '../lib/emulator.svelte';
+  import { t } from '../lib/i18n';
 
   interface Props {
     program: ProgramData;
@@ -28,7 +29,7 @@
   const earnedCount = $derived(badgeUnits.filter(b => b.earned).length);
 </script>
 
-<div class="badge-panel" aria-label="Panel de insignias">
+<div class="badge-panel" aria-label={t('badgesPanelAriaLabel')}>
 
   <!-- Corner bracket accents -->
   <span class="bracket tl"></span>
@@ -44,7 +45,7 @@
     <svg class="header-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <polygon points="8,1 10.5,6 16,6.9 12,10.8 12.9,16 8,13.4 3.1,16 4,10.8 0,6.9 5.5,6" fill="rgba(80,180,255,0.7)" stroke="rgba(80,180,255,0.4)" stroke-width="0.5"/>
     </svg>
-    <span class="panel-label">INSIGNIAS</span>
+    <span class="panel-label">{t('badgesPanelLabel')}</span>
     <svg class="header-icon" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <polygon points="8,1 10.5,6 16,6.9 12,10.8 12.9,16 8,13.4 3.1,16 4,10.8 0,6.9 5.5,6" fill="rgba(80,180,255,0.7)" stroke="rgba(80,180,255,0.4)" stroke-width="0.5"/>
     </svg>
@@ -53,10 +54,10 @@
   <!-- Badge grid -->
   <div class="badge-grid">
     {#each badgeUnits as item (item.unit.id)}
-      <div class="badge-cell" title={item.earned ? `${item.unit.label} — Insignia obtenida` : `${item.unit.label} — Sin obtener`}>
+      <div class="badge-cell" title={item.earned ? `${item.unit.label} — ${t('badgeEarnedSuffix')}` : `${item.unit.label} — ${t('badgeLockedSuffix')}`}>
         <div class="badge-slot" class:earned={item.earned}>
           {#if item.earned}
-            <img src={item.src} alt="Insignia {item.unit.displayName}" class="badge-img" />
+            <img src={item.src} alt="{t('badgesPanelLabel')} {item.unit.displayName}" class="badge-img" />
           {:else}
             <!-- Silhouette: same image, greyscale darkened -->
             <img src={item.src} alt="" class="badge-img badge-silhouette" aria-hidden="true" />
@@ -77,7 +78,7 @@
   <!-- Footer counter -->
   <footer class="panel-footer">
     <span class="counter">{earnedCount}<span class="counter-sep">/</span>{badgeUnits.length}</span>
-    <span class="counter-label">OBTENIDAS</span>
+    <span class="counter-label">{t('badgesEarnedLabel')}</span>
   </footer>
 
 </div>
