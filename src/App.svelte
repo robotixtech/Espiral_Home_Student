@@ -73,6 +73,7 @@
   {:else}
     {@const allCompleted = {
       ...appState.data,
+      // TODO(moodle): `grade: 7` hardcodeado; reemplazar con el grade real de Moodle Workplace 4.5 cuando esté disponible.
       units: appState.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100, grade: 7 })),
     }}
     {#if currentView === 'home'}

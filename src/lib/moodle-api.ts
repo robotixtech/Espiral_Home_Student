@@ -69,4 +69,8 @@ export class MoodleApi {
       { courseid: courseId, userid: userId }
     );
   }
+
+  // TODO(moodle): añadir método para obtener la nota de la unidad (orientativo: `gradereport_overview_get_course_grades`).
+  // TODO(moodle): añadir métodos para obtener actividades y su progreso (orientativo: `core_course_get_contents` + `core_completion_get_activities_completion_status`).
+  // Verificar disponibilidad y firma exacta en la documentación oficial de Moodle Workplace 4.5.
 }

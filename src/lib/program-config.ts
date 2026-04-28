@@ -79,6 +79,10 @@ export interface ProgramConfig {
 // C450 Program Configuration
 // ─────────────────────────────────────────────
 
+// TODO(moodle): cuando la integración con Moodle Workplace 4.5 esté completa, los campos `status`, `progress`
+// y `activities` (con sus `status`/`progress`) deberán venir de la API y eliminarse de aquí.
+// Conservar siempre: `icon`, `label`, `displayName` (requieren mapeo manual) y `slides` (salvo que se parsee Moodle).
+// Nota: los nombres de API y la estructura de respuesta son orientativos — verificar en la doc oficial de Moodle Workplace 4.5.
 export const C450_CONFIG: ProgramConfig = {
   shortname: 'C450',
   fullname: 'C450',

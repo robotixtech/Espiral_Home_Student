@@ -203,6 +203,12 @@
     justify-content: center;
   }
 
+  /* Blocked: subtle indigo drop-shadow following the shield shape */
+  .badge-slot:not(.earned) {
+    filter: drop-shadow(0 3px 8px rgba(60, 80, 200, 0.45))
+            drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+  }
+
   /* Earned: colour + glow + pop-in */
   .badge-slot.earned {
     filter: drop-shadow(0 0 7px rgba(57,255,20,0.6))
@@ -224,10 +230,16 @@
     z-index: 1;
   }
 
-  /* Locked silhouette — same image, greyscale + darkened */
+  /* Locked silhouette — blue-indigo tinted flat shape, no internal detail */
   .badge-silhouette {
-    filter: grayscale(100%) contrast(0) brightness(0.55);
-    opacity: 0.5;
+    filter: grayscale(100%) sepia(1) hue-rotate(195deg) saturate(2.5) brightness(0.38) contrast(0.2);
+    opacity: 0.7;
+    animation: badge-shimmer 4s ease-in-out infinite;
+  }
+
+  @keyframes badge-shimmer {
+    0%,  100% { opacity: 0.7; filter: grayscale(100%) sepia(1) hue-rotate(195deg) saturate(2.5) brightness(0.38) contrast(0.2); }
+    50%        { opacity: 0.55; filter: grayscale(100%) sepia(1) hue-rotate(210deg) saturate(2) brightness(0.30) contrast(0.2); }
   }
 
   /* Unit label */
@@ -252,14 +264,10 @@
   .badge-lock {
     position: absolute;
     inset: 0;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 2;
-    background:
-      radial-gradient(ellipse at 38% 28%, rgba(255,255,255,0.07) 0%, transparent 60%),
-      radial-gradient(ellipse at 65% 72%, rgba(0,0,0,0.18) 0%, transparent 55%);
   }
 
   .lock-icon {

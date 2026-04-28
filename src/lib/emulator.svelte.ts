@@ -126,9 +126,11 @@ function buildSnapshot(
 ): ProgramData {
   const units: ProgramUnit[] = base.units.map((u, i) => {
     if (i < activeIdx) {
+      // TODO(moodle): `grade: 7` hardcodeado; reemplazar con el valor real de Moodle Workplace 4.5 (API orientativa: `gradereport_overview_get_course_grades`).
       return { ...u, status: 'completed', progress: 100, grade: 7 };
     }
     if (i === activeIdx) {
+      // TODO(moodle): `7` hardcodeado como nota de demo; reemplazar con el grade real de Moodle Workplace 4.5.
       const grade = progress >= mandatoryThreshold(u) ? 7 : undefined;
       return { ...u, status: 'in-progress', progress: Math.min(progress, 100), grade };
     }

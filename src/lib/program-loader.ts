@@ -35,6 +35,8 @@ export async function loadProgramFromMoodle(
     // Match to config entry by index (courses are sorted to match config order)
     const cfg = programConfig.units[index];
 
+    // TODO(moodle): falta fetchear `grade` y `activities` desde Moodle Workplace 4.5 y añadirlos aquí.
+    // Los nombres de función y parámetros son orientativos — verificar en la documentación oficial de Moodle Workplace 4.5.
     return {
       id: course.id,
       shortname: course.shortname,
