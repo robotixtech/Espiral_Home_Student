@@ -310,6 +310,13 @@
     line-height: 1;
   }
 
+  /* ── Tablets en landscape: sube 5 % para evitar que la barra nativa de Android lo tape */
+  @media (min-width: 601px) and (min-height: 501px) and (orientation: landscape) {
+    .badge-panel {
+      top: calc(61px + (100vh - 61px) / 2 - 5vh);
+    }
+  }
+
   /* ── Landscape phones ─────────────────────────────── */
   @media (max-height: 500px) {
     .badge-panel {
