@@ -349,31 +349,27 @@
   /* ── Tablets / iPads en portrait ─────────────────── */
   @media (min-width: 601px) and (orientation: portrait) {
     .badge-panel {
-      /* Reposicionar al bottom-center */
       top: auto;
       right: auto;
       bottom: 14px;
       left: 50%;
       transform: translateX(-50%);
 
-      /* Layout horizontal */
       width: auto;
       max-width: calc(100vw - 32px);
       display: flex;
-      flex-direction: row;
+      flex-direction: column;
       align-items: center;
-      gap: 14px;
+      gap: 10px;
       padding: 10px 16px;
     }
 
-    /* Header: separador vertical derecho en lugar de horizontal inferior */
+    /* Header encima de los badges, con separador inferior */
     .panel-header {
       margin-bottom: 0;
-      padding-bottom: 0;
-      border-bottom: none;
-      padding-right: 14px;
-      border-right: 1px solid rgba(70,140,255,0.18);
-      flex-shrink: 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(70,140,255,0.18);
+      align-self: stretch;
     }
 
     /* Grid: fila única horizontal */
@@ -390,16 +386,12 @@
       height: 82px;
     }
 
-    /* Footer: separador vertical izquierdo en lugar de horizontal superior */
+    /* Footer debajo de los badges, con separador superior */
     .panel-footer {
       margin-top: 0;
-      padding-top: 0;
-      border-top: none;
-      padding-left: 14px;
-      border-left: 1px solid rgba(70,140,255,0.18);
-      flex-direction: column;
-      gap: 4px;
-      flex-shrink: 0;
+      padding-top: 8px;
+      border-top: 1px solid rgba(70,140,255,0.18);
+      align-self: stretch;
     }
   }
 </style>
