@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, untrack } from 'svelte';
+  import { onMount } from 'svelte';
   import type { ProgramData, ProgramUnit, Activity } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
   import { PREV_PROGRAM_CONFIG, NEXT_PROGRAM_CONFIG, FUTURE_PROGRAM_CONFIG } from '../lib/program-config';
@@ -132,41 +132,9 @@
   let panY       = $state(0.0);
   let isDragging = $state(false);
   let lastMX = 0, lastMY = 0;
-  let autoAnimFrame: number | null = null;
 
   const zoomPct       = $derived(Math.round(zoomScale * 100));
   const zoomTransform = $derived(`translate(${panX},${panY}) scale(${zoomScale})`);
-
-  // ── Auto-center on the in-progress unit ──────────────────────────────────
-  const inProgressIdx = $derived(effectiveStatuses.findIndex(s => s === 'in-progress'));
-
-  $effect(() => {
-    const idx = inProgressIdx;        // única dependencia reactiva
-    if (idx < 0) return;
-
-    const pos = untrack(() => unitPositions[idx]);  // sin suscripción
-    const scale   = untrack(() => zoomScale);
-    const startPX = untrack(() => panX);
-    const startPY = untrack(() => panY);
-
-    const targetPX = cx - pos.x * scale;
-    const targetPY = cy - pos.y * scale;
-    const dX = targetPX - startPX;
-    const dY = targetPY - startPY;
-
-    if (autoAnimFrame !== null) { cancelAnimationFrame(autoAnimFrame); autoAnimFrame = null; }
-
-    const duration = 750;
-    const t0 = performance.now();
-    function step(now: number) {
-      const p    = Math.min((now - t0) / duration, 1);
-      const ease = 1 - (1 - p) ** 3; // cubic-out
-      panX = startPX + dX * ease;
-      panY = startPY + dY * ease;
-      autoAnimFrame = p < 1 ? requestAnimationFrame(step) : null;
-    }
-    autoAnimFrame = requestAnimationFrame(step);
-  });
 
   function onWheel(e: WheelEvent) {
     e.preventDefault();
@@ -182,7 +150,6 @@
 
   function onMouseDown(e: MouseEvent) {
     if (e.button !== 0) return;
-    if (autoAnimFrame !== null) { cancelAnimationFrame(autoAnimFrame); autoAnimFrame = null; }
     isDragging = true; lastMX = e.clientX; lastMY = e.clientY;
   }
 
@@ -197,7 +164,6 @@
   function onMouseUp()    { isDragging = false; }
   function onMouseLeave() { isDragging = false; }
   function resetView() {
-    if (autoAnimFrame !== null) { cancelAnimationFrame(autoAnimFrame); autoAnimFrame = null; }
     zoomScale = 1; panX = 0; panY = 0;
   }
 
@@ -206,7 +172,6 @@
   let lastTX = 0, lastTY = 0;
 
   function onTouchStart(e: TouchEvent) {
-    if (autoAnimFrame !== null) { cancelAnimationFrame(autoAnimFrame); autoAnimFrame = null; }
     if (e.touches.length === 1) {
       isDragging = true;
       lastTX = e.touches[0].clientX;

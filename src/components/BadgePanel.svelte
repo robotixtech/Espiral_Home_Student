@@ -55,20 +55,17 @@
     {#each badgeUnits as item (item.unit.id)}
       <div class="badge-cell" title={item.earned ? `${item.unit.label} — Insignia obtenida` : `${item.unit.label} — Sin obtener`}>
         <div class="badge-slot" class:earned={item.earned}>
-          <!-- Slot well ring -->
-          <div class="slot-ring"></div>
-
           {#if item.earned}
             <img src={item.src} alt="Insignia {item.unit.displayName}" class="badge-img" />
           {:else}
-            <!-- Grey placeholder — no badge design visible -->
-            <div class="badge-placeholder"></div>
+            <!-- Silhouette: same image, greyscale darkened -->
+            <img src={item.src} alt="" class="badge-img badge-silhouette" aria-hidden="true" />
             <div class="badge-lock">
               <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="lock-icon"
-                 stroke="rgba(255,255,255,0.55)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
+                 stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
             </div>
           {/if}
         </div>
@@ -206,25 +203,7 @@
     justify-content: center;
   }
 
-  /* Inset "instrument well" ring */
-  .slot-ring {
-    position: absolute;
-    inset: -3px;
-    border-radius: 50%;
-    border: 1px solid rgba(60,120,200,0.2);
-    background: radial-gradient(circle at 50% 30%, rgba(255,255,255,0.03), rgba(0,0,0,0.25));
-    box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
-    pointer-events: none;
-  }
-
   /* Earned: colour + glow + pop-in */
-  .badge-slot.earned .slot-ring {
-    border-color: rgba(57,255,20,0.3);
-    box-shadow:
-      inset 0 2px 6px rgba(0,0,0,0.4),
-      0 0 10px rgba(57,255,20,0.2);
-  }
-
   .badge-slot.earned {
     filter: drop-shadow(0 0 7px rgba(57,255,20,0.6))
             drop-shadow(0 0 20px rgba(57,255,20,0.22));
@@ -240,22 +219,15 @@
     width: 110px;
     height: 110px;
     object-fit: contain;
-    border-radius: 50%;
     display: block;
     position: relative;
     z-index: 1;
   }
 
-  /* Locked placeholder — plain grey circle, no badge design */
-  .badge-placeholder {
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 42% 36%, rgba(75,88,110,0.7), rgba(28,36,52,0.9));
-    border: 2px solid rgba(80,100,140,0.3);
-    position: relative;
-    z-index: 1;
-    flex-shrink: 0;
+  /* Locked silhouette — same image, greyscale + darkened */
+  .badge-silhouette {
+    filter: grayscale(100%) contrast(0) brightness(0.55);
+    opacity: 0.5;
   }
 
   /* Unit label */
@@ -285,6 +257,9 @@
     align-items: center;
     justify-content: center;
     z-index: 2;
+    background:
+      radial-gradient(ellipse at 38% 28%, rgba(255,255,255,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse at 65% 72%, rgba(0,0,0,0.18) 0%, transparent 55%);
   }
 
   .lock-icon {
@@ -336,8 +311,7 @@
       top: calc(36px + (100vh - 36px) / 2);
     }
     .badge-slot,
-    .badge-img,
-    .badge-placeholder {
+    .badge-img {
       width: 78px;
       height: 78px;
     }
@@ -357,8 +331,7 @@
       top: calc(40px + (100vh - 40px) / 2);
     }
     .badge-slot,
-    .badge-img,
-    .badge-placeholder {
+    .badge-img {
       width: 88px;
       height: 88px;
     }

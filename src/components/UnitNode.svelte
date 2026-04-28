@@ -162,9 +162,13 @@
       <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
   {:else}
-    <g transform="translate({-iconOff}, {-iconOff})">
+    <g transform="translate({-iconOff}, {-iconOff - 5})">
       <UnitIcon icon={unit.icon} size={iconSize} color={colors.icon} />
     </g>
+    <text x="0" y={iconOff + 3} text-anchor="middle" dominant-baseline="middle"
+          class="lbl-unit-id" fill={colors.icon}>
+      {unit.displayName}
+    </text>
   {/if}
 
   <!-- Labels -->
@@ -279,4 +283,5 @@
   .lbl-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
+  .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; opacity: 0.85; }
 </style>
