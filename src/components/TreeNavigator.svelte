@@ -318,27 +318,17 @@
 
   // ── Interaction ──────────────────────────────────────────────────────────
 
-  // True when ALL activities (including "Continuar") are completed for a unit.
-  // This is the trigger for auto-hiding the moons.
-  const allActivitiesCompleted = $derived(
-    program.units.map(unit => {
-      const acts = unit.activities ?? [];
-      if (acts.length === 0) return false;
-      return displayActivities(unit).every(a => a.status === 'completed');
-    }),
-  );
-
-  // Tracks units whose moon visibility has been manually toggled by the user.
-  // XOR with the default: toggled=false → show when not all completed, hide when all completed.
-  //                       toggled=true  → reverse of above.
-  let toggledUnits = $state(new Set<number>());
+  // Units whose activity moons are explicitly shown by the user (click to show, click to hide).
+  // Direct set — no XOR dependency on completion status, so emulator state changes
+  // never flip visibility without a deliberate user action.
+  let moonsShownByUser = $state(new Set<number>());
 
   function handleUnitClick(unit: ProgramUnit, i: number) {
     if (effectiveStatuses[i] === 'locked') return;
     if ((unit.activities?.length ?? 0) === 0) return;
-    const next = new Set(toggledUnits);
+    const next = new Set(moonsShownByUser);
     if (next.has(unit.id)) { next.delete(unit.id); } else { next.add(unit.id); }
-    toggledUnits = next;
+    moonsShownByUser = next;
   }
 
   onMount(() => {
@@ -538,7 +528,7 @@
         {#each program.units as unit, i (unit.id)}
           {@const uPos = unitPositions[i]}
           {@const hasActs = (unit.activities?.length ?? 0) > 0}
-          {@const moonsShown = hasActs && (allActivitiesCompleted[i] === toggledUnits.has(unit.id))}
+          {@const moonsShown = hasActs && moonsShownByUser.has(unit.id)}
           {@const topClear = moonsShown ? ACT_ORBIT + 20 : (((UNIT_SIZE / 2) * (i === 0 ? 1.15 : 1) + 12) * 1.05)}
           {@const lines = splitUnitLabel(unit.label)}
           {@const lineH = 19}
@@ -573,7 +563,7 @@
 
         <!-- Activity moons: hidden when all activities green (incl. Continuar), toggleable by click -->
         {#each program.units as unit, i (unit.id)}
-          {#if unit.activities && unit.activities.length > 0 && (allActivitiesCompleted[i] === toggledUnits.has(unit.id))}
+          {#if unit.activities && unit.activities.length > 0 && moonsShownByUser.has(unit.id)}
             {@const uPos = unitPositions[i]}
             {@const acts = displayActivities(unit)}
             {@const aPos = activityPositions[i]}
