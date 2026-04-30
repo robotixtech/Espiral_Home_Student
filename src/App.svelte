@@ -52,10 +52,6 @@
   });
 </script>
 
-<header class="site-header">
-  <img src="{import.meta.env.BASE_URL}robotix_logo.png" alt="Robotix" class="header-logo" />
-</header>
-
 <main class="app-root">
   {#if appState.kind === 'loading'}
     <div class="state-container">
@@ -135,28 +131,9 @@
     transition: background-color 0.4s, color 0.4s;
   }
 
-  .site-header {
-    width: 100%;
-    height: 61px;
-    min-height: 61px;
-    background: #0075BF;
-    position: fixed;
-    top: 0;
-    left: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-  }
-
-  .header-logo {
-    height: 28px;
-    width: auto;
-  }
-
   .app-root {
     position: fixed;
-    top: 61px;
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
@@ -225,17 +202,4 @@
     background: rgba(128,128,128,0.2);
   }
 
-  /* Landscape phones — compact header */
-  @media (max-height: 500px) {
-    .site-header { height: 36px; min-height: 36px; }
-    .header-logo { height: 20px; }
-    .app-root { top: 36px; }
-  }
-
-  /* Portrait phones — slightly smaller header to maximize galaxy space */
-  @media (max-width: 600px) and (orientation: portrait) {
-    .site-header { height: 40px; min-height: 40px; }
-    .header-logo { height: 24px; }
-    .app-root { top: 40px; }
-  }
 </style>
