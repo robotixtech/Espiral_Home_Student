@@ -109,7 +109,7 @@
       <span class="modal-bracket bl"></span>
       <span class="modal-bracket br"></span>
 
-      <!-- Close button -->
+      <!-- Close button: floats outside the card (top-right) -->
       <button class="modal-close" onclick={() => selectedBadge = null} aria-label="Cerrar">
         <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
           <line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -126,8 +126,9 @@
         />
       </div>
 
-      <!-- Badge name -->
+      <!-- Badge name + unit code -->
       <p class="modal-label">{selectedBadge.unit.label}</p>
+      <p class="modal-unit-code">{selectedBadge.unit.displayName}</p>
       <p class="modal-sublabel">{t('badgeEarnedSuffix')}</p>
 
     </div>
@@ -298,8 +299,9 @@
   }
 
   .badge-slot:not(.earned) {
-    filter: drop-shadow(0 3px 8px rgba(60, 80, 200, 0.45))
-            drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+    filter: drop-shadow(0 0 1.5px rgba(80,150,255,0.75))
+            drop-shadow(0 0 5px rgba(60,110,255,0.28))
+            drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
   }
 
   .badge-slot.earned {
@@ -308,6 +310,10 @@
     animation: badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     pointer-events: auto;
     cursor: pointer;
+    /* Reset <button> browser defaults */
+    background: none;
+    border: none;
+    padding: 0;
   }
 
   .badge-slot.earned:hover .badge-img {
@@ -515,32 +521,45 @@
   .modal-bracket.bl { bottom: 8px; left: 8px;  border-width: 0 0 2px 2px; border-radius: 0 0 0 3px; }
   .modal-bracket.br { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; border-radius: 0 0 3px 0; }
 
-  /* Close button */
+  /* Close button: floats outside the top-right corner of the card */
   .modal-close {
     position: absolute;
-    top: 12px;
-    right: 12px;
-    width: 28px;
-    height: 28px;
+    top: -52px;
+    right: -8px;
+    width: 36px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(80,120,220,0.1);
-    border: 1px solid rgba(80,140,255,0.2);
-    border-radius: 6px;
-    color: rgba(120,170,255,0.7);
+    background: rgba(10, 20, 55, 0.95);
+    border: 1px solid rgba(80,140,255,0.35);
+    border-radius: 50%;
+    color: rgba(140,185,255,0.8);
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
+    box-shadow: 0 0 14px rgba(40,90,220,0.3);
+    transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   }
 
   .modal-close:hover {
-    background: rgba(80,120,220,0.22);
-    color: rgba(160,200,255,0.95);
+    background: rgba(30, 50, 120, 0.98);
+    color: rgba(200,220,255,1);
+    box-shadow: 0 0 20px rgba(80,140,255,0.5);
   }
 
   .modal-close svg {
     width: 14px;
     height: 14px;
+  }
+
+  /* Unit code badge (e.g. "U1") */
+  .modal-unit-code {
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: rgba(90,150,255,0.7);
+    text-transform: uppercase;
+    margin-top: -8px;
   }
 
   /* Badge image */
