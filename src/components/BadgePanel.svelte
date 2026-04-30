@@ -25,7 +25,12 @@
   const earnedCount = $derived(badgeUnits.filter(b => b.earned).length);
 
   let collapsed = $state(false);
+
+  type BadgeItem = (typeof badgeUnits)[number];
+  let selectedBadge = $state<BadgeItem | null>(null);
 </script>
+
+<svelte:window onkeydown={(e) => { if (e.key === 'Escape') selectedBadge = null; }} />
 
 <div class="badge-panel" class:collapsed aria-label={t('badgesPanelAriaLabel')}>
 
@@ -58,10 +63,16 @@
     <div class="badge-grid">
       {#each badgeUnits as item (item.unit.id)}
         <div class="badge-cell" title={item.earned ? `${item.unit.label} — ${t('badgeEarnedSuffix')}` : `${item.unit.label} — ${t('badgeLockedSuffix')}`}>
-          <div class="badge-slot" class:earned={item.earned}>
-            {#if item.earned}
+          {#if item.earned}
+            <button
+              class="badge-slot earned"
+              onclick={() => selectedBadge = item}
+              aria-label="{item.unit.label} — {t('badgeEarnedSuffix')}"
+            >
               <img src={item.src} alt="{t('badgesPanelLabel')} {item.unit.displayName}" class="badge-img" />
-            {:else}
+            </button>
+          {:else}
+            <div class="badge-slot">
               <img src={item.src} alt="" class="badge-img badge-silhouette" aria-hidden="true" />
               <div class="badge-lock">
                 <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="lock-icon"
@@ -70,8 +81,8 @@
                   <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                 </svg>
               </div>
-            {/if}
-          </div>
+            </div>
+          {/if}
           <span class="unit-label">{item.unit.displayName}</span>
         </div>
       {/each}
@@ -79,6 +90,49 @@
 
   </div>
 </div>
+
+<!-- ── Badge modal: shown when an earned badge is clicked ── -->
+{#if selectedBadge}
+  <div
+    class="modal-backdrop"
+    role="button"
+    tabindex="-1"
+    aria-label="Cerrar"
+    onclick={(e) => { if (e.target === e.currentTarget) selectedBadge = null; }}
+    onkeydown={(e) => { if (e.key === 'Escape') selectedBadge = null; }}
+  >
+    <div class="modal-card" role="dialog" aria-modal="true" tabindex="-1">
+
+      <!-- Corner brackets -->
+      <span class="modal-bracket tl"></span>
+      <span class="modal-bracket tr"></span>
+      <span class="modal-bracket bl"></span>
+      <span class="modal-bracket br"></span>
+
+      <!-- Close button -->
+      <button class="modal-close" onclick={() => selectedBadge = null} aria-label="Cerrar">
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <line x1="13" y1="3" x2="3" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <!-- Badge image -->
+      <div class="modal-badge-wrap">
+        <img
+          src={selectedBadge.src}
+          alt="{t('badgesPanelLabel')} {selectedBadge.unit.displayName}"
+          class="modal-badge-img"
+        />
+      </div>
+
+      <!-- Badge name -->
+      <p class="modal-label">{selectedBadge.unit.label}</p>
+      <p class="modal-sublabel">{t('badgeEarnedSuffix')}</p>
+
+    </div>
+  </div>
+{/if}
 
 <style>
   /* ── Panel: the whole unit slides as one piece ─── */
@@ -119,7 +173,7 @@
 
   /* ── Handle: the organic "ear" of the panel ──── */
   .panel-handle {
-    width: 32px;
+    width: 38px;
     flex-shrink: 0;
     align-self: stretch;
 
@@ -162,7 +216,7 @@
     writing-mode: vertical-rl;
     transform: rotate(180deg);
     font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 9px;
+    font-size: 13px;
     font-weight: 700;
     letter-spacing: 0.18em;
     color: rgba(110,180,255,0.75);
@@ -252,6 +306,13 @@
     filter: drop-shadow(0 0 7px rgba(57,255,20,0.6))
             drop-shadow(0 0 20px rgba(57,255,20,0.22));
     animation: badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .badge-slot.earned:hover .badge-img {
+    transform: scale(1.08);
+    transition: transform 0.18s ease;
   }
 
   @keyframes badge-pop {
@@ -367,7 +428,7 @@
     .handle-title {
       writing-mode: horizontal-tb;
       transform: none;
-      font-size: 11px;
+      font-size: 16px;
       letter-spacing: 0.15em;
     }
   }
@@ -392,5 +453,133 @@
       gap: 12px;
     }
     .badge-slot, .badge-img { width: 90px; height: 90px; }
+  }
+
+  /* ── Badge modal ──────────────────────────────── */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0, 6, 20, 0.82);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: backdrop-in 0.22s ease both;
+  }
+
+  @keyframes backdrop-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  .modal-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px 36px 32px;
+
+    background: linear-gradient(160deg, rgba(0,12,34,0.98) 0%, rgba(0,22,60,0.96) 100%);
+    border: 1px solid rgba(70,150,255,0.35);
+    border-radius: 16px;
+
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.9),
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      0 24px 80px rgba(0,0,0,0.8),
+      0 0 60px rgba(40,100,220,0.18);
+
+    animation: card-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation-delay: 0.05s;
+  }
+
+  @keyframes card-in {
+    from { transform: scale(0.55); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+
+  /* Corner brackets */
+  .modal-bracket {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-color: rgba(80,160,255,0.5);
+    border-style: solid;
+    pointer-events: none;
+  }
+  .modal-bracket.tl { top: 8px;  left: 8px;  border-width: 2px 0 0 2px; border-radius: 3px 0 0 0; }
+  .modal-bracket.tr { top: 8px;  right: 8px; border-width: 2px 2px 0 0; border-radius: 0 3px 0 0; }
+  .modal-bracket.bl { bottom: 8px; left: 8px;  border-width: 0 0 2px 2px; border-radius: 0 0 0 3px; }
+  .modal-bracket.br { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; border-radius: 0 0 3px 0; }
+
+  /* Close button */
+  .modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(80,120,220,0.1);
+    border: 1px solid rgba(80,140,255,0.2);
+    border-radius: 6px;
+    color: rgba(120,170,255,0.7);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .modal-close:hover {
+    background: rgba(80,120,220,0.22);
+    color: rgba(160,200,255,0.95);
+  }
+
+  .modal-close svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Badge image */
+  .modal-badge-wrap {
+    filter: drop-shadow(0 0 18px rgba(57,255,20,0.55))
+            drop-shadow(0 0 50px rgba(57,255,20,0.2));
+  }
+
+  .modal-badge-img {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* Labels */
+  .modal-label {
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: rgba(200,230,255,0.92);
+    text-align: center;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+  }
+
+  .modal-sublabel {
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: rgba(57,255,20,0.7);
+    text-shadow: 0 0 10px rgba(57,255,20,0.4);
+    text-transform: uppercase;
+  }
+
+  /* Smaller image on landscape phones */
+  @media (max-height: 500px) {
+    .modal-badge-img { width: 140px; height: 140px; }
+    .modal-card { padding: 28px 24px 22px; gap: 10px; }
   }
 </style>
