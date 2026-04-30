@@ -34,11 +34,12 @@
     class="panel-handle"
     onclick={() => collapsed = !collapsed}
     aria-expanded={!collapsed}
-    aria-label={collapsed ? 'Expandir insignias' : 'Colapsar insignias'}
+    aria-label={t('badgesPanelAriaLabel')}
   >
     <svg class="handle-chevron" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <polyline points="6,4 10,8 6,12" stroke="rgba(120,180,255,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>
+    <span class="handle-title">{t('badgesPanelTitle')}</span>
   </button>
 
   <!-- Content: the badge showcase -->
@@ -111,20 +112,23 @@
     overflow: hidden;
   }
 
-  /* Collapsed: only the handle (28px) remains visible at screen edge */
+  /* Collapsed: only the handle (32px) remains visible at screen edge */
   .badge-panel.collapsed {
     transform: translateY(-50%) translateX(258px);
   }
 
   /* ── Handle: the organic "ear" of the panel ──── */
   .panel-handle {
-    width: 28px;
+    width: 32px;
     flex-shrink: 0;
     align-self: stretch;
 
+    /* Landscape: chevron on top, title below (both centered in the narrow strip) */
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: 8px;
 
     background: transparent;
     border: none;
@@ -151,6 +155,20 @@
   /* Collapsed: rotate 180° → < (left-pointing, click to open) */
   .badge-panel.collapsed .handle-chevron {
     transform: rotate(180deg);
+  }
+
+  /* Landscape: title rotated vertically, reads upward */
+  .handle-title {
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: rgba(110,180,255,0.75);
+    text-shadow: 0 0 8px rgba(80,160,255,0.4);
+    user-select: none;
+    white-space: nowrap;
   }
 
   /* ── Panel content ────────────────────────────── */
@@ -318,16 +336,19 @@
       border-bottom: none;
     }
 
-    /* Collapsed: slide down until only the 28px handle peeks at the bottom */
+    /* Collapsed: slide down until only the 36px handle peeks at the bottom */
     .badge-panel.collapsed {
-      transform: translateX(-50%) translateY(calc(100% - 28px));
+      transform: translateX(-50%) translateY(calc(100% - 36px));
     }
 
     /* Handle becomes a horizontal bar at the top of the panel */
     .panel-handle {
       width: 100%;
-      height: 28px;
+      height: 36px;
       align-self: stretch;
+      /* Portrait: chevron left, title right */
+      flex-direction: row;
+      gap: 10px;
       border-right: none;
       border-bottom: 1px solid rgba(70,140,255,0.15);
     }
@@ -340,6 +361,14 @@
     /* Collapsed: chevron ↑ = "click to expand upward" */
     .badge-panel.collapsed .handle-chevron {
       transform: rotate(-90deg);
+    }
+
+    /* Portrait: title reads horizontally */
+    .handle-title {
+      writing-mode: horizontal-tb;
+      transform: none;
+      font-size: 11px;
+      letter-spacing: 0.15em;
     }
   }
 

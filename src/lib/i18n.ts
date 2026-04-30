@@ -17,54 +17,79 @@
 // ── Translations ─────────────────────────────────────────────────────────────
 
 const translations: Record<string, Record<string, string>> = {
+  // ════════════════════════════════════════════════════════════════
+  // CÓMO AÑADIR O EDITAR TRADUCCIONES
+  // ────────────────────────────────────────────────────────────────
+  // 1. Cada bloque { } es un idioma (es, en, ca, fr, de, pt, eu…).
+  // 2. Cada línea es una clave: 'clave': 'texto visible'.
+  // 3. Si añades una clave nueva, añádela en TODOS los idiomas.
+  // 4. Para añadir un idioma nuevo, copia el bloque 'es' completo
+  //    y cambia el código (ej: 'it' para italiano).
+  // ════════════════════════════════════════════════════════════════
+
   es: {
+    // ── Panel de insignias ───────────────────────────────────────
+    badgesPanelTitle:     'Mis insignias',      // Título principal del panel
+    badgesPanelAriaLabel: 'Panel de insignias', // Texto para lectores de pantalla
+    badgeEarnedSuffix:    'Insignia obtenida',  // Tooltip al pasar el ratón (ganada)
+    badgeLockedSuffix:    'Sin obtener',        // Tooltip al pasar el ratón (bloqueada)
+    // Claves legacy (usadas en alt de imágenes y aria internos) — no eliminar
     badgesPanelLabel:    'INSIGNIAS',
     badgesEarnedLabel:   'OBTENIDAS',
-    badgesPanelAriaLabel: 'Panel de insignias',
-    badgeEarnedSuffix:   'Insignia obtenida',
-    badgeLockedSuffix:   'Sin obtener',
   },
   en: {
+    // ── Badge panel ──────────────────────────────────────────────
+    badgesPanelTitle:     'My badges',
+    badgesPanelAriaLabel: 'Badge panel',
+    badgeEarnedSuffix:    'Badge earned',
+    badgeLockedSuffix:    'Not yet earned',
     badgesPanelLabel:    'BADGES',
     badgesEarnedLabel:   'EARNED',
-    badgesPanelAriaLabel: 'Badge panel',
-    badgeEarnedSuffix:   'Badge earned',
-    badgeLockedSuffix:   'Not yet earned',
   },
   ca: {
+    // ── Tauler d'insígnies ───────────────────────────────────────
+    badgesPanelTitle:     'Les meves insígnies',
+    badgesPanelAriaLabel: 'Tauler d\'insígnies',
+    badgeEarnedSuffix:    'Insígnia obtinguda',
+    badgeLockedSuffix:    'Sense obtenir',
     badgesPanelLabel:    'INSÍGNIES',
     badgesEarnedLabel:   'OBTINGUDES',
-    badgesPanelAriaLabel: 'Tauler d\'insígnies',
-    badgeEarnedSuffix:   'Insígnia obtinguda',
-    badgeLockedSuffix:   'Sense obtenir',
   },
   fr: {
+    // ── Panneau de badges ────────────────────────────────────────
+    badgesPanelTitle:     'Mes badges',
+    badgesPanelAriaLabel: 'Panneau de badges',
+    badgeEarnedSuffix:    'Badge obtenu',
+    badgeLockedSuffix:    'Non obtenu',
     badgesPanelLabel:    'BADGES',
     badgesEarnedLabel:   'OBTENUS',
-    badgesPanelAriaLabel: 'Panneau de badges',
-    badgeEarnedSuffix:   'Badge obtenu',
-    badgeLockedSuffix:   'Non obtenu',
   },
   de: {
+    // ── Abzeichen-Panel ──────────────────────────────────────────
+    badgesPanelTitle:     'Meine Abzeichen',
+    badgesPanelAriaLabel: 'Abzeichen-Panel',
+    badgeEarnedSuffix:    'Abzeichen erhalten',
+    badgeLockedSuffix:    'Noch nicht erhalten',
     badgesPanelLabel:    'ABZEICHEN',
     badgesEarnedLabel:   'ERHALTEN',
-    badgesPanelAriaLabel: 'Abzeichen-Panel',
-    badgeEarnedSuffix:   'Abzeichen erhalten',
-    badgeLockedSuffix:   'Noch nicht erhalten',
   },
   pt: {
+    // ── Painel de insígnias ──────────────────────────────────────
+    badgesPanelTitle:     'As minhas insígnias',
+    badgesPanelAriaLabel: 'Painel de insígnias',
+    badgeEarnedSuffix:    'Insígnia obtida',
+    badgeLockedSuffix:    'Não obtida',
     badgesPanelLabel:    'INSÍGNIAS',
     badgesEarnedLabel:   'OBTIDAS',
-    badgesPanelAriaLabel: 'Painel de insígnias',
-    badgeEarnedSuffix:   'Insígnia obtida',
-    badgeLockedSuffix:   'Não obtida',
   },
   eu: {
+    // ── Txapen panela ────────────────────────────────────────────
+    badgesPanelTitle:     'Nire txapak',
+    badgesPanelAriaLabel: 'Txapen panela',
+    badgeEarnedSuffix:    'Txapa lortua',
+    badgeLockedSuffix:    'Lortu gabe',
     badgesPanelLabel:    'TXAPAK',
     badgesEarnedLabel:   'LORTUTAKO',
-    badgesPanelAriaLabel: 'Txapen panela',
-    badgeEarnedSuffix:   'Txapa lortua',
-    badgeLockedSuffix:   'Lortu gabe',
   },
 };
 
