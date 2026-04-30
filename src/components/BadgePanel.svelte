@@ -293,7 +293,7 @@
   }
 
   /* ── Landscape phones ─────────────────────────── */
-  @media (max-height: 500px) {
+  @media (max-height: 500px) and (orientation: landscape) {
     .badge-panel.collapsed { transform: translateY(-50%) translateX(192px); }
     .panel-content { padding: 9px 9px 9px 8px; }
     .badge-slot, .badge-img { width: 78px; height: 78px; }
@@ -302,11 +302,66 @@
     .unit-label { font-size: 8px; }
   }
 
+  /* ── Portrait (phones + tablets): panel slides up from bottom center ── */
+  @media (orientation: portrait) {
+    .badge-panel {
+      right: auto;
+      top: auto;
+      bottom: 0;
+      left: 50%;
+      /* Expanded: centered horizontally, flush with bottom */
+      transform: translateX(-50%) translateY(0);
+      /* Vertical stacking: handle on top, content below */
+      flex-direction: column;
+      border-radius: 12px 12px 0 0;
+      border-right: 1px solid rgba(70,150,255,0.28);
+      border-bottom: none;
+    }
+
+    /* Collapsed: slide down until only the 28px handle peeks at the bottom */
+    .badge-panel.collapsed {
+      transform: translateX(-50%) translateY(calc(100% - 28px));
+    }
+
+    /* Handle becomes a horizontal bar at the top of the panel */
+    .panel-handle {
+      width: 100%;
+      height: 28px;
+      align-self: stretch;
+      border-right: none;
+      border-bottom: 1px solid rgba(70,140,255,0.15);
+    }
+
+    /* Expanded: chevron ↓ = "click to collapse downward" */
+    .handle-chevron {
+      transform: rotate(90deg);
+    }
+
+    /* Collapsed: chevron ↑ = "click to expand upward" */
+    .badge-panel.collapsed .handle-chevron {
+      transform: rotate(-90deg);
+    }
+  }
+
   /* ── Portrait phones ──────────────────────────── */
   @media (max-width: 600px) and (orientation: portrait) {
-    .badge-panel.collapsed { transform: translateY(-50%) translateX(216px); }
-    .panel-content { padding: 10px 10px 10px 8px; }
+    .badge-panel { width: 220px; }
+    .panel-content { padding: 10px; }
     .badge-slot, .badge-img { width: 88px; height: 88px; }
     .badge-grid { gap: 10px; }
+  }
+
+  /* ── Portrait tablets (iPad, Android) ────────── */
+  @media (min-width: 601px) and (orientation: portrait) {
+    .badge-panel { width: auto; max-width: calc(100vw - 32px); }
+    .panel-content { padding: 12px 16px; }
+    /* Badges in a single horizontal row */
+    .badge-grid {
+      grid-template-columns: unset;
+      grid-auto-flow: column;
+      grid-auto-columns: auto;
+      gap: 12px;
+    }
+    .badge-slot, .badge-img { width: 90px; height: 90px; }
   }
 </style>
