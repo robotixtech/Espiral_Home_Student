@@ -191,6 +191,8 @@
     border-radius: 0; /* inherits from parent panel */
     cursor: pointer;
     pointer-events: auto;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 
     transition: background 0.2s ease;
   }
@@ -310,6 +312,8 @@
     animation: badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     pointer-events: auto;
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
     /* Reset <button> browser defaults */
     background: none;
     border: none;
@@ -536,6 +540,8 @@
     border-radius: 50%;
     color: rgba(140,185,255,0.8);
     cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
     box-shadow: 0 0 14px rgba(40,90,220,0.3);
     transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   }
