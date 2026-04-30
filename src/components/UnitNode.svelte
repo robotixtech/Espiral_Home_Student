@@ -223,17 +223,19 @@
 <style>
   .node { cursor: default; outline: none; }
   .node.clickable { cursor: pointer; }
-  .node.clickable:hover .halo-ring {
-    opacity: 0.7;
-    stroke-width: 2;
-  }
 
   .halo-ring {
     transition: opacity 0.3s ease, stroke-width 0.3s ease;
     pointer-events: none;
   }
-  .node.clickable:hover .halo-ring {
-    animation: border-pulse 1.2s ease-in-out infinite;
+
+  /* Only activate hover effects on real pointer devices — prevents stuck hover on Android touch */
+  @media (hover: hover) {
+    .node.clickable:hover .halo-ring {
+      opacity: 0.7;
+      stroke-width: 2;
+      animation: border-pulse 1.2s ease-in-out infinite;
+    }
   }
   @keyframes border-pulse {
     0%, 100% { opacity: 0.4; stroke-width: 0.5; }

@@ -132,6 +132,8 @@
   let panY       = $state(0.0);
   let isDragging = $state(false);
   let lastMX = 0, lastMY = 0;
+  // Timestamp of last touchend — used to ignore synthesized mouse events on Android.
+  let lastTouchEndAt = 0;
 
   const zoomPct       = $derived(Math.round(zoomScale * 100));
   const zoomTransform = $derived(`translate(${panX},${panY}) scale(${zoomScale})`);
@@ -150,6 +152,8 @@
 
   function onMouseDown(e: MouseEvent) {
     if (e.button !== 0) return;
+    // Ignore synthesized mouse events that Android fires after touchend
+    if (Date.now() - lastTouchEndAt < 500) return;
     isDragging = true; lastMX = e.clientX; lastMY = e.clientY;
   }
 
@@ -258,11 +262,12 @@
     if (e.touches.length < 2) lastTouchDist = 0;
     if (e.touches.length === 0) {
       isDragging = false;
+      lastTouchEndAt = Date.now();
       // Double-tap resets view — only for genuine single-finger taps.
       // Skip if the gesture involved 2 fingers: both pinch fingers lifting
       // sequentially would otherwise trigger resetView() within 300ms.
       if (!gestureWasMultiTouch && e.changedTouches.length === 1) {
-        const now = Date.now();
+        const now = lastTouchEndAt;
         if (now - lastTapTime < 300) { e.preventDefault(); resetView(); }
         lastTapTime = now;
       }
