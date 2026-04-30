@@ -149,8 +149,6 @@
     /* Expanded: fully visible */
     transform: translateY(-50%) translateX(0);
     transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
-    /* Promote to GPU compositor layer — critical for smooth Android slide */
-    will-change: transform;
 
     z-index: 60;
     pointer-events: none;
@@ -193,9 +191,6 @@
     border-radius: 0; /* inherits from parent panel */
     cursor: pointer;
     pointer-events: auto;
-    /* Eliminate 300ms tap delay on Android */
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
 
     transition: background 0.2s ease;
   }
@@ -315,8 +310,6 @@
     animation: badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     pointer-events: auto;
     cursor: pointer;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
     /* Reset <button> browser defaults */
     background: none;
     border: none;
@@ -480,17 +473,6 @@
     align-items: center;
     justify-content: center;
     animation: backdrop-in 0.22s ease both;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-  }
-
-  /* Touch devices: drop expensive blur to avoid frame drops on Android */
-  @media (pointer: coarse) {
-    .modal-backdrop {
-      backdrop-filter: none;
-      -webkit-backdrop-filter: none;
-      background: rgba(0, 6, 20, 0.9);
-    }
   }
 
   @keyframes backdrop-in {
@@ -554,8 +536,6 @@
     border-radius: 50%;
     color: rgba(140,185,255,0.8);
     cursor: pointer;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
     box-shadow: 0 0 14px rgba(40,90,220,0.3);
     transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   }
