@@ -1,22 +1,41 @@
-/** Extract configuration from iframe URL search params */
-export interface IframeConfig {
+export interface AppConfig {
   token: string;
   baseUrl: string;
   programShortname: string;
+  pluginUrl?: string;
+  userId?: number;
+  isExampleMode?: boolean;
 }
 
-export function getIframeConfig(): IframeConfig {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get('token') ?? '';
-  const baseUrl = params.get('baseurl') ?? '';
-  const programShortname = params.get('program') ?? 'C450';
-
-  if (!token) {
-    throw new Error('Missing required "token" URL parameter');
-  }
-  if (!baseUrl) {
-    throw new Error('Missing required "baseurl" URL parameter');
+/** Extrae la configuración inyectada por Moodle en el nodo raíz */
+export function getAppConfig(): AppConfig {
+  const rootNode = document.getElementById('espiral-dashboard-root');
+  
+  if (!rootNode) {
+    throw new Error('No se encontró el contenedor #espiral-dashboard-root');
   }
 
-  return { token, baseUrl, programShortname };
+  const configStr = rootNode.getAttribute('data-config');
+  if (!configStr) {
+    throw new Error('Falta el atributo data-config en el contenedor raíz');
+  }
+
+  try {
+    const config = JSON.parse(configStr);
+    
+    if (!config.token && !config.isExampleMode) {
+      console.warn('Advertencia: No se recibió token de Moodle y no estamos en modo ejemplo.');
+    }
+
+    return {
+      token: config.token || '',
+      baseUrl: config.baseUrl || '',
+      programShortname: config.program || 'C450',
+      pluginUrl: config.pluginUrl || '',
+      userId: config.userId,
+      isExampleMode: config.isExampleMode || false
+    };
+  } catch (error) {
+    throw new Error('Error al parsear data-config JSON desde Moodle.');
+  }
 }

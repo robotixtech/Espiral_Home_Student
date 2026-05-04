@@ -2,8 +2,16 @@ import { mount } from 'svelte'
 import './app.css'
 import App from './App.svelte'
 
-const app = mount(App, {
-  target: document.getElementById('app')!,
-})
+// Esperamos a que el DOM esté completamente cargado
+document.addEventListener('DOMContentLoaded', () => {
+  const targetNode = document.getElementById('espiral-dashboard-root');
 
-export default app
+  if (targetNode) {
+    // Montamos Svelte en el contenedor correcto
+    mount(App, {
+      target: targetNode,
+    });
+  } else {
+    console.error('Espiral Dashboard: No se encontró el contenedor #espiral-dashboard-root');
+  }
+});

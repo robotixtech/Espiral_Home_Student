@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { AppState, ProgramUnit, Activity } from './lib/types';
-  import { getIframeConfig } from './lib/token';
+  import { getAppConfig } from './lib/token'; // Actualizado: usamos el nuevo lector del DOM
   import { loadProgramFromMoodle } from './lib/program-loader';
-  import { MOCK_PROGRAM } from './lib/mock-data';
+  import { MOCK_PROGRAM } from './lib/mock-data'; // Usamos tu mock estabilizado
   import { getTheme } from './lib/theme.svelte';
   import { getEmulatedProgram, toggleEmulator, isEmulatorActive } from './lib/emulator.svelte';
   import TreeNavigator from './components/TreeNavigator.svelte';
@@ -37,15 +37,27 @@
 
   onMount(async () => {
     try {
-      const config = getIframeConfig();
-      const data = await loadProgramFromMoodle(config);
-      appState = { kind: 'ready', data };
+      // 1. Obtenemos la configuración inyectada en el nodo raíz por Moodle (PHP)
+      const config = await getAppConfig();
+
+      // 2. Evaluamos el entorno: Modo Ejemplo vs Producción
+      if (config.isExampleMode || config.token === 'TOKEN_PROVISIONAL') {
+        console.info('Espiral Dashboard: Ejecutando en Modo Ejemplo (Mock Data).');
+        appState = { kind: 'ready', data: MOCK_PROGRAM };
+      } else {
+        console.info('Espiral Dashboard: Ejecutando en Modo Producción. Conectando a Moodle WS...');
+        const data = await loadProgramFromMoodle(config as any); // Type assertion segura si getAppConfig mapea bien
+        appState = { kind: 'ready', data };
+      }
     } catch (err) {
-      // Fall back to mock data when no Moodle token is available
-      console.warn('Using mock data:', err);
-      appState = { kind: 'ready', data: MOCK_PROGRAM };
+      console.error('Error fatal al iniciar Espiral Dashboard:', err);
+      appState = { 
+        kind: 'error', 
+        message: err instanceof Error ? err.message : 'Error desconocido al cargar el dashboard.' 
+      };
     }
-    // Auto-start emulator
+
+    // 3. Auto-start emulator si los datos están listos
     if (appState.kind === 'ready' && !isEmulatorActive()) {
       toggleEmulator(appState.data);
     }
@@ -201,5 +213,4 @@
   .retry-btn:hover {
     background: rgba(128,128,128,0.2);
   }
-
 </style>
