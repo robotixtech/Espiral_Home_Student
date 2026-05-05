@@ -1,6 +1,5 @@
 <script lang="ts">
   import type { ProgramData } from '../lib/types';
-  import { badgeUrl, hasBadge, isBadgeEarned } from '../lib/badges';
   import { getEmulatedProgram } from '../lib/emulator.svelte';
   import { t } from '../lib/i18n';
 
@@ -10,15 +9,16 @@
 
   let { program }: Props = $props();
 
+  // Derivamos los badges estrictamente desde los datos enviados por Moodle
   const badgeUnits = $derived.by(() => {
     const prog = getEmulatedProgram() ?? program;
     return prog.units
-      .filter(u => hasBadge(u.displayName))
+      .filter(u => u.badge) // Filtramos solo las unidades que incluyen información de insignia
       .sort((a, b) => parseInt(a.displayName.slice(1)) - parseInt(b.displayName.slice(1)))
       .map(u => ({
         unit: u,
-        earned: isBadgeEarned(u),
-        src: badgeUrl(prog.shortname, u.displayName),
+        earned: u.badge!.earned, // Leemos el estado (obtenida/bloqueada) desde el backend
+        src: u.badge!.badgeUrl,  // Usamos directamente la URL enviada por Moodle
       }));
   });
 

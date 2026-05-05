@@ -14,6 +14,10 @@ export interface ProgramUnit {
   courseUrl: string;
   icon: UnitIcon;
   activities?: Activity[];
+  badge?: {
+    earned: boolean;
+    badgeUrl: string;
+  };
 }
 
 /** Icon identifiers for each unit type */

@@ -16,6 +16,7 @@
   let currentView: 'home' | 'unit-detail' | 'activity-slide' = $state('home');
   let selectedUnit: ProgramUnit | null = $state(null);
   let selectedActivity: Activity | null = $state(null);
+  let debugConfig = $state<any>(null);
 
   let appState = $state<AppState>({ kind: 'loading' });
 
@@ -35,31 +36,32 @@
     s.backgroundAttachment = 'scroll';
   });
 
-  onMount(async () => {
+onMount(async () => {
     try {
-      // 1. Obtenemos la configuración inyectada en el nodo raíz por Moodle (PHP)
       const config = await getAppConfig();
+      debugConfig = config; // Mantienes tu panel de debug
 
-      // 2. Evaluamos el entorno: Modo Ejemplo vs Producción
-      if (config.isExampleMode || config.token === 'TOKEN_PROVISIONAL') {
-        console.info('Espiral Dashboard: Ejecutando en Modo Ejemplo (Mock Data).');
+      // 1. Si Moodle nos inyecta el programData (nuestro Payload de Prueba), lo usamos.
+      if (config.programData) {
+        console.info('Espiral Dashboard: Cargando Payload Inyectado desde PHP.');
+        appState = { kind: 'ready', data: config.programData };
+      } 
+      // 2. Fallback al Mock local o API real
+      else if (config.isExampleMode || config.token === 'TOKEN_PROVISIONAL') {
+        console.info('Espiral Dashboard: Ejecutando en Modo Ejemplo (Mock local).');
         appState = { kind: 'ready', data: MOCK_PROGRAM };
-      } else {
-        console.info('Espiral Dashboard: Ejecutando en Modo Producción. Conectando a Moodle WS...');
-        const data = await loadProgramFromMoodle(config as any); // Type assertion segura si getAppConfig mapea bien
+      } 
+      else {
+        console.info('Espiral Dashboard: Ejecutando en Modo Producción. Fetch a Moodle...');
+        const data = await loadProgramFromMoodle(config as any);
         appState = { kind: 'ready', data };
       }
     } catch (err) {
-      console.error('Error fatal al iniciar Espiral Dashboard:', err);
+      console.error('Error al iniciar Espiral Dashboard:', err);
       appState = { 
         kind: 'error', 
-        message: err instanceof Error ? err.message : 'Error desconocido al cargar el dashboard.' 
+        message: err instanceof Error ? err.message : 'Error desconocido al cargar.' 
       };
-    }
-
-    // 3. Auto-start emulator si los datos están listos
-    if (appState.kind === 'ready' && !isEmulatorActive()) {
-      toggleEmulator(appState.data);
     }
   });
 </script>
@@ -212,5 +214,37 @@
 
   .retry-btn:hover {
     background: rgba(128,128,128,0.2);
+  }
+  /* Estilos temporales para el Debug Overlay */
+  .debug-overlay {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid #3b82f6;
+    border-radius: 8px;
+    padding: 16px;
+    color: #10b981; /* Verde consola */
+    z-index: 9999; /* Por encima de todo */
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    pointer-events: none; /* Permite hacer clic "a través" del panel */
+    max-width: 350px;
+    overflow-x: auto;
+  }
+
+  .debug-overlay h4 {
+    margin: 0 0 8px 0;
+    color: #60a5fa;
+    font-family: system-ui, sans-serif;
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .debug-overlay pre {
+    margin: 0;
+    font-family: monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
   }
 </style>

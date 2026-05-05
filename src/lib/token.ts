@@ -1,41 +1,26 @@
-export interface AppConfig {
-  token: string;
-  baseUrl: string;
-  programShortname: string;
-  pluginUrl?: string;
-  userId?: number;
-  isExampleMode?: boolean;
-}
-
-/** Extrae la configuración inyectada por Moodle en el nodo raíz */
-export function getAppConfig(): AppConfig {
+export async function getAppConfig(): Promise<any> {
+  // 1. Buscamos el contenedor raíz donde PHP inyectó los datos
   const rootNode = document.getElementById('espiral-dashboard-root');
-  
-  if (!rootNode) {
-    throw new Error('No se encontró el contenedor #espiral-dashboard-root');
-  }
 
-  const configStr = rootNode.getAttribute('data-config');
-  if (!configStr) {
-    throw new Error('Falta el atributo data-config en el contenedor raíz');
-  }
-
-  try {
-    const config = JSON.parse(configStr);
-    
-    if (!config.token && !config.isExampleMode) {
-      console.warn('Advertencia: No se recibió token de Moodle y no estamos en modo ejemplo.');
+  // 2. Extraemos y parseamos el atributo 'data-config'
+  if (rootNode && rootNode.hasAttribute('data-config')) {
+    try {
+      const configStr = rootNode.getAttribute('data-config');
+      if (configStr) {
+        return JSON.parse(configStr);
+      }
+    } catch (e) {
+      console.error('Espiral Dashboard: Error parseando el data-config del DOM.', e);
     }
-
-    return {
-      token: config.token || '',
-      baseUrl: config.baseUrl || '',
-      programShortname: config.program || 'C450',
-      pluginUrl: config.pluginUrl || '',
-      userId: config.userId,
-      isExampleMode: config.isExampleMode || false
-    };
-  } catch (error) {
-    throw new Error('Error al parsear data-config JSON desde Moodle.');
   }
+
+  // 3. Fallback de seguridad (útil cuando haces 'npm run dev' en local sin Moodle)
+  console.warn('Espiral Dashboard: No se encontró data-config. Usando fallback de desarrollo.');
+  return {
+    token: 'TOKEN_PROVISIONAL',
+    baseUrl: 'http://localhost/moodle_robotix_405',
+    assetsUrl: '',
+    program: 'C450',
+    isExampleMode: true
+  };
 }
