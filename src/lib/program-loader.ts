@@ -24,28 +24,42 @@ export async function loadProgramFromMoodle(
   // Step 3: Filter courses belonging to this program (by shortname prefix)
   const programPrefix = programConfig.shortname;
   const programCourses = allCourses
-    .filter((c) => c.fullname.startsWith(programPrefix))
-    .sort((a, b) => extractUnitNumber(a.fullname) - extractUnitNumber(b.fullname));
+    .filter((c) => c.fullname.startsWith(programPrefix));
 
-  // Step 4: Map to ProgramUnit, merging Moodle data with config
-  const units: ProgramUnit[] = programCourses.map((course, index) => {
-    const progress = course.progress ?? 0;
-    const status = inferStatus(course.completed, progress);
+  // Step 4: Map over the CONFIGURATION (Single Source of Truth)
+  const units: ProgramUnit[] = programConfig.units.map((cfg, index) => {
+    // Buscar si Moodle devolvió este curso específico comparando el índice
+    const course = programCourses.find(c => extractUnitNumber(c.fullname) === index);
 
-    // Match to config entry by index (courses are sorted to match config order)
-    const cfg = programConfig.units[index];
+    if (course) {
+      // El curso existe en el profile del usuario en Moodle
+      const progress = course.progress ?? 0;
+      const status = inferStatus(course.completed, progress);
 
-    // TODO(moodle): falta fetchear `grade` y `activities` desde Moodle Workplace 4.5 y añadirlos aquí.
-    // Los nombres de función y parámetros son orientativos — verificar en la documentación oficial de Moodle Workplace 4.5.
+      return {
+        id: course.id,
+        shortname: course.shortname,
+        label: cfg?.label ?? `U${index}`,
+        displayName: cfg?.displayName ?? course.fullname,
+        fullname: course.fullname,
+        status,
+        progress: Math.round(progress),
+        courseUrl: cfg?.href ?? course.viewurl ?? `${config.baseUrl}/course/view.php?id=${course.id}`,
+        icon: cfg?.icon ?? 'gear',
+      };
+    }
+
+    // Fallback: El curso no está en el payload de Moodle (Unidad futura / Bloqueada)
     return {
-      id: course.id,
-      shortname: course.shortname,
+      // Usamos un ID negativo predecible para evitar problemas de colisión en el {#each} de Svelte
+      id: -(index + 1), 
+      shortname: `${programPrefix}-LOCKED-${index}`,
       label: cfg?.label ?? `U${index}`,
-      displayName: cfg?.displayName ?? course.fullname,
-      fullname: course.fullname,
-      status,
-      progress: Math.round(progress),
-      courseUrl: cfg?.href ?? course.viewurl ?? `${config.baseUrl}/course/view.php?id=${course.id}`,
+      displayName: cfg?.displayName ?? `Unidad ${index}`,
+      fullname: cfg?.fullname ?? `Unidad ${index} (Bloqueada)`,
+      status: 'locked',
+      progress: 0,
+      courseUrl: cfg?.href ?? '#',
       icon: cfg?.icon ?? 'gear',
     };
   });
