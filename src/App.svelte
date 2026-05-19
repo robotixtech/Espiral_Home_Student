@@ -128,9 +128,9 @@ onMount(async () => {
   .app-root { 
     /* Cambiado a relative para respetar el grid del bloque de Moodle */
     position: relative; 
-    width: 100%; 
-    min-height: 600px; /* Altura recomendada para el dashboard dentro del bloque */
-    
+    width: 100% !important;
+    height: 100% !important;
+    min-height: unset !important;
     display: flex; 
     flex-direction: column;
     align-items: center; 
@@ -138,7 +138,7 @@ onMount(async () => {
     
     /* Evita que los nodos Svelte se desborden del bloque */
     overflow: hidden; 
-    border-radius: 8px; /* Estética integrada al layout de cajas de Moodle */
+    
     
     font-family: 'Rubik', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
