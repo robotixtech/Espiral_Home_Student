@@ -28,7 +28,7 @@
       const baseUrl = (window as any).moodleConfig.baseUrl.replace(/\/$/, '');
       return `${baseUrl}/blocks/espiral_dashboard/visual/${filename}`;
     }
-    return `${import.meta.env.BASE_URL}${filename}`;
+     return `/blocks/espiral_dashboard/visual/${filename}`;
   }
 
   // Pre-calculamos la URL de la imagen para usarla en el template
