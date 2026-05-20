@@ -19,6 +19,8 @@
   let debugConfig = $state<any>(null);
 
   let appState = $state<AppState>({ kind: 'loading' });
+  // Nuevo estado para controlar de forma limpia cuando un usuario no tiene programas
+  let isEmpty = $state(false);
 
   const theme = $derived(getTheme());
   
@@ -34,11 +36,11 @@
   // Pre-calculamos la URL de la imagen para usarla en el template
   const bgImageUrl = $derived(`url('${getPluginAssetUrl('background.png')}')`);
 
-onMount(async () => {
+  onMount(async () => {
     try {
       const config = await getAppConfig();
       
-      // Prioridad 1: Payload inyectado desde PHP (Tu nueva lógica)
+      // Prioridad 1: Payload inyectado desde PHP
       if (config.programData) {
         console.info('Espiral Dashboard: Cargando datos inyectados.');
         appState = { kind: 'ready', data: config.programData };
@@ -48,9 +50,10 @@ onMount(async () => {
         console.info('Espiral Dashboard: Modo desarrollo, usando Mock.');
         appState = { kind: 'ready', data: MOCK_PROGRAM };
       } 
-      // Si llegamos aquí, es que PHP no inyectó los datos correctamente
+      // Caso 3: El usuario no tiene datos (no está matriculado)
       else {
-        throw new Error('No se recibieron datos del programa desde Moodle.');
+        console.info('Espiral Dashboard: El usuario no registra programas matriculados.');
+        isEmpty = true;
       }
     } catch (err) {
       console.error('Error al iniciar Espiral Dashboard:', err);
@@ -62,7 +65,6 @@ onMount(async () => {
   });
 </script>
 
-<!-- Contenedor principal con estilos declarativos inyectados -->
 <main 
   class="app-root"
   style:background-color={theme.body}
@@ -72,7 +74,14 @@ onMount(async () => {
   style:background-repeat="no-repeat"
   style:background-size="cover"
 >
-  {#if appState.kind === 'loading'}
+  {#if isEmpty}
+    <div class="state-container empty-state">
+      <div class="info-icon">i</div>
+      <p class="state-text" style:color={theme.text.secondary}>
+        No tienes programas matriculados en este momento.
+      </p>
+    </div>
+  {:else if appState.kind === 'loading'}
     <div class="state-container">
       <div class="spinner"></div>
       <p class="state-text" style:color={theme.text.secondary}>Cargando programa...</p>
@@ -126,7 +135,6 @@ onMount(async () => {
   }
 
   .app-root { 
-    /* Cambiado a relative para respetar el grid del bloque de Moodle */
     position: relative; 
     width: 100% !important;
     height: 100% !important;
@@ -139,19 +147,30 @@ onMount(async () => {
     /* Evita que los nodos Svelte se desborden del bloque */
     overflow: hidden; 
     
-    
     font-family: 'Rubik', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     transition: background-color 0.4s, color 0.4s;
   }
 
   .state-container { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px; }
+  
+  /* Ajuste sutil para que el estado vacío ocupe menos espacio y no rompa el diseño del dashboard */
+  .state-container.empty-state {
+    padding: 24px;
+    text-align: center;
+  }
+
   .spinner { width: 40px; height: 40px; border: 4px solid rgba(128,128,128,0.2); border-top-color: #7c6cf7; border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
   
   .state-text { font-size: 15px; }
   .state-text.error { color: #f87171; max-width: 320px; text-align: center; }
-  .error-icon { width: 48px; height: 48px; border-radius: 50%; background: rgba(248,113,113,0.15); color: #f87171; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; }
+  
+  .error-icon, .info-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; }
+  .error-icon { background: rgba(248,113,113,0.15); color: #f87171; }
+  
+  /* Icono informativo suave para el estado sin matricular */
+  .info-icon { background: rgba(124, 108, 247, 0.15); color: #7c6cf7; font-style: italic; font-family: serif; }
   
   .retry-btn { padding: 8px 20px; border: 1px solid rgba(128,128,128,0.3); border-radius: 8px; background: rgba(128,128,128,0.1); color: inherit; font-size: 14px; cursor: pointer; transition: background 0.15s; }
   .retry-btn:hover { background: rgba(128,128,128,0.2); }
