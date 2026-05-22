@@ -89,13 +89,28 @@
   const activityPositions = $derived.by(() =>
     program.units.map((unit, i) => {
       if (!unit.activities?.length) return [] as { x: number; y: number }[];
-      const uPos = unitPositions[i];
-      // Pin "DemoDay" to 6 o'clock (π/2) so every unit has the same activity layout.
-      const demoDayIdx = unit.activities.findIndex(a => a.label === 'DemoDay');
-      if (demoDayIdx >= 0) {
-        return getActivityOrbitPositionsFixed(uPos.x, uPos.y, unit.activities.length, ACT_ORBIT, demoDayIdx);
-      }
-      return getActivityOrbitPositions(uPos.x, uPos.y, cx, cy, unit.activities.length, ACT_ORBIT);
+      const uPos  = unitPositions[i];
+      const count = unit.activities.length;
+      const UNIT_R = UNIT_SIZE / 2;
+      const BG_H   = 26;
+
+      const widths = unit.activities.map(a => a.label.length * 7 + 20);
+
+      // Column layout: labels stacked vertically beside the sphere, centred on sphere Y.
+      // U1 ("Lanzamiento de señal", i=2) sits on the left side of the galaxy, so its
+      // column appears on the left to avoid pushing toward the centre.
+      const H_GAP  = 14;
+      const V_GAP  = 8;
+      const leftCol = i === 2;
+      const totalH = count * BG_H + (count - 1) * V_GAP;
+      const startY = uPos.y - totalH / 2 + BG_H / 2;
+
+      return unit.activities.map((_, j) => ({
+        x: leftCol
+          ? uPos.x - UNIT_R - H_GAP - widths[j] / 2
+          : uPos.x + UNIT_R + H_GAP + widths[j] / 2,
+        y: startY + j * (BG_H + V_GAP),
+      }));
     }),
   );
 
@@ -529,7 +544,7 @@
           {@const uPos = unitPositions[i]}
           {@const hasActs = (unit.activities?.length ?? 0) > 0}
           {@const moonsShown = hasActs && moonsShownByUser.has(unit.id)}
-          {@const topClear = moonsShown ? ACT_ORBIT + 20 : (((UNIT_SIZE / 2) * (i === 0 ? 1.15 : 1) + 12) * 1.05)}
+          {@const topClear = moonsShown ? 100 : ((UNIT_SIZE / 2) * (i === 0 ? 1.15 : 1) + 12) * 1.05}
           {@const lines = splitUnitLabel(unit.label)}
           {@const lineH = 19}
           {@const lblBaseY = uPos.y - topClear}
@@ -574,9 +589,6 @@
                   x={aPos[j].x}
                   y={aPos[j].y}
                   index={i * 10 + j}
-                  compact={act.status === 'in-progress'}
-                  tiny={act.status !== 'in-progress'}
-                  labelAngle={Math.atan2(aPos[j].y - uPos.y, aPos[j].x - uPos.x)}
                   {onActivitySelected}
                 />
               {/if}

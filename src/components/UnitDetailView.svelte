@@ -183,7 +183,7 @@
     const count = activities.length;
     if (count === 0) return [];
 
-    const positions: Array<{ x: number; y: number }> = [];
+    const positions: Array<{ x: number; y: number; angle: number }> = [];
     const startAngle = Math.PI;
     const arcSpan = Math.PI;
     for (let i = 0; i < count; i++) {
@@ -191,6 +191,7 @@
       positions.push({
         x: centerX + orbitRadius * Math.cos(angle),
         y: centerY + orbitRadius * Math.sin(angle),
+        angle,
       });
     }
     return positions;
@@ -249,10 +250,10 @@
         <stop offset="60%" stop-color={theme.bg.mid} />
         <stop offset="100%" stop-color={theme.bg.edge} />
       </radialGradient>
-      <radialGradient id="cont-grad" cx="35%" cy="35%" r="65%">
+      <linearGradient id="cont-grad" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color={continuarColors.g1} />
         <stop offset="100%" stop-color={continuarColors.g2} />
-      </radialGradient>
+      </linearGradient>
       {#if continuarUnlocked}
         <filter id="cont-glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="5" result="blur" />
@@ -379,12 +380,12 @@
       {#each activities as act, i (act.id)}
         {@const pos = activityPositions[i]}
         {#if pos}
-          <ActivityNode activity={act} x={pos.x} y={pos.y} index={i} isFirst={i === 0} {onActivitySelected} />
+          <ActivityNode activity={act} x={pos.x} y={pos.y} index={i} isFirst={i === 0} labelAngle={pos.angle} {onActivitySelected} />
         {/if}
       {/each}
     {/if}
 
-    <!-- Continuar node -->
+    <!-- Continuar node — text label with fitted background -->
     {#if activitiesVisible}
     <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <g
@@ -397,32 +398,12 @@
       onclick={handleContinuar}
       onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleContinuar(); } }}
     >
-      {#if continuarUnlocked}
-        <circle class="cont-halo" cx="0" cy="0" r="43" fill="none"
-                stroke={continuarColors.glow} stroke-width="0.8" opacity="0" />
-      {/if}
+      <rect class="cont-bg"
+            x="-41" y="-13" width="82" height="26" rx="5"
+            fill="url(#cont-grad)" />
 
-      <circle
-        cx="0" cy="0" r="38"
-        fill="url(#cont-grad)"
-        filter={continuarUnlocked ? 'url(#cont-glow)' : undefined}
-      />
-
-      {#if !continuarUnlocked}
-        <circle cx="0" cy="0" r="41" fill="none" stroke={continuarColors.ring} stroke-width="1.2" opacity="0.6" />
-        <svg x="-9" y="-11" width="18" height="22" viewBox="0 0 24 24"
-             fill="none" stroke={continuarColors.icon} stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-      {:else}
-        <g transform="translate(-12, -12)">
-          <UnitIcon icon="binoculars" size={24} color={continuarColors.icon} />
-        </g>
-      {/if}
-
-      <text y="56" text-anchor="middle" class="cont-label" fill={theme.text.primary}>
+      <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
+            class="cont-label" fill={continuarColors.icon}>
         Continuar
       </text>
     </g>
@@ -489,24 +470,17 @@
     opacity: 0.45;
   }
 
-  .continuar-node.unlocked:hover .cont-halo {
-    opacity: 0.7;
-    stroke-width: 2;
-    animation: cont-pulse 1.2s ease-in-out infinite;
-  }
-
-  .cont-halo {
-    transition: opacity 0.3s ease, stroke-width 0.3s ease;
-    pointer-events: none;
+  .continuar-node.unlocked:hover .cont-bg {
+    filter: brightness(1.15);
   }
 
   @keyframes cont-pulse {
-    0%, 100% { opacity: 0.4; stroke-width: 0.5; }
-    50% { opacity: 0.8; stroke-width: 1.5; }
+    0%, 100% { opacity: 0.4; }
+    50%       { opacity: 0.8; }
   }
 
   .cont-label {
-    font: 500 13px/1 'Rubik', system-ui, sans-serif;
+    font: 600 13px/1 'Rubik', system-ui, sans-serif;
   }
 
   .emu-btn {
