@@ -35,12 +35,12 @@ export function toggleEmulator(baseProgram: ProgramData): void {
 
 function startEmulator(baseProgram: ProgramData): void {
   active = true;
-  unitIndex = 0;
+  unitIndex = 1;
   currentProgress = 0;
   nextUnlocked = false;
 
-  // Build initial snapshot: all units locked, first unit in-progress at 0%
-  snapshot = buildSnapshot(baseProgram, 0, 0, false);
+  // Misión Control (unit 0) starts already completed
+  snapshot = buildSnapshot(baseProgram, 1, 0, false);
   scheduleTick(baseProgram);
 }
 
@@ -92,10 +92,10 @@ function tick(baseProgram: ProgramData): void {
       snapshot = buildSnapshot(baseProgram, totalUnits, 100, false);
       timer = setTimeout(() => {
         if (!active) return;
-        unitIndex = 0;
+        unitIndex = 1;
         currentProgress = 0;
         nextUnlocked = false;
-        snapshot = buildSnapshot(baseProgram, 0, 0, false);
+        snapshot = buildSnapshot(baseProgram, 1, 0, false);
         scheduleTick(baseProgram);
       }, EMULATOR_CONFIG.pauseBeforeRestartMs);
       return;

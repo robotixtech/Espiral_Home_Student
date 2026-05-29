@@ -5,8 +5,7 @@
   import { PREV_PROGRAM_CONFIG, NEXT_PROGRAM_CONFIG, FUTURE_PROGRAM_CONFIG } from '../lib/program-config';
   import UnitNode from './UnitNode.svelte';
   import DistantGalaxy from './DistantGalaxy.svelte';
-  import ActivityNode from './ActivityNode.svelte';
-  import { getActivityOrbitPositions, getActivityOrbitPositionsFixed } from '../lib/tree-math';
+  import ActivityOrbit from './ActivityOrbit.svelte';
 
   interface Props {
     program: ProgramData;
@@ -29,6 +28,12 @@
   const ORBIT_STEP  = 68;    // px between consecutive orbit radii (+10%)
   const SUN_R       = 9;     // sun radius
   const ORBIT_START = 80;    // radius of innermost orbit
+
+  // ── Label pill constants ──────────────────────────────────────────────────
+  const LABEL_LINE_H  = 19;  // px between line baselines
+  const LABEL_PAD_X   = 10;  // horizontal padding inside pill
+  const LABEL_PAD_Y   = 5;   // vertical padding inside pill
+  const LABEL_GAP_PX  = 14;  // gap from node visual edge to pill near-edge
 
   // Golden angle (~137.5°): irrational step so no two adjacent-orbit planets
   // ever align radially → moon rings on neighbouring orbits never collide.
@@ -61,6 +66,13 @@
         : ('in-progress' as const);
     }),
   );
+  // Actual visual radius of node i, accounting for isStart (×1.15 inside UnitNode)
+  // and the in-progress scale-up (×1.35) applied via the size prop.
+  function nodeVisualR(i: number): number {
+    const isIP = effectiveStatuses[i] === 'in-progress';
+    return UNIT_SIZE / 2 * (i === 0 ? 1.15 : 1.0) * (isIP ? 1.35 : 1.0);
+  }
+
   const unitPositions = $derived(
     program.units.map((_, i) => {
       const a = START_ANGLE + i * GOLDEN;
@@ -86,32 +98,18 @@
     });
   }
 
-  const activityPositions = $derived.by(() =>
-    program.units.map((unit, i) => {
-      if (!unit.activities?.length) return [] as { x: number; y: number }[];
-      const uPos  = unitPositions[i];
-      const count = unit.activities.length;
-      const UNIT_R = UNIT_SIZE / 2;
-      const BG_H   = 26;
-
-      const widths = unit.activities.map(a => a.label.length * 7 + 20);
-
-      // Column layout: labels stacked vertically beside the sphere, centred on sphere Y.
-      // U1 ("Lanzamiento de señal", i=2) sits on the left side of the galaxy, so its
-      // column appears on the left to avoid pushing toward the centre.
-      const H_GAP  = 14;
-      const V_GAP  = 8;
-      const leftCol = i === 2;
-      const totalH = count * BG_H + (count - 1) * V_GAP;
-      const startY = uPos.y - totalH / 2 + BG_H / 2;
-
-      return unit.activities.map((_, j) => ({
-        x: leftCol
-          ? uPos.x - UNIT_R - H_GAP - widths[j] / 2
-          : uPos.x + UNIT_R + H_GAP + widths[j] / 2,
-        y: startY + j * (BG_H + V_GAP),
-      }));
-    }),
+  let panelUnit = $state<ProgramUnit | null>(null);
+  // Re-derive from live program.units so emulator progress updates animate in the orbit.
+  const panelActivities = $derived.by(() => {
+    if (!panelUnit) return [];
+    const live = program.units.find(u => u.id === panelUnit!.id);
+    return live ? displayActivities(live) : [];
+  });
+  const panelUnitIdx      = $derived(panelUnit ? program.units.findIndex(u => u.id === panelUnit!.id) : -1);
+  const panelUnitPos      = $derived(panelUnitIdx >= 0 ? unitPositions[panelUnitIdx] : null);
+  const panelUnitR        = $derived(panelUnitIdx >= 0 ? nodeVisualR(panelUnitIdx) : UNIT_SIZE / 2);
+  const panelOutwardAngle = $derived(
+    panelUnitPos ? Math.atan2(panelUnitPos.y - cy, panelUnitPos.x - cx) : 0
   );
 
   // ── Dynamic viewBox ───────────────────────────────────────────────────────
@@ -333,17 +331,10 @@
 
   // ── Interaction ──────────────────────────────────────────────────────────
 
-  // Units whose activity moons are explicitly shown by the user (click to show, click to hide).
-  // Direct set — no XOR dependency on completion status, so emulator state changes
-  // never flip visibility without a deliberate user action.
-  let moonsShownByUser = $state(new Set<number>());
-
   function handleUnitClick(unit: ProgramUnit, i: number) {
     if (effectiveStatuses[i] === 'locked') return;
-    if ((unit.activities?.length ?? 0) === 0) return;
-    const next = new Set(moonsShownByUser);
-    if (next.has(unit.id)) { next.delete(unit.id); } else { next.add(unit.id); }
-    moonsShownByUser = next;
+    if ((unit.activities?.length ?? 0) === 0) { onUnitSelected(unit); return; }
+    panelUnit = panelUnit?.id === unit.id ? null : unit;
   }
 
   onMount(() => {
@@ -484,7 +475,7 @@
           {:else}
             <circle cx={cx} cy={cy} r={orbR} fill="none"
                     stroke="rgba(0,180,255,0.85)" stroke-width="1"
-                    stroke-dasharray="4 7" opacity="0.55" />
+                    stroke-dasharray="4 7" opacity="0.10" />
           {/if}
         {/each}
 
@@ -539,86 +530,140 @@
           </g>
         {/if}
 
-        <!-- Horizontal unit labels — above both the unit sphere and its activity moons -->
+        <!-- Unit labels — outward from galaxy center, pill background -->
         {#each program.units as unit, i (unit.id)}
-          {@const uPos = unitPositions[i]}
-          {@const hasActs = (unit.activities?.length ?? 0) > 0}
-          {@const moonsShown = hasActs && moonsShownByUser.has(unit.id)}
-          {@const topClear = moonsShown ? 100 : ((UNIT_SIZE / 2) * (i === 0 ? 1.15 : 1) + 12) * 1.05}
-          {@const lines = splitUnitLabel(unit.label)}
-          {@const lineH = 19}
-          {@const lblBaseY = uPos.y - topClear}
-          <text
-            x={uPos.x}
-            y={lblBaseY - (lines.length - 1) * lineH}
-            text-anchor="middle"
-            class="unit-lbl"
-            fill={effectiveStatuses[i] === 'locked' ? t.text.secondary : t.text.primary}
-            opacity={effectiveStatuses[i] === 'locked' ? 0.45 : 1}
-          >
-            {#each lines as line, li (li)}
-              <tspan x={uPos.x} dy={li === 0 ? 0 : lineH}>{line}</tspan>
-            {/each}
-          </text>
+          {#if panelUnit?.id !== unit.id}
+            {@const uPos    = unitPositions[i]}
+            {@const lines   = splitUnitLabel(unit.label)}
+            {@const maxLen  = Math.max(...lines.map((l: string) => l.length))}
+            {@const bgW     = maxLen * LABEL_CHAR_W + LABEL_PAD_X * 2}
+            {@const bgH     = lines.length * LABEL_LINE_H + LABEL_PAD_Y * 2}
+            {@const vr      = nodeVisualR(i)}
+            {@const dx      = uPos.x - cx}
+            {@const dy      = uPos.y - cy}
+            {@const dist    = Math.sqrt(dx * dx + dy * dy)}
+            {@const nx      = dist < 1 ? 0 : dx / dist}
+            {@const ny      = dist < 1 ? -1 : dy / dist}
+            {@const lblCX   = uPos.x + nx * (vr + LABEL_GAP_PX + bgH / 2)}
+            {@const lblCY   = uPos.y + ny * (vr + LABEL_GAP_PX + bgH / 2)}
+            {@const isLkd   = effectiveStatuses[i] === 'locked'}
+            <rect
+              x={lblCX - bgW / 2} y={lblCY - bgH / 2}
+              width={bgW} height={bgH} rx="6"
+              fill="rgba(2,8,24,0.78)"
+              opacity={isLkd ? 0.3 : 0.9}
+              pointer-events="none"
+            />
+            <text
+              x={lblCX}
+              y={lblCY - (lines.length - 1) * LABEL_LINE_H / 2}
+              text-anchor="middle"
+              dominant-baseline="middle"
+              class="unit-lbl"
+              fill={isLkd ? t.text.secondary : t.text.primary}
+              opacity={isLkd ? 0.35 : 1}
+              pointer-events="none"
+            >
+              {#each lines as line, li (li)}
+                <tspan x={lblCX} dy={li === 0 ? 0 : LABEL_LINE_H}>{line}</tspan>
+              {/each}
+            </text>
+          {/if}
         {/each}
 
-        <!-- Central Sun -->
+        <!-- Pass 1: Central Sun + non-selected nodes (dimmed by overlay below) -->
         <circle cx={cx} cy={cy} r={SUN_R + 38} fill="#39ff14" opacity="0.03" />
         <circle cx={cx} cy={cy} r={SUN_R + 22} fill="#39ff14" opacity="0.05" />
         <circle cx={cx} cy={cy} r={SUN_R + 10} fill="#39ff14" opacity="0.10" />
         <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="#d4ffcc" opacity="0.15" />
         <circle cx={cx} cy={cy} r={SUN_R}
                 fill="url(#ss-sun)" filter="url(#ss-sun-glow)" />
-        <!-- Program shortname curved outside the sun -->
         <text fill="#ffffff" opacity="0.92" class="prog-label" filter="url(#text-shadow)">
           <textPath href="#c450-prog-lbl" startOffset="54%" text-anchor="middle">
             {program.shortname}
           </textPath>
         </text>
 
-        <!-- Activity moons: hidden when all activities green (incl. Continuar), toggleable by click -->
         {#each program.units as unit, i (unit.id)}
-          {#if unit.activities && unit.activities.length > 0 && moonsShownByUser.has(unit.id)}
-            {@const uPos = unitPositions[i]}
-            {@const acts = displayActivities(unit)}
-            {@const aPos = activityPositions[i]}
-            {#each acts as act, j (act.id)}
-              {#if aPos[j]}
-                <ActivityNode
-                  activity={act}
-                  x={aPos[j].x}
-                  y={aPos[j].y}
-                  index={i * 10 + j}
-                  {onActivitySelected}
-                />
-              {/if}
-            {/each}
+          {#if panelUnit?.id !== unit.id}
+            {@const uPos  = unitPositions[i]}
+            {@const isIP  = effectiveStatuses[i] === 'in-progress'}
+            {@const isLkd = effectiveStatuses[i] === 'locked'}
+            {@const nSize = isIP ? Math.round(UNIT_SIZE * 1.35) : UNIT_SIZE}
+            {#if isIP}
+              {@const vr = nodeVisualR(i)}
+              <circle cx={uPos.x} cy={uPos.y} r={vr + 38} fill={t.unit.inProgress.glow} opacity="0.05" />
+              <circle cx={uPos.x} cy={uPos.y} r={vr + 22} fill={t.unit.inProgress.glow} opacity="0.10" />
+              <circle cx={uPos.x} cy={uPos.y} r={vr + 10} fill={t.unit.inProgress.glow} opacity="0.18" />
+            {/if}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <g
+              onclick={() => handleUnitClick(unit, i)}
+              onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' && effectiveStatuses[i] !== 'locked') handleUnitClick(unit, i); }}
+              opacity={isLkd ? 0.25 : 1}
+            >
+              <UnitNode
+                unit={{ ...unit, status: effectiveStatuses[i] }}
+                x={uPos.x}
+                y={uPos.y}
+                galacticCenterX={cx}
+                galacticCenterY={cy}
+                size={nSize}
+                index={i}
+                compact={true}
+                labelOutward={true}
+                labelGap={LABEL_GAP}
+                showLabel={false}
+              />
+            </g>
           {/if}
         {/each}
 
-        <!-- Planet nodes (on top of moons) -->
-        {#each program.units as unit, i (unit.id)}
-          {@const uPos = unitPositions[i]}
+        <!-- Dimming overlay — covers galaxy, reveals selected node + orbit above -->
+        {#if panelUnit}
+          <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h}
+                fill="rgba(2,6,20,0.70)" pointer-events="none" />
+        {/if}
+
+        <!-- Pass 2: Selected node + activity orbit (above overlay) -->
+        {#if panelUnit && panelUnitPos}
+          {@const si    = panelUnitIdx}
+          {@const isIP  = effectiveStatuses[si] === 'in-progress'}
+          {@const nSize = isIP ? Math.round(UNIT_SIZE * 1.35) : UNIT_SIZE}
+          {@const vr    = nodeVisualR(si)}
+          {#if isIP}
+            <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 38} fill={t.unit.inProgress.glow} opacity="0.08" />
+            <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 22} fill={t.unit.inProgress.glow} opacity="0.14" />
+            <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 10} fill={t.unit.inProgress.glow} opacity="0.22" />
+          {/if}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <g
-            onclick={() => handleUnitClick(unit, i)}
-            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' && effectiveStatuses[i] !== 'locked') handleUnitClick(unit, i); }}
+            onclick={() => handleUnitClick(panelUnit, si)}
+            onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter') handleUnitClick(panelUnit, si); }}
           >
             <UnitNode
-              unit={{ ...unit, status: effectiveStatuses[i] }}
-              x={uPos.x}
-              y={uPos.y}
+              unit={{ ...panelUnit, status: effectiveStatuses[si] }}
+              x={panelUnitPos.x}
+              y={panelUnitPos.y}
               galacticCenterX={cx}
               galacticCenterY={cy}
-              size={UNIT_SIZE}
-              index={i}
+              size={nSize}
+              index={si}
               compact={true}
               labelOutward={true}
               labelGap={LABEL_GAP}
               showLabel={false}
             />
           </g>
-        {/each}
+          <ActivityOrbit
+            activities={panelActivities}
+            cx={panelUnitPos.x}
+            cy={panelUnitPos.y}
+            unitR={panelUnitR}
+            outwardAngle={panelOutwardAngle}
+            {onActivitySelected}
+          />
+        {/if}
 
       </g><!-- end zoomable -->
     </svg>
