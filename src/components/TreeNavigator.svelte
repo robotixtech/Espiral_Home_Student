@@ -530,46 +530,6 @@
           </g>
         {/if}
 
-        <!-- Unit labels — outward from galaxy center, pill background -->
-        {#each program.units as unit, i (unit.id)}
-          {#if panelUnit?.id !== unit.id}
-            {@const uPos    = unitPositions[i]}
-            {@const lines   = splitUnitLabel(unit.label)}
-            {@const maxLen  = Math.max(...lines.map((l: string) => l.length))}
-            {@const bgW     = maxLen * LABEL_CHAR_W + LABEL_PAD_X * 2}
-            {@const bgH     = lines.length * LABEL_LINE_H + LABEL_PAD_Y * 2}
-            {@const vr      = nodeVisualR(i)}
-            {@const dx      = uPos.x - cx}
-            {@const dy      = uPos.y - cy}
-            {@const dist    = Math.sqrt(dx * dx + dy * dy)}
-            {@const nx      = dist < 1 ? 0 : dx / dist}
-            {@const ny      = dist < 1 ? -1 : dy / dist}
-            {@const lblCX   = uPos.x + nx * (vr + LABEL_GAP_PX + bgH / 2)}
-            {@const lblCY   = uPos.y + ny * (vr + LABEL_GAP_PX + bgH / 2)}
-            {@const isLkd   = effectiveStatuses[i] === 'locked'}
-            <rect
-              x={lblCX - bgW / 2} y={lblCY - bgH / 2}
-              width={bgW} height={bgH} rx="6"
-              fill="rgba(2,8,24,0.78)"
-              opacity={isLkd ? 0.3 : 0.9}
-              pointer-events="none"
-            />
-            <text
-              x={lblCX}
-              y={lblCY - (lines.length - 1) * LABEL_LINE_H / 2}
-              text-anchor="middle"
-              dominant-baseline="middle"
-              class="unit-lbl"
-              fill={isLkd ? t.text.secondary : t.text.primary}
-              opacity={isLkd ? 0.35 : 1}
-              pointer-events="none"
-            >
-              {#each lines as line, li (li)}
-                <tspan x={lblCX} dy={li === 0 ? 0 : LABEL_LINE_H}>{line}</tspan>
-              {/each}
-            </text>
-          {/if}
-        {/each}
 
         <!-- Pass 1: Central Sun + non-selected nodes (dimmed by overlay below) -->
         <circle cx={cx} cy={cy} r={SUN_R + 38} fill="#39ff14" opacity="0.03" />
@@ -600,7 +560,7 @@
             <g
               onclick={() => handleUnitClick(unit, i)}
               onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' && effectiveStatuses[i] !== 'locked') handleUnitClick(unit, i); }}
-              opacity={isLkd ? 0.25 : 1}
+              opacity={isLkd ? 0.5 : 1}
             >
               <UnitNode
                 unit={{ ...unit, status: effectiveStatuses[i] }}
@@ -619,18 +579,21 @@
           {/if}
         {/each}
 
-        <!-- Dimming overlay — covers galaxy, reveals selected node + orbit above -->
-        {#if panelUnit}
-          <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h}
-                fill="rgba(2,6,20,0.70)" pointer-events="none" />
-        {/if}
+      </g><!-- end zoomable -->
 
-        <!-- Pass 2: Selected node + activity orbit (above overlay) -->
-        {#if panelUnit && panelUnitPos}
-          {@const si    = panelUnitIdx}
-          {@const isIP  = effectiveStatuses[si] === 'in-progress'}
-          {@const nSize = isIP ? Math.round(UNIT_SIZE * 1.35) : UNIT_SIZE}
-          {@const vr    = nodeVisualR(si)}
+      <!-- Dimming overlay — outside zoom group so it always covers the full viewBox -->
+      {#if panelUnit}
+        <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h}
+              fill="rgba(2,6,20,0.70)" pointer-events="none" />
+      {/if}
+
+      <!-- Pass 2: Selected node + activity orbit — same zoom transform, rendered above overlay -->
+      {#if panelUnit && panelUnitPos}
+        {@const si    = panelUnitIdx}
+        {@const isIP  = effectiveStatuses[si] === 'in-progress'}
+        {@const nSize = isIP ? Math.round(UNIT_SIZE * 1.35) : UNIT_SIZE}
+        {@const vr    = nodeVisualR(si)}
+        <g transform={zoomTransform}>
           {#if isIP}
             <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 38} fill={t.unit.inProgress.glow} opacity="0.08" />
             <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 22} fill={t.unit.inProgress.glow} opacity="0.14" />
@@ -663,9 +626,8 @@
             outwardAngle={panelOutwardAngle}
             {onActivitySelected}
           />
-        {/if}
-
-      </g><!-- end zoomable -->
+        </g>
+      {/if}
     </svg>
 
     <!-- Zoom HUD (fixed to screen, outside SVG zoom group) -->
