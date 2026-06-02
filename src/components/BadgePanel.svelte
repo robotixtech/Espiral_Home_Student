@@ -597,27 +597,6 @@
     display: block;
   }
 
-  /* Labels */
-  .modal-label {
-    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    color: rgba(200,230,255,0.92);
-    text-align: center;
-    letter-spacing: 0.04em;
-    line-height: 1.2;
-  }
-
-  .modal-sublabel {
-    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    color: rgba(57,255,20,0.7);
-    text-shadow: 0 0 10px rgba(57,255,20,0.4);
-    text-transform: uppercase;
-  }
-
   /* Smaller image on landscape phones */
   @media (max-height: 500px) {
     .modal-badge-img { width: 160px; height: 160px; }
