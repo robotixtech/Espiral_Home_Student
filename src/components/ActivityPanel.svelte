@@ -61,27 +61,7 @@
           style:--sc={sc}
         >
           <!-- Status dot -->
-          <span class="status-dot" style:background={sc}>
-            {#if act.status === 'completed'}
-              <!-- checkmark -->
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                   stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
-              </svg>
-            {:else if act.status === 'in-progress'}
-              <!-- play -->
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="#fff">
-                <polygon points="5,3 19,12 5,21"/>
-              </svg>
-            {:else}
-              <!-- lock -->
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none"
-                   stroke="#fff" stroke-width="2.5" stroke-linecap="round">
-                <rect x="3" y="11" width="18" height="11" rx="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-            {/if}
-          </span>
+          <span class="status-dot" style:background={sc}></span>
 
           <!-- Text -->
           <div class="act-text">

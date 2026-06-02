@@ -171,28 +171,33 @@
   {/if}
 
   {#if !isActive}
+    {@const firstWord = unit.label.split(' ')[0]}
+    {@const cs = r / 50}
     <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.5" opacity="0.7" />
-    <svg x="-11" y="-13" width="22" height="26" viewBox="0 0 24 24"
-         fill="none" stroke={colors.icon} stroke-width="1.8"
-         stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-    </svg>
-  {:else if compact}
-    <!-- Compact (TreeNavigator): small icon top half + label bottom half -->
-    {@const cis = isStart ? 16 : 14}
-    {@const cio = cis / 2}
-    {@const iY  = -(r * 0.32)}
-    <g transform="translate({-cio},{iY - cio})">
-      <UnitIcon icon={unit.icon} size={cis} color={colors.icon} />
+    <g transform="scale({cs})">
+      <svg x="-7" y="-32" width="14" height="14" viewBox="0 0 24 24"
+           fill="none" stroke={colors.icon} stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-inside" fill={colors.icon}>{firstWord}</text>
+      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-unit-num" fill={colors.icon}>U{index}</text>
     </g>
-    {#each splitLabel(unit.label) as line, li (li)}
-      <text x="0" y={r * 0.15 + li * 11}
-            text-anchor="middle" dominant-baseline="middle"
-            class="lbl-inside" fill={colors.icon}>
-        {line}
-      </text>
-    {/each}
+  {:else if compact}
+    {@const firstWord = unit.label.split(' ')[0]}
+    {@const cs = r / 50}
+    <g transform="scale({cs})">
+      <g transform="translate(-7,-32)">
+        <UnitIcon icon={unit.icon} size={14} color={colors.icon} />
+      </g>
+      <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-inside" fill={colors.icon}>{firstWord}</text>
+      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-unit-num" fill={colors.icon}>U{index}</text>
+    </g>
   {:else}
     <!-- Full mode (UnitDetailView center node, etc.) -->
     <g transform="translate({-iconOff}, {-iconOff - 5})">
@@ -319,5 +324,6 @@
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
   .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; opacity: 0.85; }
-  .lbl-inside      { font: 700 9px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .lbl-inside      { font: 700 13px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .lbl-unit-num    { font: 400 10px/1 'Rubik', system-ui, sans-serif; pointer-events: none; opacity: 0.7; }
 </style>

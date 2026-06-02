@@ -22,7 +22,7 @@
   const cy = 430;   // vertical centre (slight upward bias)
 
   // ── B: Node sizes (larger for legibility on 14" displays) ────────────────
-  const UNIT_SIZE   = 85;    // planet diameter → r ≈ 42 (regular) / 49 (first)
+  const UNIT_SIZE   = 100;   // planet diameter → r ≈ 50 (regular) / 57.5 (first)
   const ACT_ORBIT   = 65;    // distance from planet centre to moon centre
   const LABEL_GAP   = 80;    // from planet edge to label; clears moon ring (65+10=75)
   const ORBIT_STEP  = 68;    // px between consecutive orbit radii (+10%)
@@ -111,6 +111,11 @@
   const panelOutwardAngle = $derived(
     panelUnitPos ? Math.atan2(panelUnitPos.y - cy, panelUnitPos.x - cx) : 0
   );
+
+  // Auto-close if the emulator cycles the open unit back to 'locked'.
+  $effect(() => {
+    if (panelUnit && panelUnitIdx >= 0 && effectiveStatuses[panelUnitIdx] === 'locked') panelUnit = null;
+  });
 
   // ── Dynamic viewBox ───────────────────────────────────────────────────────
 
@@ -460,14 +465,14 @@
           {@const unitAngleDeg = (START_ANGLE + i * GOLDEN) * 180 / Math.PI}
           {#if effSt === 'completed'}
             <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke="rgba(0,180,255,0.85)" stroke-width="1" opacity="0.55" />
+                    stroke={t.unit.completed.ring} stroke-width="1" opacity="0.55" />
           {:else if effSt === 'in-progress'}
             <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke="rgba(0,180,255,0.85)" stroke-width="1"
-                    stroke-dasharray="5 8" opacity="0.25" />
+                    stroke={t.unit.completed.ring} stroke-width="1"
+                    stroke-dasharray="5 8" opacity="0.20" />
             {@const dashLen = orbC * (unit.progress / 100)}
             <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke="rgba(0,180,255,0.85)" stroke-width="1"
+                    stroke={t.unit.completed.ring} stroke-width="1"
                     stroke-dasharray="{dashLen} {orbC}"
                     stroke-linecap="round"
                     transform="rotate({unitAngleDeg}, {cx}, {cy})"
@@ -584,7 +589,7 @@
       <!-- Dimming overlay — outside zoom group so it always covers the full viewBox -->
       {#if panelUnit}
         <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h}
-              fill="rgba(2,6,20,0.70)" pointer-events="none" />
+              fill="rgba(2,6,20,0.75)" pointer-events="none" />
       {/if}
 
       <!-- Pass 2: Selected node + activity orbit — same zoom transform, rendered above overlay -->

@@ -71,8 +71,8 @@ const DARK: ThemeColors = {
       icon: '#fff', lBg: 'rgba(16,185,129,0.25)', lBorder: 'rgba(52,211,153,0.4)', lText: '#a7f3d0',
     },
     inProgress: {
-      g1: '#60a5fa', g2: '#2563eb', ring: '#60a5fa', glow: '#3b82f6',
-      icon: '#fff', lBg: 'rgba(59,130,246,0.3)', lBorder: 'rgba(96,165,250,0.5)', lText: '#bfdbfe',
+      g1: '#fde68a', g2: '#d97706', ring: '#fbbf24', glow: '#f59e0b',
+      icon: '#78350f', lBg: 'rgba(245,158,11,0.3)', lBorder: 'rgba(251,191,36,0.5)', lText: '#fef3c7',
     },
     locked: {
       g1: '#374151', g2: '#1f2937', ring: '#4b5563', glow: 'transparent',
@@ -115,8 +115,8 @@ const LIGHT: ThemeColors = {
       icon: '#fff', lBg: 'rgba(16,185,129,0.12)', lBorder: 'rgba(5,150,105,0.3)', lText: '#065f46',
     },
     inProgress: {
-      g1: '#60a5fa', g2: '#2563eb', ring: '#2563eb', glow: '#3b82f6',
-      icon: '#fff', lBg: 'rgba(37,99,235,0.1)', lBorder: 'rgba(37,99,235,0.3)', lText: '#1e40af',
+      g1: '#fde68a', g2: '#d97706', ring: '#d97706', glow: '#f59e0b',
+      icon: '#78350f', lBg: 'rgba(245,158,11,0.1)', lBorder: 'rgba(217,119,6,0.3)', lText: '#92400e',
     },
     locked: {
       g1: '#cbd5e1', g2: '#94a3b8', ring: '#94a3b8', glow: 'transparent',

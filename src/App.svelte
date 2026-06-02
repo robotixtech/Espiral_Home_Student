@@ -24,9 +24,11 @@
   // Reactively update body background when theme changes
   $effect(() => {
     const s = document.body.style;
-    s.backgroundColor = theme.body;
+    const h = theme.body.slice(1);
+    const [br, bg, bb] = [0,2,4].map(i => parseInt(h.slice(i,i+2),16));
+    s.backgroundColor = `rgba(${br},${bg},${bb},0.8)`;
     s.color = theme.text.primary;
-    s.backgroundImage = `url('${import.meta.env.BASE_URL}background.png')`;
+    s.backgroundImage = `url('${import.meta.env.BASE_URL}background_2.png')`;
     s.backgroundPosition = 'bottom center';
     s.backgroundRepeat = 'no-repeat';
     // cover ensures it fills the viewport on all screen sizes
