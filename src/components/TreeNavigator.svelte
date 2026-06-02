@@ -122,8 +122,9 @@
 
   let containerEl: HTMLDivElement | undefined = $state();
   let svgEl: SVGSVGElement | undefined        = $state();
-  let cW = $state(W);
-  let cH = $state(H);
+  // Use actual window size as initial value so the first render is correct on any device/orientation.
+  let cW = $state(window.innerWidth);
+  let cH = $state(window.innerHeight);
 
   const CONTENT = { w: W - 20, h: H };
 
@@ -164,7 +165,7 @@
     const rect = svgEl.getBoundingClientRect();
     const mx   = vb.x + (e.clientX - rect.left) / rect.width  * vb.w;
     const my   = vb.y + (e.clientY - rect.top)  / rect.height * vb.h;
-    const ns   = Math.max(0.35, Math.min(5, zoomScale * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+    const ns   = Math.max(0.20, Math.min(5, zoomScale * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
     panX = mx - (mx - panX) * (ns / zoomScale);
     panY = my - (my - panY) * (ns / zoomScale);
     zoomScale = ns;
@@ -203,7 +204,7 @@
   }
 
   function zoomOutBtn() {
-    const ns = Math.max(0.35, zoomScale / 1.3);
+    const ns = Math.max(0.20, zoomScale / 1.3);
     panX = cx - (cx - panX) * (ns / zoomScale);
     panY = cy - (cy - panY) * (ns / zoomScale);
     zoomScale = ns;
@@ -234,7 +235,7 @@
     if (hasPendingZoom) {
       const mx = vb.x + (pendingZoomMidX - rect.left) / rect.width  * vb.w;
       const my = vb.y + (pendingZoomMidY - rect.top)  / rect.height * vb.h;
-      const ns = Math.max(0.35, Math.min(5, zoomScale * pendingZoomRatio));
+      const ns = Math.max(0.20, Math.min(5, zoomScale * pendingZoomRatio));
       panX = mx - (mx - panX) * (ns / zoomScale);
       panY = my - (my - panY) * (ns / zoomScale);
       zoomScale = ns;
@@ -673,14 +674,17 @@
 
 <style>
   .galaxy-container {
-    width: 100%; height: 100%;
-    position: relative; overflow: hidden;
+    /* position: absolute; inset: 0 is more reliable than width/height 100%
+       on iOS Safari flex children where percentage heights can mis-resolve */
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
     margin: 0; padding: 0; box-sizing: border-box;
   }
   .galaxy-wrapper {
-    width: 100%; height: 100%;
+    position: absolute;
+    inset: 0;
     border-radius: 0; overflow: hidden;
-    position: relative;
     transition: box-shadow 0.4s;
   }
   .galaxy-svg { width: 100%; height: 100%; display: block; }
@@ -755,5 +759,15 @@
   }
   .zoom-btn:active {
     background: rgba(50,70,120,0.9);
+  }
+
+  /* ── Portrait: move zoom controls above the badge-panel handle (36px) ── */
+  @media (orientation: portrait) {
+    .zoom-controls {
+      bottom: 60px; /* clears the 36px badge panel handle + margin */
+    }
+    .zoom-hud {
+      bottom: 60px;
+    }
   }
 </style>
