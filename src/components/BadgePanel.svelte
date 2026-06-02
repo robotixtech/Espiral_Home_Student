@@ -95,6 +95,7 @@
 {#if selectedBadge}
   <div
     class="modal-backdrop"
+    style:background-image={`linear-gradient(rgba(11,14,26,0.8), rgba(11,14,26,0.8)), url('${import.meta.env.BASE_URL}background_2.png')`}
     role="button"
     tabindex="-1"
     aria-label="Cerrar"
@@ -126,10 +127,9 @@
         />
       </div>
 
-      <!-- Badge name + unit code -->
-      <p class="modal-label">{selectedBadge.unit.label}</p>
+      <!-- Unit code -->
       <p class="modal-unit-code">{selectedBadge.unit.displayName}</p>
-      <p class="modal-sublabel">{t('badgeEarnedSuffix')}</p>
+
 
     </div>
   </div>
@@ -140,14 +140,15 @@
   .badge-panel {
     position: fixed;
     right: 0;
-    top: 50%;
+    top: 0;
+    height: 100vh;
     /* flex row: [handle | content] */
     display: flex;
     flex-direction: row;
     align-items: stretch;
 
     /* Expanded: fully visible */
-    transform: translateY(-50%) translateX(0);
+    transform: translateX(0);
     transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 
     z-index: 60;
@@ -167,9 +168,10 @@
     overflow: hidden;
   }
 
-  /* Collapsed: only the handle (32px) remains visible at screen edge */
+  /* Collapsed: only the handle (38px) remains visible at screen edge.
+     2-col layout: content ≈ 220px badges + 12px gap + 24px padding = 256px */
   .badge-panel.collapsed {
-    transform: translateY(-50%) translateX(258px);
+    transform: translateX(256px);
   }
 
   /* ── Handle: the organic "ear" of the panel ──── */
@@ -236,6 +238,9 @@
     padding: 14px 14px 14px 10px;
     overflow: hidden;
     pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
   /* ── Corner brackets ──────────────────────────── */
@@ -278,7 +283,7 @@
   /* ── Badge grid ───────────────────────────────── */
   .badge-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr;   /* 2 columns by default */
     gap: 12px;
     position: relative;
     z-index: 2;
@@ -307,8 +312,8 @@
   }
 
   .badge-slot.earned {
-    filter: drop-shadow(0 0 7px rgba(57,255,20,0.6))
-            drop-shadow(0 0 20px rgba(57,255,20,0.22));
+    filter: drop-shadow(0 0 7px rgba(0,117,191,0.6))
+            drop-shadow(0 0 20px rgba(0,117,191,0.22));
     animation: badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     pointer-events: auto;
     cursor: pointer;
@@ -381,9 +386,18 @@
     height: 30px;
   }
 
+  /* ── Tall landscape displays only: switch to 1 column ─────────────────
+     Only triggers on very tall viewports (>900px) — e.g. full-screen
+     1080p monitors. Chromebooks/laptops keep the default 2-column grid. */
+  @media (min-height: 901px) and (orientation: landscape) {
+    .badge-grid { grid-template-columns: 1fr; }
+    /* 1-col content ≈ 110px badge + 24px padding = 134px */
+    .badge-panel.collapsed { transform: translateX(134px); }
+  }
+
   /* ── Landscape phones ─────────────────────────── */
   @media (max-height: 500px) and (orientation: landscape) {
-    .badge-panel.collapsed { transform: translateY(-50%) translateX(192px); }
+    .badge-panel.collapsed { transform: translateX(192px); }
     .panel-content { padding: 9px 9px 9px 8px; }
     .badge-slot, .badge-img { width: 78px; height: 78px; }
     .badge-grid { gap: 8px; }
@@ -470,9 +484,10 @@
     position: fixed;
     inset: 0;
     z-index: 200;
-    background: rgba(0, 6, 20, 0.82);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    /* background-image set via inline style (BASE_URL + background_2.png + dark overlay) */
+    background-size: cover;
+    background-position: bottom center;
+    background-repeat: no-repeat;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -486,11 +501,12 @@
 
   .modal-card {
     position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: 40px 36px 32px;
+    gap: 20px;
+    padding: 52px 52px 44px;
 
     background: linear-gradient(160deg, rgba(0,12,34,0.98) 0%, rgba(0,22,60,0.96) 100%);
     border: 1px solid rgba(70,150,255,0.35);
@@ -565,18 +581,18 @@
     letter-spacing: 0.25em;
     color: rgba(90,150,255,0.7);
     text-transform: uppercase;
-    margin-top: -8px;
+    margin-top: 16px;
   }
 
   /* Badge image */
   .modal-badge-wrap {
-    filter: drop-shadow(0 0 18px rgba(57,255,20,0.55))
-            drop-shadow(0 0 50px rgba(57,255,20,0.2));
+    filter: drop-shadow(0 0 18px rgba(0,117,191,0.55))
+            drop-shadow(0 0 50px rgba(0,117,191,0.2));
   }
 
   .modal-badge-img {
-    width: 220px;
-    height: 220px;
+    width: 320px;
+    height: 320px;
     object-fit: contain;
     display: block;
   }
@@ -604,7 +620,7 @@
 
   /* Smaller image on landscape phones */
   @media (max-height: 500px) {
-    .modal-badge-img { width: 140px; height: 140px; }
+    .modal-badge-img { width: 160px; height: 160px; }
     .modal-card { padding: 28px 24px 22px; gap: 10px; }
   }
 </style>

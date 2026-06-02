@@ -6,6 +6,7 @@
   import UnitNode from './UnitNode.svelte';
   import DistantGalaxy from './DistantGalaxy.svelte';
   import ActivityOrbit from './ActivityOrbit.svelte';
+  import QuantaCluster from './QuantaCluster.svelte';
 
   interface Props {
     program: ProgramData;
@@ -107,7 +108,7 @@
   });
   const panelUnitIdx      = $derived(panelUnit ? program.units.findIndex(u => u.id === panelUnit!.id) : -1);
   const panelUnitPos      = $derived(panelUnitIdx >= 0 ? unitPositions[panelUnitIdx] : null);
-  const panelUnitR        = $derived(panelUnitIdx >= 0 ? nodeVisualR(panelUnitIdx) : UNIT_SIZE / 2);
+  const panelUnitR        = $derived(panelUnitIdx >= 0 ? UNIT_SIZE / 2 * (panelUnitIdx === 0 ? 1.15 : 1.0) * 1.35 : UNIT_SIZE / 2);
   const panelOutwardAngle = $derived(
     panelUnitPos ? Math.atan2(panelUnitPos.y - cy, panelUnitPos.x - cx) : 0
   );
@@ -139,6 +140,7 @@
   const dgNext   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.22 : 0.06), cy: vb.y + vb.h * (isPortrait ? 0.07 : 0.08) });
   const dgFuture = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.80 : 0.93), cy: vb.y + vb.h * (isPortrait ? 0.04 : 0.05) });
   const dgPrev   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.14 : 0.03), cy: vb.y + vb.h * (isPortrait ? 0.94 : 0.93) });
+  const dgQuanta = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.78 : 0.86), cy: vb.y + vb.h * (isPortrait ? 0.15 : 0.15) });
 
   // ── C: Zoom / Pan ─────────────────────────────────────────────────────────
   // State: translate(panX, panY) scale(zoomScale) applied to all content.
@@ -187,6 +189,24 @@
   function onMouseLeave() { isDragging = false; }
   function resetView() {
     zoomScale = 1; panX = 0; panY = 0;
+  }
+
+  function zoomInBtn() {
+    // Center the in-progress unit in the viewport and zoom in.
+    const ipIdx = effectiveStatuses.findIndex(s => s === 'in-progress');
+    const fx = ipIdx >= 0 ? unitPositions[ipIdx].x : cx;
+    const fy = ipIdx >= 0 ? unitPositions[ipIdx].y : cy;
+    const ns = Math.min(5, zoomScale * 1.3);
+    panX = cx - fx * ns;
+    panY = cy - fy * ns;
+    zoomScale = ns;
+  }
+
+  function zoomOutBtn() {
+    const ns = Math.max(0.35, zoomScale / 1.3);
+    panX = cx - (cx - panX) * (ns / zoomScale);
+    panY = cy - (cy - panY) * (ns / zoomScale);
+    zoomScale = ns;
   }
 
   // ── Touch support (tablet / mobile) ──────────────────────────────────────
@@ -457,6 +477,7 @@
         <DistantGalaxy config={FUTURE_PROGRAM_CONFIG} cx={dgFuture.cx} cy={dgFuture.cy} scale={0.20} opacity={0.62} fontScale={0.7} />
         <DistantGalaxy config={PREV_PROGRAM_CONFIG}   cx={dgPrev.cx}   cy={dgPrev.cy}   scale={0.30} opacity={0.75} fontScale={0.6} />
 
+
         <!-- Orbit rings -->
         {#each program.units as unit, i (unit.id)}
           {@const orbR = orbitRadii[i]}
@@ -535,7 +556,6 @@
           </g>
         {/if}
 
-
         <!-- Pass 1: Central Sun + non-selected nodes (dimmed by overlay below) -->
         <circle cx={cx} cy={cy} r={SUN_R + 38} fill="#39ff14" opacity="0.03" />
         <circle cx={cx} cy={cy} r={SUN_R + 22} fill="#39ff14" opacity="0.05" />
@@ -589,15 +609,15 @@
       <!-- Dimming overlay — outside zoom group so it always covers the full viewBox -->
       {#if panelUnit}
         <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h}
-              fill="rgba(2,6,20,0.75)" pointer-events="none" />
+              fill="rgba(2,6,20,0.85)" pointer-events="none" />
       {/if}
 
       <!-- Pass 2: Selected node + activity orbit — same zoom transform, rendered above overlay -->
       {#if panelUnit && panelUnitPos}
         {@const si    = panelUnitIdx}
         {@const isIP  = effectiveStatuses[si] === 'in-progress'}
-        {@const nSize = isIP ? Math.round(UNIT_SIZE * 1.35) : UNIT_SIZE}
-        {@const vr    = nodeVisualR(si)}
+        {@const nSize = Math.round(UNIT_SIZE * 1.35)}
+        {@const vr    = UNIT_SIZE / 2 * (si === 0 ? 1.15 : 1.0) * 1.35}
         <g transform={zoomTransform}>
           {#if isIP}
             <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 38} fill={t.unit.inProgress.glow} opacity="0.08" />
@@ -633,7 +653,15 @@
           />
         </g>
       {/if}
+      <!-- QUANTA cluster — fixed to screen, upper-right corner -->
+      <QuantaCluster cx={dgQuanta.cx} cy={dgQuanta.cy} programShortname={program.shortname} />
     </svg>
+
+    <!-- Zoom controls — bottom-left -->
+    <div class="zoom-controls">
+      <button class="zoom-btn" onclick={zoomInBtn} aria-label="Zoom in">+</button>
+      <button class="zoom-btn" onclick={zoomOutBtn} aria-label="Zoom out">−</button>
+    </div>
 
     <!-- Zoom HUD (fixed to screen, outside SVG zoom group) -->
     <div class="zoom-hud">
@@ -695,4 +723,37 @@
     transition: color 0.15s;
   }
   .zoom-reset:hover { color: #f1f5f9; }
+
+  /* ── Zoom +/- buttons ── */
+  .zoom-controls {
+    position: absolute;
+    bottom: 14px; left: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    pointer-events: all;
+    z-index: 10;
+  }
+  .zoom-btn {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    border: 1px solid rgba(148,163,184,0.22);
+    background: rgba(10,15,35,0.72);
+    color: #cbd5e1;
+    font-size: 22px; line-height: 1;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    user-select: none;
+  }
+  .zoom-btn:hover {
+    background: rgba(30,45,80,0.88);
+    border-color: rgba(148,163,184,0.45);
+    color: #f1f5f9;
+  }
+  .zoom-btn:active {
+    background: rgba(50,70,120,0.9);
+  }
 </style>
