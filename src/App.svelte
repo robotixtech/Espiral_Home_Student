@@ -42,10 +42,39 @@
     s.backgroundImage = `url('${import.meta.env.BASE_URL}background_2.png')`;
     s.backgroundPosition = 'bottom center';
     s.backgroundRepeat = 'no-repeat';
-    // cover ensures it fills the viewport on all screen sizes
     s.backgroundSize = 'cover';
-    // fixed doesn't work on iOS, use scroll as fallback handled via CSS
     s.backgroundAttachment = 'scroll';
+  });
+
+  // ── Visual Viewport sync ──────────────────────────────────────────────────
+  // Chrome on iOS keeps position:fixed relative to the LAYOUT viewport, not the
+  // visual viewport.  When the browser applies any page zoom the layout viewport
+  // and the visible area diverge, so .app-root drifts off-screen.
+  // We compensate by pinning .app-root exactly to the visual viewport dimensions
+  // using the VisualViewport API (available Chrome 61+, Safari 13+).
+  let appEl: HTMLElement | undefined = $state();
+
+  onMount(() => {
+    const vvp = window.visualViewport;
+
+    function syncToVisualViewport() {
+      if (!appEl) return;
+      if (vvp) {
+        appEl.style.left   = `${vvp.offsetLeft}px`;
+        appEl.style.top    = `${vvp.offsetTop}px`;
+        appEl.style.width  = `${vvp.width}px`;
+        appEl.style.height = `${vvp.height}px`;
+      }
+    }
+
+    syncToVisualViewport();
+    vvp?.addEventListener('resize', syncToVisualViewport);
+    vvp?.addEventListener('scroll', syncToVisualViewport);
+
+    return () => {
+      vvp?.removeEventListener('resize', syncToVisualViewport);
+      vvp?.removeEventListener('scroll', syncToVisualViewport);
+    };
   });
 
   onMount(async () => {
@@ -54,18 +83,16 @@
       const data = await loadProgramFromMoodle(config);
       appState = { kind: 'ready', data };
     } catch (err) {
-      // Fall back to mock data when no Moodle token is available
       console.warn('Using mock data:', err);
       appState = { kind: 'ready', data: MOCK_PROGRAM };
     }
-    // Auto-start emulator
     if (appState.kind === 'ready' && !isEmulatorActive()) {
       toggleEmulator(appState.data);
     }
   });
 </script>
 
-<main class="app-root">
+<main class="app-root" bind:this={appEl}>
   {#if appState.kind === 'loading'}
     <div class="state-container">
       <div class="spinner"></div>
@@ -111,9 +138,8 @@
   {/if}
 </main>
 
-<!-- EmulatorToggle and BadgePanel must be outside .app-root so their own position:fixed
-     is relative to the real viewport — not contained by the parent fixed+overflow context.
-     Chrome for iOS clips/miscomposites fixed elements inside a fixed+overflow parent. -->
+<!-- EmulatorToggle and BadgePanel outside .app-root so they are also
+     zoom-independent — positioned in the body stacking context directly. -->
 {#if appState.kind === 'ready' && currentView === 'home' && homeProgram}
   <EmulatorToggle program={appState.data} />
   <BadgePanel program={homeProgram} />
@@ -141,16 +167,18 @@
 
   .app-root {
     position: fixed;
+    /* CSS fallback before JS kicks in — fills the layout viewport */
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* overflow: clip (not hidden) so position:fixed children are not clipped
-       by this fixed container — a known Chrome iOS compositing bug */
-    overflow: clip;
+    overflow: hidden;
+    /* JS (syncToVisualViewport) overrides top/left/width/height with the
+       actual visualViewport dimensions so the app always fills the visible
+       area regardless of browser-level zoom on Chrome/iOS. */
   }
 
   .state-container {
@@ -211,5 +239,4 @@
   .retry-btn:hover {
     background: rgba(128,128,128,0.2);
   }
-
 </style>

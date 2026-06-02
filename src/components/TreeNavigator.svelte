@@ -662,6 +662,7 @@
       <span class="zoom-pct">{zoomPct}%</span>
       <button class="zoom-reset" onclick={resetView} title="Doble clic en el canvas para resetear">↺</button>
     </div>
+
   </div>
 </div>
 
