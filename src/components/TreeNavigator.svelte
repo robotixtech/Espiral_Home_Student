@@ -364,26 +364,19 @@
   }
 
   onMount(() => {
-    if (!containerEl) return;
-    const ro = new ResizeObserver(([entry]) => {
-      cW = entry.contentRect.width;
-      cH = entry.contentRect.height;
-    });
-    ro.observe(containerEl);
     // Wheel + touch must be non-passive to call preventDefault()
     svgEl?.addEventListener('wheel',      onWheel,      { passive: false });
     svgEl?.addEventListener('touchstart', onTouchStart, { passive: true });
     svgEl?.addEventListener('touchmove',  onTouchMove,  { passive: false });
     svgEl?.addEventListener('touchend',   onTouchEnd,   { passive: false });
     return () => {
-      ro.disconnect();
       svgEl?.removeEventListener('wheel', onWheel);
       if (rafId !== null) cancelAnimationFrame(rafId);
     };
   });
 </script>
 
-<div class="galaxy-container" bind:this={containerEl}>
+<div class="galaxy-container" bind:this={containerEl} bind:clientWidth={cW} bind:clientHeight={cH}>
   <div class="galaxy-wrapper" style:box-shadow={t.wrapperShadow}>
     <svg
       bind:this={svgEl}
@@ -687,7 +680,9 @@
     border-radius: 0; overflow: hidden;
     transition: box-shadow 0.4s;
   }
-  .galaxy-svg { width: 100%; height: 100%; display: block; }
+  /* position: absolute; inset: 0 is more reliable than width/height: 100%
+     on iOS Safari inside absolutely-positioned containers */
+  .galaxy-svg { position: absolute; inset: 0; display: block; }
 
 
 :global(.prog-label) {
