@@ -145,6 +145,22 @@
     overflow: hidden;
   }
 
+  /* Tablets in portrait: rotate 90° CW so the UI always renders in landscape.
+     top: 100% + rotate(90deg) around left-top maps the element onto the full
+     landscape viewport. min-width: 600px avoids affecting small phones. */
+  @media (orientation: portrait) and (min-width: 600px) {
+    .app-root {
+      width: 100vh;
+      height: 100vw;
+      top: 100%;
+      left: 0;
+      right: auto;
+      bottom: auto;
+      transform-origin: left top;
+      transform: rotate(90deg);
+    }
+  }
+
   .state-container {
     display: flex;
     flex-direction: column;
