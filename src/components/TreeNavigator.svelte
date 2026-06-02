@@ -679,6 +679,9 @@
     inset: 0;
     border-radius: 0; overflow: hidden;
     transition: box-shadow 0.4s;
+    /* Contain GPU compositing layers (SVG filters/will-change) within this
+       stacking context so they don't escape and paint over HTML overlays */
+    isolation: isolate;
   }
   /* position: absolute; inset: 0 is more reliable than width/height: 100%
      on iOS Safari inside absolutely-positioned containers */

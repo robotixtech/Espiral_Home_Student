@@ -21,6 +21,17 @@
 
   const theme = $derived(getTheme());
 
+  const allCompleted = $derived.by(() => {
+    if (appState.kind !== 'ready') return null;
+    return {
+      ...appState.data,
+      // TODO(moodle): `grade: 7` hardcodeado; reemplazar con el grade real de Moodle Workplace 4.5 cuando esté disponible.
+      units: appState.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100, grade: 7 })),
+    };
+  });
+
+  const homeProgram = $derived(allCompleted ? (getEmulatedProgram() ?? allCompleted) : null);
+
   // Reactively update body background when theme changes
   $effect(() => {
     const s = document.body.style;
@@ -69,32 +80,21 @@
       </button>
     </div>
   {:else}
-    {@const allCompleted = {
-      ...appState.data,
-      // TODO(moodle): `grade: 7` hardcodeado; reemplazar con el grade real de Moodle Workplace 4.5 cuando esté disponible.
-      units: appState.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100, grade: 7 })),
-    }}
-    {#if currentView === 'home'}
+    {#if currentView === 'home' && homeProgram}
       <TreeNavigator
-        program={getEmulatedProgram() ?? allCompleted}
+        program={homeProgram}
         onUnitSelected={(unit) => { selectedUnit = unit; currentView = 'unit-detail'; }}
         onActivitySelected={(activity) => {
-          // Activity opened directly from the tree (in-progress unit inline).
-          // selectedUnit stays null so the back button returns to home.
           selectedActivity = activity;
           currentView = 'activity-slide';
         }}
       />
-      <EmulatorToggle program={appState.data} />
-      <BadgePanel program={getEmulatedProgram() ?? allCompleted} />
     {:else if currentView === 'unit-detail' && selectedUnit}
       <UnitDetailView
         unit={selectedUnit}
         programShortname={appState.data.shortname}
         onBack={() => { selectedUnit = null; currentView = 'home'; }}
         onActivitySelected={(activity) => {
-          // Activity opened from UnitDetailView — selectedUnit remains set
-          // so the back button returns to unit-detail.
           selectedActivity = activity;
           currentView = 'activity-slide';
         }}
@@ -104,14 +104,20 @@
         activity={selectedActivity}
         onBack={() => {
           selectedActivity = null;
-          // If we came from a unit-detail view, selectedUnit is still set → go back there.
-          // If we came directly from the tree (in-progress unit), selectedUnit is null → go home.
           currentView = selectedUnit ? 'unit-detail' : 'home';
         }}
       />
     {/if}
   {/if}
 </main>
+
+<!-- EmulatorToggle and BadgePanel must be outside .app-root so their own position:fixed
+     is relative to the real viewport — not contained by the parent fixed+overflow context.
+     Chrome for iOS clips/miscomposites fixed elements inside a fixed+overflow parent. -->
+{#if appState.kind === 'ready' && currentView === 'home' && homeProgram}
+  <EmulatorToggle program={appState.data} />
+  <BadgePanel program={homeProgram} />
+{/if}
 
 <style>
   :global(*) {
@@ -142,7 +148,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    overflow: hidden;
+    /* overflow: clip (not hidden) so position:fixed children are not clipped
+       by this fixed container — a known Chrome iOS compositing bug */
+    overflow: clip;
   }
 
   .state-container {
