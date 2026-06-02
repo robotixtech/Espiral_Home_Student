@@ -37,48 +37,20 @@
     s.backgroundAttachment = 'scroll';
   });
 
-  onMount(() => {
-    // JS-driven landscape lock — more reliable on iOS than CSS vh/vw (address bar makes vh unstable)
-    function fixOrientation() {
-      const W = window.innerWidth;
-      const H = window.innerHeight;
-      const html = document.documentElement;
-      if (H > W && Math.max(W, H) >= 600) {
-        html.style.transform = 'rotate(90deg)';
-        html.style.transformOrigin = 'left top';
-        html.style.width = H + 'px';
-        html.style.height = W + 'px';
-        html.style.position = 'absolute';
-        html.style.top = H + 'px';
-        html.style.left = '0';
-        html.style.overflow = 'hidden';
-      } else {
-        (['transform', 'transformOrigin', 'width', 'height', 'position', 'top', 'left', 'overflow'] as const)
-          .forEach(p => { html.style[p] = ''; });
-      }
+  onMount(async () => {
+    try {
+      const config = getIframeConfig();
+      const data = await loadProgramFromMoodle(config);
+      appState = { kind: 'ready', data };
+    } catch (err) {
+      // Fall back to mock data when no Moodle token is available
+      console.warn('Using mock data:', err);
+      appState = { kind: 'ready', data: MOCK_PROGRAM };
     }
-    fixOrientation();
-    const onResize = () => requestAnimationFrame(fixOrientation);
-    window.addEventListener('resize', onResize);
-
-    // Load program data
-    (async () => {
-      try {
-        const config = getIframeConfig();
-        const data = await loadProgramFromMoodle(config);
-        appState = { kind: 'ready', data };
-      } catch (err) {
-        // Fall back to mock data when no Moodle token is available
-        console.warn('Using mock data:', err);
-        appState = { kind: 'ready', data: MOCK_PROGRAM };
-      }
-      // Auto-start emulator
-      if (appState.kind === 'ready' && !isEmulatorActive()) {
-        toggleEmulator(appState.data);
-      }
-    })();
-
-    return () => window.removeEventListener('resize', onResize);
+    // Auto-start emulator
+    if (appState.kind === 'ready' && !isEmulatorActive()) {
+      toggleEmulator(appState.data);
+    }
   });
 </script>
 

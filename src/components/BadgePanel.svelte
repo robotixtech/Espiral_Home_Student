@@ -412,6 +412,9 @@
       top: auto;
       bottom: 0;
       left: 50%;
+      /* height: auto so panel sizes to content — avoids 100vh overflow on iOS
+         where 100vh > visible area due to the browser chrome */
+      height: auto;
       /* Expanded: centered horizontally, flush with bottom */
       transform: translateX(-50%) translateY(0);
       /* Vertical stacking: handle on top, content below */
@@ -468,15 +471,17 @@
   /* ── Portrait tablets (iPad, Android) ────────── */
   @media (min-width: 601px) and (orientation: portrait) {
     .badge-panel { width: auto; max-width: calc(100vw - 32px); }
-    .panel-content { padding: 12px 16px; }
+    .panel-content { padding: 8px 14px 10px; }
     /* Badges in a single horizontal row */
     .badge-grid {
       grid-template-columns: unset;
       grid-auto-flow: column;
       grid-auto-columns: auto;
-      gap: 12px;
+      gap: 10px;
     }
-    .badge-slot, .badge-img { width: 90px; height: 90px; }
+    .badge-slot, .badge-img { width: 72px; height: 72px; }
+    .lock-icon { width: 22px; height: 22px; }
+    .unit-label { font-size: 8px; }
   }
 
   /* ── Badge modal ──────────────────────────────── */
