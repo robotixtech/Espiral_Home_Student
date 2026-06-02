@@ -145,19 +145,21 @@
     overflow: hidden;
   }
 
-  /* Tablets in portrait: rotate 90° CW so the UI always renders in landscape.
-     top: 100% + rotate(90deg) around left-top maps the element onto the full
-     landscape viewport. min-width: 600px avoids affecting small phones. */
+  /* Tablets in portrait: rotate html 90° CW so the UI always renders in
+     landscape. Applying transform to html (not .app-root) is required on
+     iOS Safari: a transform on html makes it the containing block for all
+     position:fixed children, dragging the entire app into the rotation.
+     min-width: 600px avoids affecting small phones. */
   @media (orientation: portrait) and (min-width: 600px) {
-    .app-root {
+    :global(html) {
+      transform: rotate(90deg);
+      transform-origin: left top;
       width: 100vh;
       height: 100vw;
+      overflow: hidden;
+      position: absolute;
       top: 100%;
       left: 0;
-      right: auto;
-      bottom: auto;
-      transform-origin: left top;
-      transform: rotate(90deg);
     }
   }
 
