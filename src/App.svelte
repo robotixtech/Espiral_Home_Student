@@ -37,20 +37,48 @@
     s.backgroundAttachment = 'scroll';
   });
 
-  onMount(async () => {
-    try {
-      const config = getIframeConfig();
-      const data = await loadProgramFromMoodle(config);
-      appState = { kind: 'ready', data };
-    } catch (err) {
-      // Fall back to mock data when no Moodle token is available
-      console.warn('Using mock data:', err);
-      appState = { kind: 'ready', data: MOCK_PROGRAM };
+  onMount(() => {
+    // JS-driven landscape lock — more reliable on iOS than CSS vh/vw (address bar makes vh unstable)
+    function fixOrientation() {
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      const html = document.documentElement;
+      if (H > W && Math.max(W, H) >= 600) {
+        html.style.transform = 'rotate(90deg)';
+        html.style.transformOrigin = 'left top';
+        html.style.width = H + 'px';
+        html.style.height = W + 'px';
+        html.style.position = 'absolute';
+        html.style.top = H + 'px';
+        html.style.left = '0';
+        html.style.overflow = 'hidden';
+      } else {
+        (['transform', 'transformOrigin', 'width', 'height', 'position', 'top', 'left', 'overflow'] as const)
+          .forEach(p => { html.style[p] = ''; });
+      }
     }
-    // Auto-start emulator
-    if (appState.kind === 'ready' && !isEmulatorActive()) {
-      toggleEmulator(appState.data);
-    }
+    fixOrientation();
+    const onResize = () => requestAnimationFrame(fixOrientation);
+    window.addEventListener('resize', onResize);
+
+    // Load program data
+    (async () => {
+      try {
+        const config = getIframeConfig();
+        const data = await loadProgramFromMoodle(config);
+        appState = { kind: 'ready', data };
+      } catch (err) {
+        // Fall back to mock data when no Moodle token is available
+        console.warn('Using mock data:', err);
+        appState = { kind: 'ready', data: MOCK_PROGRAM };
+      }
+      // Auto-start emulator
+      if (appState.kind === 'ready' && !isEmulatorActive()) {
+        toggleEmulator(appState.data);
+      }
+    })();
+
+    return () => window.removeEventListener('resize', onResize);
   });
 </script>
 
@@ -143,24 +171,6 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
-  }
-
-  /* Tablets in portrait: rotate html 90° CW so the UI always renders in
-     landscape. Applying transform to html (not .app-root) is required on
-     iOS Safari: a transform on html makes it the containing block for all
-     position:fixed children, dragging the entire app into the rotation.
-     min-width: 600px avoids affecting small phones. */
-  @media (orientation: portrait) and (min-width: 600px) {
-    :global(html) {
-      transform: rotate(90deg);
-      transform-origin: left top;
-      width: 100vh;
-      height: 100vw;
-      overflow: hidden;
-      position: absolute;
-      top: 100%;
-      left: 0;
-    }
   }
 
   .state-container {
