@@ -16,6 +16,11 @@
 
   let { program, onUnitSelected, onActivitySelected }: Props = $props();
 
+  // Android Chrome cannot GPU-composite SMIL animations (animateTransform, animate).
+  // They force full layer re-rasterization every frame → moiré/flickering.
+  // Disable them on Android; static fallbacks look fine.
+  const isAndroid = /Android/i.test(navigator.userAgent);
+
   // ── A: Canvas (reduced so content fills the viewport better) ─────────────
   const W  = 1150;
   const H  = 850;
@@ -437,16 +442,18 @@
           <circle cx={cx} cy={cy} r={outerR + 4} fill="none" stroke={hud} stroke-width="1" opacity="1" />
           <!-- Inner border circle -->
           <circle cx={cx} cy={cy} r={outerR - 14} fill="none" stroke={hud} stroke-width="0.7" opacity="0.75" />
-          <!-- Travelling light -->
+          <!-- Travelling light — SMIL disabled on Android (non-compositable → moiré) -->
           {@const sweepC = 2 * Math.PI * (outerR + 4)}
-          <circle cx={cx} cy={cy} r={outerR + 4} fill="none"
-                  stroke="rgba(0,190,255,0.95)" stroke-width="6"
-                  stroke-dasharray="{sweepC / ticks / 2} {sweepC - sweepC / ticks / 2}" stroke-linecap="square"
-                  transform="rotate(-90, {cx}, {cy})">
-            <animate attributeName="stroke-dashoffset"
-                     from="0" to="{sweepC}"
-                     dur="8s" repeatCount="indefinite" />
-          </circle>
+          {#if !isAndroid}
+            <circle cx={cx} cy={cy} r={outerR + 4} fill="none"
+                    stroke="rgba(0,190,255,0.95)" stroke-width="6"
+                    stroke-dasharray="{sweepC / ticks / 2} {sweepC - sweepC / ticks / 2}" stroke-linecap="square"
+                    transform="rotate(-90, {cx}, {cy})">
+              <animate attributeName="stroke-dashoffset"
+                       from="0" to="{sweepC}"
+                       dur="8s" repeatCount="indefinite" />
+            </circle>
+          {/if}
           <!-- Tick marks -->
           {#each Array.from({length: ticks}, (_, k) => k) as k}
             {@const ang     = (k / ticks) * 2 * Math.PI - Math.PI / 2}
@@ -545,8 +552,9 @@
           {/if}
         {/each}
 
-        <!-- Radar sweep — rotating lighthouse beam reaching completed orbits -->
-        {#if lastCompletedIdx >= 0}
+        <!-- Radar sweep — disabled on Android: animateTransform is non-compositable
+             on Android Chrome and causes full-layer repaint every frame → moiré -->
+        {#if lastCompletedIdx >= 0 && !isAndroid}
           {@const pulseR   = orbitRadii[lastCompletedIdx]}
           {@const beamDeg  = 30}
           {@const trailDeg = 110}
