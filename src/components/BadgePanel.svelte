@@ -3,12 +3,15 @@
   import { badgeUrl, hasBadge, isBadgeEarned } from '../lib/badges';
   import { getEmulatedProgram } from '../lib/emulator.svelte';
   import { t } from '../lib/i18n';
+  import { getConfigByShortname } from '../lib/program-config';
 
   interface Props {
     program: ProgramData;
   }
 
   let { program }: Props = $props();
+
+  const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_2.png');
 
   const badgeUnits = $derived.by(() => {
     const prog = getEmulatedProgram() ?? program;
@@ -95,7 +98,7 @@
 {#if selectedBadge}
   <div
     class="modal-backdrop"
-    style:background-image={`linear-gradient(rgba(11,14,26,0.8), rgba(11,14,26,0.8)), url('${import.meta.env.BASE_URL}background_2.png')`}
+    style:background-image={`linear-gradient(rgba(11,14,26,0.8), rgba(11,14,26,0.8)), url('${import.meta.env.BASE_URL}${bgImage}')`}
     role="button"
     tabindex="-1"
     aria-label="Cerrar"
@@ -503,7 +506,7 @@
     position: fixed;
     inset: 0;
     z-index: 200;
-    /* background-image set via inline style (BASE_URL + background_2.png + dark overlay) */
+    /* background-image set via inline style (BASE_URL + config.bgImage + dark overlay) */
     background-size: cover;
     background-position: bottom center;
     background-repeat: no-repeat;

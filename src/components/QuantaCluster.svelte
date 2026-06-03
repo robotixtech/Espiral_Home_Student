@@ -12,30 +12,35 @@
   const label  = $derived(isNano ? 'nanoQUANTA' : 'QUANTA');
   const url    = $derived(isNano ? 'https://www.robotix.es' : 'https://www.robotix.com');
 
-  // [x, y, radius, opacity] — globular cluster star distribution
-  const STARS: [number, number, number, number][] = [
-    // Dense core
-    [  1.5, -2.0, 2.2, 0.95 ], [ -2.5,  0.8, 2.0, 0.90 ],
-    [  3.5,  2.5, 2.1, 0.88 ], [ -1.0,  3.8, 2.0, 0.92 ],
-    [  4.0, -3.5, 1.9, 0.85 ], [ -3.5, -2.8, 2.0, 0.90 ],
-    [  0.5,  5.0, 1.8, 0.86 ], [ -3.0,  4.5, 1.9, 0.88 ],
-    // Mid ring
-    [ 10.0,  3.5, 1.8, 0.72 ], [ -9.0,  5.0, 1.6, 0.68 ],
-    [  7.5, -9.0, 1.7, 0.70 ], [-10.0, -7.0, 1.6, 0.66 ],
-    [ 12.5, -5.0, 1.5, 0.63 ], [  2.0, 12.5, 1.8, 0.71 ],
-    [-11.5,  2.0, 1.6, 0.67 ], [ 12.0,  8.5, 1.4, 0.60 ],
-    [ -6.0,-12.5, 1.7, 0.69 ], [  9.0, 11.5, 1.5, 0.62 ],
-    [-13.5,  7.5, 1.4, 0.58 ], [ 14.0, -2.0, 1.6, 0.65 ],
-    [  5.0,-15.0, 1.3, 0.56 ], [-14.0, -4.5, 1.5, 0.63 ],
-    // Outer sparse halo
-    [ 20.0,  5.0, 1.1, 0.40 ], [-19.0, 10.0, 1.0, 0.36 ],
-    [ 17.0,-13.5, 1.2, 0.42 ], [-17.5,-12.0, 1.0, 0.38 ],
-    [ 12.0, 20.0, 1.0, 0.34 ], [-10.0,-21.0, 1.1, 0.40 ],
-    [ 22.5, -6.0, 0.9, 0.31 ], [-22.0,  3.5, 1.0, 0.34 ],
-    [  7.5,-22.0, 1.1, 0.38 ], [ -8.0, 21.5, 0.9, 0.32 ],
-    [ 19.5, 14.5, 1.0, 0.34 ], [-20.5,-15.0, 0.9, 0.30 ],
-    [ 24.0,  2.5, 0.8, 0.26 ], [-24.5, -7.0, 0.8, 0.26 ],
-    [ 15.0,-20.0, 0.9, 0.30 ], [-14.5, 21.5, 0.8, 0.28 ],
+  // Stars split into 3 opacity bands so each band can be rendered as a single
+  // <g opacity> group — reduces 38 individual compositing ops to 3 on Mali-G52.
+  // Dense core (~0.85-0.95 → group at 0.90)
+  const STARS_CORE: [number, number, number][] = [
+    [  1.5, -2.0, 2.2 ], [ -2.5,  0.8, 2.0 ],
+    [  3.5,  2.5, 2.1 ], [ -1.0,  3.8, 2.0 ],
+    [  4.0, -3.5, 1.9 ], [ -3.5, -2.8, 2.0 ],
+    [  0.5,  5.0, 1.8 ], [ -3.0,  4.5, 1.9 ],
+  ];
+  // Mid ring (~0.56-0.72 → group at 0.65)
+  const STARS_MID: [number, number, number][] = [
+    [ 10.0,  3.5, 1.8 ], [ -9.0,  5.0, 1.6 ],
+    [  7.5, -9.0, 1.7 ], [-10.0, -7.0, 1.6 ],
+    [ 12.5, -5.0, 1.5 ], [  2.0, 12.5, 1.8 ],
+    [-11.5,  2.0, 1.6 ], [ 12.0,  8.5, 1.4 ],
+    [ -6.0,-12.5, 1.7 ], [  9.0, 11.5, 1.5 ],
+    [-13.5,  7.5, 1.4 ], [ 14.0, -2.0, 1.6 ],
+    [  5.0,-15.0, 1.3 ], [-14.0, -4.5, 1.5 ],
+  ];
+  // Outer sparse halo (~0.26-0.42 → group at 0.35)
+  const STARS_HALO: [number, number, number][] = [
+    [ 20.0,  5.0, 1.1 ], [-19.0, 10.0, 1.0 ],
+    [ 17.0,-13.5, 1.2 ], [-17.5,-12.0, 1.0 ],
+    [ 12.0, 20.0, 1.0 ], [-10.0,-21.0, 1.1 ],
+    [ 22.5, -6.0, 0.9 ], [-22.0,  3.5, 1.0 ],
+    [  7.5,-22.0, 1.1 ], [ -8.0, 21.5, 0.9 ],
+    [ 19.5, 14.5, 1.0 ], [-20.5,-15.0, 0.9 ],
+    [ 24.0,  2.5, 0.8 ], [-24.5, -7.0, 0.8 ],
+    [ 15.0,-20.0, 0.9 ], [-14.5, 21.5, 0.8 ],
   ];
 </script>
 
@@ -71,10 +76,23 @@
   <!-- Ambient outer halo -->
   <circle cx="0" cy="0" r="44" fill="url(#qc-halo)" />
 
-  <!-- Star field -->
-  {#each STARS as [sx, sy, sr, so]}
-    <circle cx={sx} cy={sy} r={sr} fill="white" opacity={so} />
-  {/each}
+  <!-- Star field — 3 fill-opacity bands, 3 draw calls instead of 38 individual.
+       fill-opacity is inherited per-element (no compositing layer vs group opacity) -->
+  <g fill="white" fill-opacity="0.90">
+    {#each STARS_CORE as [sx, sy, sr]}
+      <circle cx={sx} cy={sy} r={sr} />
+    {/each}
+  </g>
+  <g fill="white" fill-opacity="0.65">
+    {#each STARS_MID as [sx, sy, sr]}
+      <circle cx={sx} cy={sy} r={sr} />
+    {/each}
+  </g>
+  <g fill="white" fill-opacity="0.35">
+    {#each STARS_HALO as [sx, sy, sr]}
+      <circle cx={sx} cy={sy} r={sr} />
+    {/each}
+  </g>
 
   <!-- Bright core -->
   <circle cx="0" cy="0" r="7" fill="url(#qc-core)" filter="url(#qc-bloom)" class="core-pulse" />
@@ -91,19 +109,17 @@
 <style>
   .quanta { cursor: pointer; outline: none; }
 
-  /* Hover ring */
+  /* Hover ring — stroke-opacity avoids compositing layer vs opacity */
   .halo-ring {
-    opacity: 0;
+    stroke-opacity: 0;
     stroke-width: 0.8;
-    transition: opacity 0.3s ease, stroke-width 0.3s ease;
+    transition: stroke-opacity 0.3s ease, stroke-width 0.3s ease;
     pointer-events: none;
   }
 
   @media (hover: hover) {
-    .quanta:hover { opacity: 1 !important; }
-
     .quanta:hover .halo-ring {
-      opacity: 0.7;
+      stroke-opacity: 0.7;
       stroke-width: 2;
       animation: border-pulse 1.2s ease-in-out infinite;
     }
@@ -114,8 +130,8 @@
   }
 
   @keyframes border-pulse {
-    0%, 100% { opacity: 0.4; stroke-width: 0.5; }
-    50%       { opacity: 0.8; stroke-width: 1.5; }
+    0%, 100% { stroke-opacity: 0.4; stroke-width: 0.5; }
+    50%       { stroke-opacity: 0.8; stroke-width: 1.5; }
   }
 
   .quanta-lbl {

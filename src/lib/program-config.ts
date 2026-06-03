@@ -69,6 +69,8 @@ export interface ProgramConfig {
   shortname: string;
   /** Program display name */
   fullname: string;
+  /** Background image filename relative to the public root (e.g. "background_2.png") */
+  bgImage: string;
   /** Central sun node config */
   sun: SunConfig;
   /** Ordered list of unit configs (first = innermost orbit, last = outermost) */
@@ -86,6 +88,7 @@ export interface ProgramConfig {
 export const C450_CONFIG: ProgramConfig = {
   shortname: 'C450',
   fullname: 'C450',
+  bgImage: 'background_2.png',
 
   sun: {
     label: 'Open Scentia',
@@ -229,6 +232,7 @@ export const C450_CONFIG: ProgramConfig = {
 export const C550_CONFIG: ProgramConfig = {
   shortname: 'C550',
   fullname: 'C550',
+  bgImage: 'background_2.png',
 
   sun: {
     label: 'Open Scentia',
@@ -319,6 +323,7 @@ export const C550_CONFIG: ProgramConfig = {
 export const C650_CONFIG: ProgramConfig = {
   shortname: 'C650',
   fullname: 'C650',
+  bgImage: 'background_2.png',
 
   sun: {
     label: 'Open Scentia',
@@ -409,6 +414,7 @@ export const C650_CONFIG: ProgramConfig = {
 export const C350_CONFIG: ProgramConfig = {
   shortname: 'C350',
   fullname: 'C350',
+  bgImage: 'background_2.png',
 
   sun: {
     label: 'Open Scentia',
@@ -488,3 +494,25 @@ export const DEFAULT_CONFIG = C450_CONFIG;
 export const PREV_PROGRAM_CONFIG = C350_CONFIG;
 export const NEXT_PROGRAM_CONFIG = C550_CONFIG;
 export const FUTURE_PROGRAM_CONFIG = C650_CONFIG;
+
+/** All programs in progression order */
+export const ALL_PROGRAM_CONFIGS = [C350_CONFIG, C450_CONFIG, C550_CONFIG, C650_CONFIG];
+
+/** Returns the ProgramConfig for the given shortname, or undefined if not found. */
+export function getConfigByShortname(shortname: string): ProgramConfig | undefined {
+  return ALL_PROGRAM_CONFIGS.find(c => c.shortname === shortname);
+}
+
+/**
+ * Given the main program shortname, returns the other 3 configs in ascending
+ * order with a flag indicating whether each was already completed by the student.
+ * A galaxy is completed when its index in the sequence is lower than the main.
+ */
+export function getDistantConfigs(mainShortname: string) {
+  const mainIdx = ALL_PROGRAM_CONFIGS.findIndex(c => c.shortname === mainShortname);
+  const others  = ALL_PROGRAM_CONFIGS.filter((_, i) => i !== mainIdx);
+  return others.map(c => ({
+    config:      c,
+    isCompleted: ALL_PROGRAM_CONFIGS.indexOf(c) < mainIdx,
+  }));
+}

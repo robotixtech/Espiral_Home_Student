@@ -6,6 +6,7 @@
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
   import { getEmulatedProgram, toggleEmulator, isEmulatorActive } from './lib/emulator.svelte';
+  import { getConfigByShortname } from './lib/program-config';
   import TreeNavigator from './components/TreeNavigator.svelte';
   import UnitDetailView from './components/UnitDetailView.svelte';
   import ActivitySlideView from './components/ActivitySlideView.svelte';
@@ -32,6 +33,12 @@
 
   const homeProgram = $derived(allCompleted ? (getEmulatedProgram() ?? allCompleted) : null);
 
+  const bgImage = $derived(
+    appState.kind === 'ready'
+      ? (getConfigByShortname(appState.data.shortname)?.bgImage ?? 'background_2.png')
+      : 'background_2.png'
+  );
+
   // Reactively update body background when theme changes
   $effect(() => {
     const s = document.body.style;
@@ -39,11 +46,6 @@
     const [br, bg, bb] = [0,2,4].map(i => parseInt(h.slice(i,i+2),16));
     s.backgroundColor = `rgba(${br},${bg},${bb},0.8)`;
     s.color = theme.text.primary;
-    s.backgroundImage = `url('${import.meta.env.BASE_URL}background_2.png')`;
-    s.backgroundPosition = 'bottom center';
-    s.backgroundRepeat = 'no-repeat';
-    s.backgroundSize = 'cover';
-    s.backgroundAttachment = 'scroll';
   });
 
   // ── Visual Viewport sync ──────────────────────────────────────────────────
@@ -55,9 +57,19 @@
   let appEl: HTMLElement | undefined = $state();
 
   onMount(() => {
-    // Android: set class for CSS-side render optimisations (disables heartbeat
-    // animation + SVG glow filters that cause 60fps re-rasterisation → moiré).
-    if (/Android/i.test(navigator.userAgent)) {
+    // Android detection — robust against Chrome "Request Desktop Site" which
+    // rewrites both the UA string and userAgentData to look like a desktop.
+    // maxTouchPoints > 0 is hardware-reported and cannot be spoofed.
+    // Excludes: iOS (Apple vendor), ChromeOS (CrOS in UA), true desktops (no touch).
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (/Apple/.test(navigator.vendor) && navigator.maxTouchPoints > 1);
+    const uaPlatform = (navigator.userAgentData?.platform ?? '').toLowerCase();
+    const isAndroidDevice = !isIOS && (
+      /Android/i.test(navigator.userAgent) ||
+      uaPlatform === 'android' ||
+      (!(/CrOS/.test(navigator.userAgent)) && navigator.maxTouchPoints > 0 && /Chrome\//.test(navigator.userAgent))
+    );
+    if (isAndroidDevice) {
       document.documentElement.classList.add('android');
     }
 
@@ -68,8 +80,6 @@
     // On Android, position:fixed already tracks the visual viewport correctly —
     // applying the sync there causes the flickering/moiré by forcing continuous
     // app-root resizes as the Android address bar animates in/out.
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-      (navigator.userAgent.includes('Mac') && navigator.maxTouchPoints > 1);
     if (!isIOS || !vvp) return;
 
     function syncToVisualViewport() {
@@ -105,6 +115,11 @@
     }
   });
 </script>
+
+<!-- Background image on a fixed layer, not on <body> (scroll layer).
+     Keeps all compositing in the fixed-layer domain — avoids Mali-G52/Chrome
+     scroll-vs-fixed compositing artifacts on Samsung Tab A8 (SM-X200). -->
+<div class="app-bg" style:background-image="url('{import.meta.env.BASE_URL}{bgImage}')"></div>
 
 <main class="app-root" bind:this={appEl}>
   {#if appState.kind === 'loading'}
@@ -178,6 +193,35 @@
   :global(.android .galaxy-wrapper [filter]) {
     filter: none;
   }
+  /* ── Samsung Tab A8 (SM-X200, Mali-G52 / Unisoc T618) — comprehensive GPU fix
+     Galaxy wrapper: remove translateZ(0) GPU promotion */
+  :global(.android .galaxy-wrapper) {
+    transform: none !important;
+    -webkit-transform: none !important;
+  }
+  /* BadgePanel: badge-shimmer animates CSS filter+opacity on <img> → each img
+     becomes an independent GPU compositing layer. On Mali-G52 multiple
+     simultaneous compositing layers produce the erratic coloured-line artifact. */
+  :global(.android .badge-silhouette) {
+    animation: none !important;
+  }
+  :global(.android .badge-slot) {
+    filter: none !important;
+    animation: none !important;
+  }
+  /* Scanline: continuous background-position animation inside a compositing layer */
+  :global(.android .scanline) {
+    animation: none !important;
+  }
+  /* Progress ring: stroke-dashoffset transition runs continuously (emulator 440ms < 1s transition)
+     — keeps a paint-heavy element in mid-transition at all times */
+  :global(.android .progress-ring) {
+    transition: none !important;
+  }
+  /* QuantaCluster core-pulse: opacity animation on SVG element */
+  :global(.android .core-pulse) {
+    animation: none !important;
+  }
 
   :global(html) {
     height: 100%;
@@ -190,6 +234,16 @@
     overflow: hidden;
     height: 100%;
     transition: background-color 0.4s, color 0.4s;
+  }
+
+  .app-bg {
+    position: fixed;
+    inset: 0;
+    background-size: cover;
+    background-position: bottom center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    /* Sits behind .app-root — DOM order determines stacking (no z-index needed) */
   }
 
   .app-root {

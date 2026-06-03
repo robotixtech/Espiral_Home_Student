@@ -2,7 +2,7 @@
   import { onMount } from 'svelte';
   import type { ProgramData, ProgramUnit, Activity } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
-  import { PREV_PROGRAM_CONFIG, NEXT_PROGRAM_CONFIG, FUTURE_PROGRAM_CONFIG } from '../lib/program-config';
+  import { getDistantConfigs } from '../lib/program-config';
   import UnitNode from './UnitNode.svelte';
   import DistantGalaxy from './DistantGalaxy.svelte';
   import ActivityOrbit from './ActivityOrbit.svelte';
@@ -16,10 +16,6 @@
 
   let { program, onUnitSelected, onActivitySelected }: Props = $props();
 
-  // Android Chrome cannot GPU-composite SMIL animations (animateTransform, animate).
-  // They force full layer re-rasterization every frame → moiré/flickering.
-  // Disable them on Android; static fallbacks look fine.
-  const isAndroid = /Android/i.test(navigator.userAgent);
 
   // ── A: Canvas (reduced so content fills the viewport better) ─────────────
   const W  = 1150;
@@ -143,10 +139,15 @@
 
   const isPortrait = $derived(cW / cH < 1.0);
 
-  const dgNext   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.22 : 0.06), cy: vb.y + vb.h * (isPortrait ? 0.07 : 0.08) });
-  const dgFuture = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.80 : 0.93), cy: vb.y + vb.h * (isPortrait ? 0.04 : 0.05) });
-  const dgPrev   = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.14 : 0.03), cy: vb.y + vb.h * (isPortrait ? 0.94 : 0.93) });
+  // Distant galaxies sit OUTSIDE the initial viewport on all sides.
+  // Each position is the old position vector from the radar center (cx,cy) scaled by 1.3
+  // (i.e. 30% further away), so they enter view progressively as the user zooms out.
+  const dgPrev   = $derived({ cx: cx + 1.3 * (vb.x - 725),        cy: 66 });
+  const dgNext   = $derived({ cx: cx,                               cy: cy + 1.3 * (vb.y - 980) });
+  const dgFuture = $derived({ cx: cx + 1.3 * (vb.x + vb.w - 475), cy: 66 });
   const dgQuanta = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.78 : 0.86), cy: vb.y + vb.h * (isPortrait ? 0.15 : 0.15) });
+  // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
+  const distantConfigs = $derived(getDistantConfigs(program.shortname));
 
   // ── C: Zoom / Pan ─────────────────────────────────────────────────────────
   // State: translate(panX, panY) scale(zoomScale) applied to all content.
@@ -157,6 +158,7 @@
   let panX       = $state(0.0);
   let panY       = $state(0.0);
   let isDragging = $state(false);
+  let radarDeg   = $state(0);
   let lastMX = 0, lastMY = 0;
   // Timestamp of last touchend — used to ignore synthesized mouse events on Android.
   let lastTouchEndAt = 0;
@@ -374,9 +376,21 @@
     svgEl?.addEventListener('touchstart', onTouchStart, { passive: true });
     svgEl?.addEventListener('touchmove',  onTouchMove,  { passive: false });
     svgEl?.addEventListener('touchend',   onTouchEnd,   { passive: false });
+
+    // Radar rotation — rAF loop, 5 s per revolution
+    let radarRafId: number;
+    let radarT0: number | null = null;
+    function radarTick(ts: number) {
+      if (radarT0 === null) radarT0 = ts;
+      radarDeg = ((ts - radarT0) / 5000 * 360) % 360;
+      radarRafId = requestAnimationFrame(radarTick);
+    }
+    radarRafId = requestAnimationFrame(radarTick);
+
     return () => {
       svgEl?.removeEventListener('wheel', onWheel);
       if (rafId !== null) cancelAnimationFrame(rafId);
+      cancelAnimationFrame(radarRafId);
     };
   });
 </script>
@@ -398,29 +412,15 @@
     >
       <defs>
         <radialGradient id="ss-bg" cx="50%" cy="50%" r="60%">
-          <stop offset="0%"   stop-color={t.bg.center} />
-          <stop offset="60%"  stop-color={t.bg.mid} />
-          <stop offset="100%" stop-color={t.bg.edge} />
+          <stop offset="0%"   stop-color={t.bg.center} stop-opacity="0.88" />
+          <stop offset="60%"  stop-color={t.bg.mid}    stop-opacity="0.88" />
+          <stop offset="100%" stop-color={t.bg.edge}   stop-opacity="0.88" />
         </radialGradient>
         <radialGradient id="ss-sun" cx="35%" cy="35%" r="65%">
           <stop offset="0%"   stop-color="#d4ffcc" />
           <stop offset="50%"  stop-color="#39ff14" />
           <stop offset="100%" stop-color="#006622" />
         </radialGradient>
-        <filter id="ss-sun-glow" x="-200%" y="-200%" width="500%" height="500%">
-          <feGaussianBlur stdDeviation="8" in="SourceGraphic" result="blur" />
-          <feFlood flood-color="#39ff14" flood-opacity="0.50" result="color" />
-          <feComposite in="color" in2="blur" operator="in" result="glow" />
-          <feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-        <filter id="ss-orbit-glow" x="-10%" y="-10%" width="120%" height="120%">
-          <feGaussianBlur stdDeviation="3" in="SourceGraphic" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-        <!-- Subtle drop shadow for program title -->
-        <filter id="text-shadow" x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000" flood-opacity="0.55" />
-        </filter>
         <!-- Program name label path — same double-loop pattern as DistantGalaxy, at outermost orbit -->
         <path id="c450-prog-lbl"
               d="M {cx - progLblR},{cy} a {progLblR},{progLblR} 0 1,1 {progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {-progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {-progLblR * 2},0"
@@ -428,133 +428,117 @@
       </defs>
 
       <!-- Static background (not affected by zoom) -->
-      <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#ss-bg)" opacity="0.88" />
+      <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#ss-bg)" />
 
       <!-- ── Zoomable content ───────────────────────────────────────── -->
       <g transform={zoomTransform}>
 
-        <!-- ── Outer HUD ring ────────────────────────────────────────────── -->
-        {#if true}
-          {@const outerR   = orbitRadii[orbitRadii.length - 1] + 120}
-          {@const hud      = 'rgba(0,180,255,0.85)'}
-          {@const ticks    = 72}
-          <!-- Outer border circle -->
-          <circle cx={cx} cy={cy} r={outerR + 4} fill="none" stroke={hud} stroke-width="1" opacity="1" />
-          <!-- Inner border circle -->
-          <circle cx={cx} cy={cy} r={outerR - 14} fill="none" stroke={hud} stroke-width="0.7" opacity="0.75" />
-          <!-- Travelling light — SMIL disabled on Android (non-compositable → moiré) -->
-          {@const sweepC = 2 * Math.PI * (outerR + 4)}
-          {#if !isAndroid}
-            <circle cx={cx} cy={cy} r={outerR + 4} fill="none"
-                    stroke="rgba(0,190,255,0.95)" stroke-width="6"
-                    stroke-dasharray="{sweepC / ticks / 2} {sweepC - sweepC / ticks / 2}" stroke-linecap="square"
-                    transform="rotate(-90, {cx}, {cy})">
-              <animate attributeName="stroke-dashoffset"
-                       from="0" to="{sweepC}"
-                       dur="8s" repeatCount="indefinite" />
-            </circle>
-          {/if}
-          <!-- Tick marks -->
-          {#each Array.from({length: ticks}, (_, k) => k) as k}
-            {@const ang     = (k / ticks) * 2 * Math.PI - Math.PI / 2}
-            {@const isMajor = k % 6 === 0}
-            {@const r1 = outerR + 4}
-            {@const r2 = isMajor ? outerR - 10 : outerR - 4}
-            <line
-              x1={cx + r1 * Math.cos(ang)} y1={cy + r1 * Math.sin(ang)}
-              x2={cx + r2 * Math.cos(ang)} y2={cy + r2 * Math.sin(ang)}
-              stroke={hud}
-              stroke-width={isMajor ? 2.5 : 1.5}
-              stroke-linecap="square"
-              opacity={isMajor ? 1 : 0.65}
-            />
+        <!-- Orbit rings — 0 compositing ops: all opacity baked into rgba stroke colors -->
+        <g fill="none" stroke="rgba(52,211,153,0.55)" stroke-width="1">
+          {#each program.units as _, i}
+            {#if effectiveStatuses[i] === 'completed'}
+              <circle cx={cx} cy={cy} r={orbitRadii[i]} />
+            {/if}
           {/each}
-        {/if}
-
-        <!-- Distant galaxies -->
-        <DistantGalaxy config={NEXT_PROGRAM_CONFIG}   cx={dgNext.cx}   cy={dgNext.cy}   scale={0.32} opacity={0.70} fontScale={0.7} />
-        <DistantGalaxy config={FUTURE_PROGRAM_CONFIG} cx={dgFuture.cx} cy={dgFuture.cy} scale={0.20} opacity={0.62} fontScale={0.7} />
-        <DistantGalaxy config={PREV_PROGRAM_CONFIG}   cx={dgPrev.cx}   cy={dgPrev.cy}   scale={0.30} opacity={0.75} fontScale={0.6} />
-
-
-        <!-- Orbit rings -->
+        </g>
+        <g fill="none" stroke="rgba(0,180,255,0.09)" stroke-width="1" stroke-dasharray="4 7">
+          {#each program.units as _, i}
+            {#if effectiveStatuses[i] === 'locked'}
+              <circle cx={cx} cy={cy} r={orbitRadii[i]} />
+            {/if}
+          {/each}
+        </g>
         {#each program.units as unit, i (unit.id)}
-          {@const orbR = orbitRadii[i]}
-          {@const orbC = 2 * Math.PI * orbR}
-          {@const effSt = effectiveStatuses[i]}
-          {@const unitAngleDeg = (START_ANGLE + i * GOLDEN) * 180 / Math.PI}
-          {#if effSt === 'completed'}
-            <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke={t.unit.completed.ring} stroke-width="1" opacity="0.55" />
-          {:else if effSt === 'in-progress'}
-            <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke={t.unit.completed.ring} stroke-width="1"
-                    stroke-dasharray="5 8" opacity="0.20" />
+          {#if effectiveStatuses[i] === 'in-progress'}
+            {@const r = orbitRadii[i]}
+            {@const orbC = 2 * Math.PI * r}
             {@const dashLen = orbC * (unit.progress / 100)}
-            <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke={t.unit.completed.ring} stroke-width="1"
+            {@const unitAngleDeg = (START_ANGLE + i * GOLDEN) * 180 / Math.PI}
+            <circle cx={cx} cy={cy} r={r} fill="none"
+                    stroke="rgba(52,211,153,0.20)" stroke-width="1"
+                    stroke-dasharray="5 8" />
+            <circle cx={cx} cy={cy} r={r} fill="none"
+                    stroke="rgba(52,211,153,0.55)" stroke-width="1"
                     stroke-dasharray="{dashLen} {orbC}"
                     stroke-linecap="round"
-                    transform="rotate({unitAngleDeg}, {cx}, {cy})"
-                    opacity="0.55" />
-          {:else}
-            <circle cx={cx} cy={cy} r={orbR} fill="none"
-                    stroke="rgba(0,180,255,0.85)" stroke-width="1"
-                    stroke-dasharray="4 7" opacity="0.10" />
+                    transform="rotate({unitAngleDeg}, {cx}, {cy})" />
           {/if}
         {/each}
 
-        <!-- Pass 1: Central Sun + non-selected nodes (dimmed by overlay below) -->
-        <circle cx={cx} cy={cy} r={SUN_R + 38} fill="#39ff14" opacity="0.03" />
-        <circle cx={cx} cy={cy} r={SUN_R + 22} fill="#39ff14" opacity="0.05" />
-        <circle cx={cx} cy={cy} r={SUN_R + 10} fill="#39ff14" opacity="0.10" />
-        <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="#d4ffcc" opacity="0.15" />
-        <circle cx={cx} cy={cy} r={SUN_R}
-                fill="url(#ss-sun)" filter="url(#ss-sun-glow)" />
-        <text fill="#ffffff" opacity="0.92" class="prog-label" filter="url(#text-shadow)">
+        <!-- Distant galaxies -->
+        <DistantGalaxy config={distantConfigs[1].config} isCompleted={distantConfigs[1].isCompleted} cx={dgNext.cx}   cy={dgNext.cy}   scale={0.32} opacity={0.70} fontScale={0.7} />
+        <DistantGalaxy config={distantConfigs[2].config} isCompleted={distantConfigs[2].isCompleted} cx={dgFuture.cx} cy={dgFuture.cy} scale={0.20} opacity={0.62} fontScale={0.7} />
+        <DistantGalaxy config={distantConfigs[0].config} isCompleted={distantConfigs[0].isCompleted} cx={dgPrev.cx}   cy={dgPrev.cy}   scale={0.30} opacity={0.75} fontScale={0.6} />
+
+        <!-- Central Sun — 0 compositing ops: rgba baked, filters removed -->
+        <circle cx={cx} cy={cy} r={SUN_R + 38} fill="rgba(57,255,20,0.03)"  />
+        <circle cx={cx} cy={cy} r={SUN_R + 22} fill="rgba(57,255,20,0.05)"  />
+        <circle cx={cx} cy={cy} r={SUN_R + 10} fill="rgba(57,255,20,0.10)"  />
+        <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="rgba(212,255,204,0.15)" />
+        <circle cx={cx} cy={cy} r={SUN_R} fill="url(#ss-sun)" />
+        <text fill="rgba(255,255,255,0.92)" class="prog-label">
           <textPath href="#c450-prog-lbl" startOffset="54%" text-anchor="middle">
             {program.shortname}
           </textPath>
         </text>
 
+        <!-- HUD ring — 0 compositing ops: all opacity baked into rgba stroke colors -->
+        {#if true}
+          {@const outerR = orbitRadii[orbitRadii.length - 1] + 120}
+          {@const ticks  = 72}
+          <circle cx={cx} cy={cy} r={outerR + 4}  fill="none" stroke="rgba(0,180,255,0.85)" stroke-width="1"   />
+          <circle cx={cx} cy={cy} r={outerR - 14} fill="none" stroke="rgba(0,180,255,0.64)" stroke-width="0.7" />
+          <g stroke="rgba(0,180,255,0.85)" stroke-width="2.5" stroke-linecap="square">
+            {#each Array.from({length: ticks}, (_, k) => k).filter(k => k % 6 === 0) as k}
+              {@const ang = (k / ticks) * 2 * Math.PI - Math.PI / 2}
+              <line
+                x1={cx + (outerR + 4)  * Math.cos(ang)} y1={cy + (outerR + 4)  * Math.sin(ang)}
+                x2={cx + (outerR - 10) * Math.cos(ang)} y2={cy + (outerR - 10) * Math.sin(ang)}
+              />
+            {/each}
+          </g>
+          <g stroke="rgba(0,180,255,0.55)" stroke-width="1.5" stroke-linecap="square">
+            {#each Array.from({length: ticks}, (_, k) => k).filter(k => k % 6 !== 0) as k}
+              {@const ang = (k / ticks) * 2 * Math.PI - Math.PI / 2}
+              <line
+                x1={cx + (outerR + 4) * Math.cos(ang)} y1={cy + (outerR + 4) * Math.sin(ang)}
+                x2={cx + (outerR - 4) * Math.cos(ang)} y2={cy + (outerR - 4) * Math.sin(ang)}
+              />
+            {/each}
+          </g>
+        {/if}
+
+        <!-- Pass 1: non-selected unit nodes -->
         {#each program.units as unit, i (unit.id)}
           {#if panelUnit?.id !== unit.id}
             {@const uPos  = unitPositions[i]}
             {@const isIP  = effectiveStatuses[i] === 'in-progress'}
-            {@const isLkd = effectiveStatuses[i] === 'locked'}
             {@const nSize = isIP ? Math.round(UNIT_SIZE * 1.35) : UNIT_SIZE}
             {#if isIP}
               {@const vr = nodeVisualR(i)}
-              <circle cx={uPos.x} cy={uPos.y} r={vr + 38} fill={t.unit.inProgress.glow} opacity="0.05" />
-              <circle cx={uPos.x} cy={uPos.y} r={vr + 22} fill={t.unit.inProgress.glow} opacity="0.10" />
-              <circle cx={uPos.x} cy={uPos.y} r={vr + 10} fill={t.unit.inProgress.glow} opacity="0.18" />
+              <circle cx={uPos.x} cy={uPos.y} r={vr + 38} fill="rgba(245,158,11,0.05)" />
+              <circle cx={uPos.x} cy={uPos.y} r={vr + 22} fill="rgba(245,158,11,0.10)" />
+              <circle cx={uPos.x} cy={uPos.y} r={vr + 10} fill="rgba(245,158,11,0.18)" />
             {/if}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
             <g
               onclick={() => handleUnitClick(unit, i)}
               onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' && effectiveStatuses[i] !== 'locked') handleUnitClick(unit, i); }}
-              opacity={isLkd ? 0.5 : 1}
             >
               <UnitNode
                 unit={{ ...unit, status: effectiveStatuses[i] }}
-                x={uPos.x}
-                y={uPos.y}
-                galacticCenterX={cx}
-                galacticCenterY={cy}
-                size={nSize}
-                index={i}
-                compact={true}
-                labelOutward={true}
-                labelGap={LABEL_GAP}
-                showLabel={false}
+                x={uPos.x} y={uPos.y}
+                galacticCenterX={cx} galacticCenterY={cy}
+                size={nSize} index={i}
+                compact={true} labelOutward={true}
+                labelGap={LABEL_GAP} showLabel={false}
               />
             </g>
           {/if}
         {/each}
 
-        <!-- Radar sweep — disabled on Android: animateTransform is non-compositable
-             on Android Chrome and causes full-layer repaint every frame → moiré -->
-        {#if lastCompletedIdx >= 0 && !isAndroid}
+        <!-- Radar sweep: rotating lighthouse — last-completed orbit ring -->
+        {#if lastCompletedIdx >= 0}
           {@const pulseR   = orbitRadii[lastCompletedIdx]}
           {@const beamDeg  = 30}
           {@const trailDeg = 110}
@@ -566,15 +550,13 @@
           {@const tx  = cx + pulseR * Math.cos(-toRad(trailDeg))}
           {@const ty  = cy + pulseR * Math.sin(-toRad(trailDeg))}
           <defs>
-            <radialGradient id="sweep-beam-grad" cx={cx} cy={cy} r={pulseR}
-                            gradientUnits="userSpaceOnUse">
+            <radialGradient id="sweep-beam-grad" cx={cx} cy={cy} r={pulseR} gradientUnits="userSpaceOnUse">
               <stop offset="0%"   stop-color="#d4ffcc" stop-opacity="0.05" />
               <stop offset="10%"  stop-color="#39ff14" stop-opacity="0.72" />
               <stop offset="55%"  stop-color="#00cc44" stop-opacity="0.38" />
               <stop offset="100%" stop-color="#006622" stop-opacity="0" />
             </radialGradient>
-            <radialGradient id="sweep-trail-grad" cx={cx} cy={cy} r={pulseR}
-                            gradientUnits="userSpaceOnUse">
+            <radialGradient id="sweep-trail-grad" cx={cx} cy={cy} r={pulseR} gradientUnits="userSpaceOnUse">
               <stop offset="0%"   stop-color="#39ff14" stop-opacity="0.04" />
               <stop offset="45%"  stop-color="#00cc44" stop-opacity="0.13" />
               <stop offset="100%" stop-color="#006622" stop-opacity="0" />
@@ -583,19 +565,14 @@
               <circle cx={cx} cy={cy} r={pulseR} />
             </clipPath>
           </defs>
-          <g clip-path="url(#sweep-clip)">
-            <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {tx} {ty} Z"
-                  fill="url(#sweep-trail-grad)">
-              <animateTransform attributeName="transform" type="rotate"
-                                from="0 {cx} {cy}" to="360 {cx} {cy}"
-                                dur="6s" repeatCount="indefinite" />
-            </path>
-            <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {bx} {by} Z"
-                  fill="url(#sweep-beam-grad)">
-              <animateTransform attributeName="transform" type="rotate"
-                                from="0 {cx} {cy}" to="360 {cx} {cy}"
-                                dur="6s" repeatCount="indefinite" />
-            </path>
+          <!-- SVG rotate(angle,cx,cy) pivots explicitly at galaxy center — no CSS transform-origin needed -->
+          <g clip-path="url(#sweep-clip)" pointer-events="none">
+            <g transform="rotate({radarDeg}, {cx}, {cy})">
+              <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {tx} {ty} Z"
+                    fill="url(#sweep-trail-grad)" />
+              <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {bx} {by} Z"
+                    fill="url(#sweep-beam-grad)" />
+            </g>
           </g>
         {/if}
 
@@ -615,9 +592,9 @@
         {@const vr    = UNIT_SIZE / 2 * (si === 0 ? 1.15 : 1.0) * 1.35}
         <g transform={zoomTransform}>
           {#if isIP}
-            <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 38} fill={t.unit.inProgress.glow} opacity="0.08" />
-            <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 22} fill={t.unit.inProgress.glow} opacity="0.14" />
-            <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 10} fill={t.unit.inProgress.glow} opacity="0.22" />
+            <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 38} fill="rgba(245,158,11,0.08)" />
+            <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 22} fill="rgba(245,158,11,0.14)" />
+            <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 10} fill="rgba(245,158,11,0.22)" />
           {/if}
           <!-- svelte-ignore a11y_no_static_element_interactions -->
           <g
@@ -650,6 +627,8 @@
       {/if}
       <!-- QUANTA cluster — fixed to screen, upper-right corner -->
       <QuantaCluster cx={dgQuanta.cx} cy={dgQuanta.cy} programShortname={program.shortname} />
+
+
     </svg>
 
     <!-- Zoom controls — bottom-left -->
@@ -679,13 +658,17 @@
   .galaxy-wrapper {
     position: absolute;
     inset: 0;
-    border-radius: 0; overflow: hidden;
+    border-radius: 0;
     transition: box-shadow 0.4s;
     /* Force the entire SVG into a single GPU compositing layer.
        On Android Chrome, individual SVG filters/SMIL animations promote
        sub-elements to separate GPU layers that flicker against each other.
        translateZ(0) collapses everything into one texture and also creates
-       the stacking context previously provided by isolation:isolate. */
+       the stacking context previously provided by isolation:isolate.
+       NOTE: overflow:hidden removed — on Mali-G52 (Samsung Tab A8 SM-X200,
+       Unisoc T618), overflow:hidden + translateZ(0) on the same element
+       corrupts the stencil buffer, producing erratic colored lines. The
+       SVG fills the element exactly so nothing can overflow anyway. */
     transform: translateZ(0);
     -webkit-transform: translateZ(0);
   }

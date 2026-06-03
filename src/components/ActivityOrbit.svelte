@@ -102,18 +102,20 @@
 </script>
 
 <g transform="translate({cx},{cy})">
-  <!-- Connector lines: unit edge → dot center -->
-  {#each activities as act, j (act.id)}
-    {#if chipData[j]}
-      {@const d      = chipData[j]}
-      {@const colors = statusColors(act.status)}
-      <line
-        x1={unitR * Math.cos(d.a)} y1={unitR * Math.sin(d.a)}
-        x2={d.x} y2={d.y + dotCY(d.a)}
-        stroke={colors.ring} stroke-width="0.8" stroke-dasharray="3 4" opacity="0.42"
-      />
-    {/if}
-  {/each}
+  <!-- Connector lines — stroke-opacity at group level: inherited per-stroke, no compositing layer -->
+  <g stroke-opacity="0.42">
+    {#each activities as act, j (act.id)}
+      {#if chipData[j]}
+        {@const d      = chipData[j]}
+        {@const colors = statusColors(act.status)}
+        <line
+          x1={unitR * Math.cos(d.a)} y1={unitR * Math.sin(d.a)}
+          x2={d.x} y2={d.y + dotCY(d.a)}
+          stroke={colors.ring} stroke-width="0.8" stroke-dasharray="3 4"
+        />
+      {/if}
+    {/each}
+  </g>
 
   <g class="list-inner">
     {#each activities as act, j (act.id)}
@@ -145,31 +147,19 @@
               <stop offset="0%" stop-color={colors.g1} />
               <stop offset="100%" stop-color={colors.g2} />
             </radialGradient>
-            {#if isActive}
-              <filter id="dgw{j}" x="-80%" y="-80%" width="260%" height="260%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feFlood flood-color={colors.glow} flood-opacity="0.35" result="color" />
-                <feComposite in="color" in2="blur" operator="in" result="glow" />
-                <feMerge>
-                  <feMergeNode in="glow" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            {/if}
           </defs>
 
           <!-- Outer ambient ring (active) -->
           {#if isActive}
             <circle class:heartbeat={isInProgress}
                     cx="0" cy={dcy} r={DOT_R + 3}
-                    fill="none" stroke={colors.glow} stroke-width="0.8" opacity="0.25" />
+                    fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
           {/if}
 
           <!-- Main sphere -->
           <circle class:heartbeat={isInProgress}
                   cx="0" cy={dcy} r={DOT_R}
-                  fill="url(#dg{j})"
-                  filter={isActive ? `url(#dgw${j})` : undefined} />
+                  fill="url(#dg{j})" />
 
           <!-- Progress ring (active) -->
           {#if isActive}
@@ -186,7 +176,7 @@
           <!-- Locked: outer border ring + lock icon -->
           {#if !isActive}
             <circle cx="0" cy={dcy} r={DOT_R + 2}
-                    fill="none" stroke={colors.ring} stroke-width="1.2" opacity="0.6" />
+                    fill="none" stroke={colors.ring} stroke-width="1.2" stroke-opacity="0.6" />
             <svg x="-5" y={dcy - 6} width="10" height="12" viewBox="0 0 24 24"
                  fill="none" stroke={colors.icon} stroke-width="2.5"
                  stroke-linecap="round" stroke-linejoin="round">
@@ -212,15 +202,16 @@
     transform-origin: 0 0;
   }
   @keyframes list-in {
-    from { transform: scale(0.75); opacity: 0; }
-    to   { transform: scale(1);    opacity: 1; }
+    from { transform: scale(0.75); }
+    to   { transform: scale(1); }
   }
 
   .chip        { cursor: default; outline: none; }
   .chip-active { cursor: pointer; }
-  .chip-locked { opacity: 0.35; }
+  /* fill-opacity + stroke-opacity inherited per-element — no compositing layer vs opacity */
+  .chip-locked { fill-opacity: 0.35; stroke-opacity: 0.35; }
 
-  .chip-active:hover text { opacity: 0.8; }
+  .chip-active:hover text { fill-opacity: 0.8; }
 
   .progress-ring { transition: stroke-dashoffset 1s ease; }
 
