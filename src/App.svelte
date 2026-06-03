@@ -56,17 +56,22 @@
 
   onMount(() => {
     const vvp = window.visualViewport;
+    let rafId: number | null = null;
 
     function syncToVisualViewport() {
-      if (!appEl) return;
-      if (vvp) {
+      // Throttle to one DOM write per animation frame.
+      // On Android Chrome the address bar animates at 60fps, firing resize+scroll
+      // continuously — without RAF this causes 300+ style mutations/s → flickering.
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        if (!appEl || !vvp) return;
         appEl.style.left   = `${vvp.offsetLeft}px`;
         appEl.style.top    = `${vvp.offsetTop}px`;
         appEl.style.width  = `${vvp.width}px`;
         appEl.style.height = `${vvp.height}px`;
-        // Expose actual visible height for components outside app-root (e.g. BadgePanel)
         document.documentElement.style.setProperty('--vvh', `${vvp.height}px`);
-      }
+      });
     }
 
     syncToVisualViewport();
@@ -74,6 +79,7 @@
     vvp?.addEventListener('scroll', syncToVisualViewport);
 
     return () => {
+      if (rafId !== null) cancelAnimationFrame(rafId);
       vvp?.removeEventListener('resize', syncToVisualViewport);
       vvp?.removeEventListener('scroll', syncToVisualViewport);
     };
