@@ -141,10 +141,12 @@
     position: fixed;
     right: 0;
     top: 0;
-    height: 100vh;
-    /* Badge size scales so all 6 badges always fit:
-       (100vh - 190px) / 6 where 190 = 28px padding + 5×12px gaps + 6×17px label area */
-    --badge-size: clamp(55px, calc((100vh - 190px) / 6), 110px);
+    height: 100vh;   /* fallback */
+    height: 100dvh;  /* iOS Safari: excludes browser chrome so panel never overflows */
+    /* Badge size scales so all 6 badges always fit.
+       dvh fallback uses 240px (190 + 50px safety for browsers without dvh support). */
+    --badge-size: clamp(55px, calc((100vh - 240px) / 6), 110px);
+    --badge-size: clamp(55px, calc((100dvh - 190px) / 6), 110px);
     /* flex row: [handle | content] */
     display: flex;
     flex-direction: row;
@@ -393,7 +395,8 @@
   @media (max-height: 500px) and (orientation: landscape) {
     .badge-panel {
       /* Phone: 18px padding + 5×8px gaps + 6×16px label area = 154px overhead */
-      --badge-size: clamp(38px, calc((100vh - 154px) / 6), 78px);
+      --badge-size: clamp(38px, calc((100vh - 200px) / 6), 78px);
+      --badge-size: clamp(38px, calc((100dvh - 154px) / 6), 78px);
     }
     /* Content width = --badge-size + 8px left + 9px right padding = badge + 17px */
     .badge-panel.collapsed { transform: translateX(calc(var(--badge-size) + 17px)); }
