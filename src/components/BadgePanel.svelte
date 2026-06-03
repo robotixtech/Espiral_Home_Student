@@ -169,9 +169,9 @@
   }
 
   /* Collapsed: only the handle (38px) remains visible at screen edge.
-     2-col layout: content ≈ 220px badges + 12px gap + 24px padding = 256px */
+     1-col layout: content ≈ 110px badge + 24px padding = 134px */
   .badge-panel.collapsed {
-    transform: translateX(256px);
+    transform: translateX(134px);
   }
 
   /* ── Handle: the organic "ear" of the panel ──── */
@@ -283,7 +283,7 @@
   /* ── Badge grid ───────────────────────────────── */
   .badge-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;   /* 2 columns by default */
+    grid-template-columns: 1fr;
     gap: 12px;
     position: relative;
     z-index: 2;
@@ -386,18 +386,10 @@
     height: 30px;
   }
 
-  /* ── Tall landscape displays only: switch to 1 column ─────────────────
-     Only triggers on very tall viewports (>900px) — e.g. full-screen
-     1080p monitors. Chromebooks/laptops keep the default 2-column grid. */
-  @media (min-height: 901px) and (orientation: landscape) {
-    .badge-grid { grid-template-columns: 1fr; }
-    /* 1-col content ≈ 110px badge + 24px padding = 134px */
-    .badge-panel.collapsed { transform: translateX(134px); }
-  }
-
   /* ── Landscape phones ─────────────────────────── */
   @media (max-height: 500px) and (orientation: landscape) {
-    .badge-panel.collapsed { transform: translateX(192px); }
+    /* 1-col phone: 78px badge + 8px left + 9px right padding = 95px */
+    .badge-panel.collapsed { transform: translateX(95px); }
     .panel-content { padding: 9px 9px 9px 8px; }
     .badge-slot, .badge-img { width: 78px; height: 78px; }
     .badge-grid { gap: 8px; }
