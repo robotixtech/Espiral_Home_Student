@@ -425,46 +425,45 @@
       <!-- Static background (not affected by zoom) -->
       <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#ss-bg)" opacity="0.88" />
 
+      <!-- ── HUD ring — outside zoom group (SMIL animations cause Android GPU
+           flickering when inside a will-change/transform compositing layer) ── -->
+      {#if true}
+        {@const outerR   = orbitRadii[orbitRadii.length - 1] + 120}
+        {@const hud      = 'rgba(0,180,255,0.85)'}
+        {@const ticks    = 72}
+        <!-- Outer border circle -->
+        <circle cx={cx} cy={cy} r={outerR + 4} fill="none" stroke={hud} stroke-width="1" opacity="1" />
+        <!-- Inner border circle -->
+        <circle cx={cx} cy={cy} r={outerR - 14} fill="none" stroke={hud} stroke-width="0.7" opacity="0.75" />
+        <!-- Travelling light -->
+        {@const sweepC = 2 * Math.PI * (outerR + 4)}
+        <circle cx={cx} cy={cy} r={outerR + 4} fill="none"
+                stroke="rgba(0,190,255,0.95)" stroke-width="6"
+                stroke-dasharray="{sweepC / ticks / 2} {sweepC - sweepC / ticks / 2}" stroke-linecap="square"
+                transform="rotate(-90, {cx}, {cy})">
+          <animate attributeName="stroke-dashoffset"
+                   from="0" to="{sweepC}"
+                   dur="8s" repeatCount="indefinite" />
+        </circle>
+        <!-- Tick marks -->
+        {#each Array.from({length: ticks}, (_, k) => k) as k}
+          {@const ang     = (k / ticks) * 2 * Math.PI - Math.PI / 2}
+          {@const isMajor = k % 6 === 0}
+          {@const r1 = outerR + 4}
+          {@const r2 = isMajor ? outerR - 10 : outerR - 4}
+          <line
+            x1={cx + r1 * Math.cos(ang)} y1={cy + r1 * Math.sin(ang)}
+            x2={cx + r2 * Math.cos(ang)} y2={cy + r2 * Math.sin(ang)}
+            stroke={hud}
+            stroke-width={isMajor ? 2.5 : 1.5}
+            stroke-linecap="square"
+            opacity={isMajor ? 1 : 0.65}
+          />
+        {/each}
+      {/if}
+
       <!-- ── Zoomable content ───────────────────────────────────────── -->
-      <g transform={zoomTransform} style="will-change: transform">
-
-        <!-- ── Outer HUD ring ────────────────────────────────────────────── -->
-        {#if true}
-          {@const outerR   = orbitRadii[orbitRadii.length - 1] + 120}
-          {@const hud      = 'rgba(0,180,255,0.85)'}
-          {@const hudFaint = 'rgba(0,180,255,0.4)'}
-          {@const ticks    = 72}
-          <!-- Outer border circle -->
-          <circle cx={cx} cy={cy} r={outerR + 4} fill="none" stroke={hud} stroke-width="1" opacity="1" />
-          <!-- Inner border circle -->
-          <circle cx={cx} cy={cy} r={outerR - 14} fill="none" stroke={hud} stroke-width="0.7" opacity="0.75" />
-          <!-- Travelling light: same size as tick marks, loops via SVG animate -->
-          {@const sweepC = 2 * Math.PI * (outerR + 4)}
-          <circle cx={cx} cy={cy} r={outerR + 4} fill="none"
-                  stroke="rgba(0,190,255,0.95)" stroke-width="6"
-                  stroke-dasharray="{sweepC / ticks / 2} {sweepC - sweepC / ticks / 2}" stroke-linecap="square"
-                  transform="rotate(-90, {cx}, {cy})">
-            <animate attributeName="stroke-dashoffset"
-                     from="0" to="{sweepC}"
-                     dur="8s" repeatCount="indefinite" />
-          </circle>
-
-          <!-- Tick marks -->
-          {#each Array.from({length: ticks}, (_, k) => k) as k}
-            {@const ang     = (k / ticks) * 2 * Math.PI - Math.PI / 2}
-            {@const isMajor = k % 6 === 0}
-            {@const r1 = outerR + 4}
-            {@const r2 = isMajor ? outerR - 10 : outerR - 4}
-            <line
-              x1={cx + r1 * Math.cos(ang)} y1={cy + r1 * Math.sin(ang)}
-              x2={cx + r2 * Math.cos(ang)} y2={cy + r2 * Math.sin(ang)}
-              stroke={hud}
-              stroke-width={isMajor ? 2.5 : 1.5}
-              stroke-linecap="square"
-              opacity={isMajor ? 1 : 0.65}
-            />
-          {/each}
-        {/if}
+      <g transform={zoomTransform}>
 
         <!-- Distant galaxies -->
         <DistantGalaxy config={NEXT_PROGRAM_CONFIG}   cx={dgNext.cx}   cy={dgNext.cy}   scale={0.32} opacity={0.70} fontScale={0.7} />
@@ -498,57 +497,6 @@
                     stroke-dasharray="4 7" opacity="0.10" />
           {/if}
         {/each}
-
-        <!-- Radar sweep — rotating lighthouse beam reaching completed orbits -->
-        {#if lastCompletedIdx >= 0}
-          {@const pulseR   = orbitRadii[lastCompletedIdx]}
-          {@const beamDeg  = 30}
-          {@const trailDeg = 110}
-          {@const toRad    = (d: number) => d * Math.PI / 180}
-          {@const sx  = cx + pulseR}
-          {@const sy  = cy}
-          {@const bx  = cx + pulseR * Math.cos(-toRad(beamDeg))}
-          {@const by  = cy + pulseR * Math.sin(-toRad(beamDeg))}
-          {@const tx  = cx + pulseR * Math.cos(-toRad(trailDeg))}
-          {@const ty  = cy + pulseR * Math.sin(-toRad(trailDeg))}
-          <defs>
-            <!-- Main beam: bright near sun, fades radially outward -->
-            <radialGradient id="sweep-beam-grad" cx={cx} cy={cy} r={pulseR}
-                            gradientUnits="userSpaceOnUse">
-              <stop offset="0%"   stop-color="#d4ffcc" stop-opacity="0.05" />
-              <stop offset="10%"  stop-color="#39ff14" stop-opacity="0.72" />
-              <stop offset="55%"  stop-color="#00cc44" stop-opacity="0.38" />
-              <stop offset="100%" stop-color="#006622" stop-opacity="0" />
-            </radialGradient>
-            <!-- Trail: very faint fade-off behind the beam -->
-            <radialGradient id="sweep-trail-grad" cx={cx} cy={cy} r={pulseR}
-                            gradientUnits="userSpaceOnUse">
-              <stop offset="0%"   stop-color="#39ff14" stop-opacity="0.04" />
-              <stop offset="45%"  stop-color="#00cc44" stop-opacity="0.13" />
-              <stop offset="100%" stop-color="#006622" stop-opacity="0" />
-            </radialGradient>
-            <clipPath id="sweep-clip">
-              <circle cx={cx} cy={cy} r={pulseR} />
-            </clipPath>
-          </defs>
-
-          <g clip-path="url(#sweep-clip)">
-            <!-- Trailing glow (wide, faint) -->
-            <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {tx} {ty} Z"
-                  fill="url(#sweep-trail-grad)">
-              <animateTransform attributeName="transform" type="rotate"
-                                from="0 {cx} {cy}" to="360 {cx} {cy}"
-                                dur="6s" repeatCount="indefinite" />
-            </path>
-            <!-- Leading beam (narrow, bright) -->
-            <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {bx} {by} Z"
-                  fill="url(#sweep-beam-grad)">
-              <animateTransform attributeName="transform" type="rotate"
-                                from="0 {cx} {cy}" to="360 {cx} {cy}"
-                                dur="6s" repeatCount="indefinite" />
-            </path>
-          </g>
-        {/if}
 
         <!-- Pass 1: Central Sun + non-selected nodes (dimmed by overlay below) -->
         <circle cx={cx} cy={cy} r={SUN_R + 38} fill="#39ff14" opacity="0.03" />
@@ -599,6 +547,53 @@
         {/each}
 
       </g><!-- end zoomable -->
+
+      <!-- Radar sweep — outside zoom group: SMIL animateTransform inside a
+           transformed group causes Android GPU flickering/moiré -->
+      {#if lastCompletedIdx >= 0}
+        {@const pulseR   = orbitRadii[lastCompletedIdx]}
+        {@const beamDeg  = 30}
+        {@const trailDeg = 110}
+        {@const toRad    = (d: number) => d * Math.PI / 180}
+        {@const sx  = cx + pulseR}
+        {@const sy  = cy}
+        {@const bx  = cx + pulseR * Math.cos(-toRad(beamDeg))}
+        {@const by  = cy + pulseR * Math.sin(-toRad(beamDeg))}
+        {@const tx  = cx + pulseR * Math.cos(-toRad(trailDeg))}
+        {@const ty  = cy + pulseR * Math.sin(-toRad(trailDeg))}
+        <defs>
+          <radialGradient id="sweep-beam-grad" cx={cx} cy={cy} r={pulseR}
+                          gradientUnits="userSpaceOnUse">
+            <stop offset="0%"   stop-color="#d4ffcc" stop-opacity="0.05" />
+            <stop offset="10%"  stop-color="#39ff14" stop-opacity="0.72" />
+            <stop offset="55%"  stop-color="#00cc44" stop-opacity="0.38" />
+            <stop offset="100%" stop-color="#006622" stop-opacity="0" />
+          </radialGradient>
+          <radialGradient id="sweep-trail-grad" cx={cx} cy={cy} r={pulseR}
+                          gradientUnits="userSpaceOnUse">
+            <stop offset="0%"   stop-color="#39ff14" stop-opacity="0.04" />
+            <stop offset="45%"  stop-color="#00cc44" stop-opacity="0.13" />
+            <stop offset="100%" stop-color="#006622" stop-opacity="0" />
+          </radialGradient>
+          <clipPath id="sweep-clip">
+            <circle cx={cx} cy={cy} r={pulseR} />
+          </clipPath>
+        </defs>
+        <g clip-path="url(#sweep-clip)">
+          <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {tx} {ty} Z"
+                fill="url(#sweep-trail-grad)">
+            <animateTransform attributeName="transform" type="rotate"
+                              from="0 {cx} {cy}" to="360 {cx} {cy}"
+                              dur="6s" repeatCount="indefinite" />
+          </path>
+          <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {bx} {by} Z"
+                fill="url(#sweep-beam-grad)">
+            <animateTransform attributeName="transform" type="rotate"
+                              from="0 {cx} {cy}" to="360 {cx} {cy}"
+                              dur="6s" repeatCount="indefinite" />
+          </path>
+        </g>
+      {/if}
 
       <!-- Dimming overlay — outside zoom group so it always covers the full viewBox -->
       {#if panelUnit}
@@ -705,11 +700,10 @@
     position: absolute;
     bottom: 14px; right: 14px;
     display: flex; align-items: center; gap: 8px;
-    background: rgba(2, 10, 20, 0.65);
+    background: rgba(2, 10, 20, 0.82);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     padding: 5px 10px;
-    backdrop-filter: blur(6px);
     pointer-events: all;
   }
   .zoom-pct {
@@ -741,13 +735,11 @@
     width: 36px; height: 36px;
     border-radius: 9px;
     border: 1px solid rgba(148,163,184,0.22);
-    background: rgba(10,15,35,0.72);
+    background: rgba(10,15,35,0.88);
     color: #cbd5e1;
     font-size: 22px; line-height: 1;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
     transition: background 0.15s, border-color 0.15s, color 0.15s;
     user-select: none;
   }
