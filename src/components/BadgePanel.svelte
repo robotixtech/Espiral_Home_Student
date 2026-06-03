@@ -142,6 +142,9 @@
     right: 0;
     top: 0;
     height: 100vh;
+    /* Badge size scales so all 6 badges always fit:
+       (100vh - 190px) / 6 where 190 = 28px padding + 5×12px gaps + 6×17px label area */
+    --badge-size: clamp(55px, calc((100vh - 190px) / 6), 110px);
     /* flex row: [handle | content] */
     display: flex;
     flex-direction: row;
@@ -169,9 +172,9 @@
   }
 
   /* Collapsed: only the handle (38px) remains visible at screen edge.
-     1-col layout: content ≈ 110px badge + 24px padding = 134px */
+     Content width = --badge-size + 10px left + 14px right padding = badge + 24px */
   .badge-panel.collapsed {
-    transform: translateX(134px);
+    transform: translateX(calc(var(--badge-size) + 24px));
   }
 
   /* ── Handle: the organic "ear" of the panel ──── */
@@ -298,8 +301,8 @@
 
   .badge-slot {
     position: relative;
-    width: 110px;
-    height: 110px;
+    width: var(--badge-size);
+    height: var(--badge-size);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -336,8 +339,8 @@
   }
 
   .badge-img {
-    width: 110px;
-    height: 110px;
+    width: var(--badge-size);
+    height: var(--badge-size);
     object-fit: contain;
     display: block;
     position: relative;
@@ -388,10 +391,13 @@
 
   /* ── Landscape phones ─────────────────────────── */
   @media (max-height: 500px) and (orientation: landscape) {
-    /* 1-col phone: 78px badge + 8px left + 9px right padding = 95px */
-    .badge-panel.collapsed { transform: translateX(95px); }
+    .badge-panel {
+      /* Phone: 18px padding + 5×8px gaps + 6×16px label area = 154px overhead */
+      --badge-size: clamp(38px, calc((100vh - 154px) / 6), 78px);
+    }
+    /* Content width = --badge-size + 8px left + 9px right padding = badge + 17px */
+    .badge-panel.collapsed { transform: translateX(calc(var(--badge-size) + 17px)); }
     .panel-content { padding: 9px 9px 9px 8px; }
-    .badge-slot, .badge-img { width: 78px; height: 78px; }
     .badge-grid { gap: 8px; }
     .lock-icon { width: 22px; height: 22px; }
     .unit-label { font-size: 8px; }
