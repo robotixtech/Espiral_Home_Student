@@ -64,6 +64,8 @@
         appEl.style.top    = `${vvp.offsetTop}px`;
         appEl.style.width  = `${vvp.width}px`;
         appEl.style.height = `${vvp.height}px`;
+        // Expose actual visible height for components outside app-root (e.g. BadgePanel)
+        document.documentElement.style.setProperty('--vvh', `${vvp.height}px`);
       }
     }
 

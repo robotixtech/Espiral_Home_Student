@@ -141,12 +141,10 @@
     position: fixed;
     right: 0;
     top: 0;
-    height: 100vh;   /* fallback */
-    height: 100dvh;  /* iOS Safari: excludes browser chrome so panel never overflows */
-    /* Badge size scales so all 6 badges always fit.
-       dvh fallback uses 240px (190 + 50px safety for browsers without dvh support). */
+    /* --vvh is set by App.svelte via visualViewport API (same fix used for app-root).
+       Conservative 240px overhead (190 + 50px) guards against pre-JS render. */
+    height: 100vh;
     --badge-size: clamp(55px, calc((100vh - 240px) / 6), 110px);
-    --badge-size: clamp(55px, calc((100dvh - 190px) / 6), 110px);
     /* flex row: [handle | content] */
     display: flex;
     flex-direction: row;
@@ -396,7 +394,6 @@
     .badge-panel {
       /* Phone: 18px padding + 5×8px gaps + 6×16px label area = 154px overhead */
       --badge-size: clamp(38px, calc((100vh - 200px) / 6), 78px);
-      --badge-size: clamp(38px, calc((100dvh - 154px) / 6), 78px);
     }
     /* Content width = --badge-size + 8px left + 9px right padding = badge + 17px */
     .badge-panel.collapsed { transform: translateX(calc(var(--badge-size) + 17px)); }
@@ -404,6 +401,22 @@
     .badge-grid { gap: 8px; }
     .lock-icon { width: 22px; height: 22px; }
     .unit-label { font-size: 8px; }
+  }
+
+  /* ── Visual viewport sync (Chrome iOS, Safari iOS) ────────────────────
+     --vvh is set by App.svelte's visualViewport listener. When available,
+     it reflects the true visible height regardless of browser chrome.
+     The @supports guard ensures the dvh fallback is only used where valid. */
+  @supports (height: 100dvh) {
+    .badge-panel {
+      height: var(--vvh, 100dvh);
+      --badge-size: clamp(55px, calc((var(--vvh, 100dvh) - 190px) / 6), 110px);
+    }
+    @media (max-height: 500px) and (orientation: landscape) {
+      .badge-panel {
+        --badge-size: clamp(38px, calc((var(--vvh, 100dvh) - 154px) / 6), 78px);
+      }
+    }
   }
 
   /* ── Portrait (phones + tablets): panel slides up from bottom center ── */
