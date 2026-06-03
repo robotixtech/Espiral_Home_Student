@@ -56,32 +56,32 @@
 
   onMount(() => {
     const vvp = window.visualViewport;
-    let rafId: number | null = null;
+
+    // This sync is only needed on iOS Chrome where position:fixed is anchored to
+    // the layout viewport (not the visual viewport), causing zoom-drift.
+    // On Android, position:fixed already tracks the visual viewport correctly —
+    // applying the sync there causes the flickering/moiré by forcing continuous
+    // app-root resizes as the Android address bar animates in/out.
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+      (navigator.userAgent.includes('Mac') && navigator.maxTouchPoints > 1);
+    if (!isIOS || !vvp) return;
 
     function syncToVisualViewport() {
-      // Throttle to one DOM write per animation frame.
-      // On Android Chrome the address bar animates at 60fps, firing resize+scroll
-      // continuously — without RAF this causes 300+ style mutations/s → flickering.
-      if (rafId !== null) return;
-      rafId = requestAnimationFrame(() => {
-        rafId = null;
-        if (!appEl || !vvp) return;
-        appEl.style.left   = `${vvp.offsetLeft}px`;
-        appEl.style.top    = `${vvp.offsetTop}px`;
-        appEl.style.width  = `${vvp.width}px`;
-        appEl.style.height = `${vvp.height}px`;
-        document.documentElement.style.setProperty('--vvh', `${vvp.height}px`);
-      });
+      if (!appEl) return;
+      appEl.style.left   = `${vvp.offsetLeft}px`;
+      appEl.style.top    = `${vvp.offsetTop}px`;
+      appEl.style.width  = `${vvp.width}px`;
+      appEl.style.height = `${vvp.height}px`;
+      document.documentElement.style.setProperty('--vvh', `${vvp.height}px`);
     }
 
     syncToVisualViewport();
-    vvp?.addEventListener('resize', syncToVisualViewport);
-    vvp?.addEventListener('scroll', syncToVisualViewport);
+    vvp.addEventListener('resize', syncToVisualViewport);
+    vvp.addEventListener('scroll', syncToVisualViewport);
 
     return () => {
-      if (rafId !== null) cancelAnimationFrame(rafId);
-      vvp?.removeEventListener('resize', syncToVisualViewport);
-      vvp?.removeEventListener('scroll', syncToVisualViewport);
+      vvp.removeEventListener('resize', syncToVisualViewport);
+      vvp.removeEventListener('scroll', syncToVisualViewport);
     };
   });
 
