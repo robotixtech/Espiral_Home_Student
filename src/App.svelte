@@ -55,6 +55,12 @@
   let appEl: HTMLElement | undefined = $state();
 
   onMount(() => {
+    // Android: set class for CSS-side render optimisations (disables heartbeat
+    // animation + SVG glow filters that cause 60fps re-rasterisation → moiré).
+    if (/Android/i.test(navigator.userAgent)) {
+      document.documentElement.classList.add('android');
+    }
+
     const vvp = window.visualViewport;
 
     // This sync is only needed on iOS Chrome where position:fixed is anchored to
@@ -158,6 +164,19 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+  }
+
+  /* ── Android rendering optimisations ─────────────────────────────────────
+     Root cause of moiré: CSS `heartbeat` (transform:scale) runs at 60fps on
+     the same SVG circle that has feGaussianBlur applied. Android Chrome cannot
+     GPU-composite a CSS transform independently when an SVG filter is present
+     on the element → full layer re-rasterisation every frame → visible moiré.
+     Disabling the animation and the SVG filters eliminates the per-frame cost. */
+  :global(.android .heartbeat) {
+    animation: none;
+  }
+  :global(.android .galaxy-wrapper [filter]) {
+    filter: none;
   }
 
   :global(html) {
