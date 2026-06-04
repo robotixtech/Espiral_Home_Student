@@ -5,12 +5,10 @@
   import { loadProgramFromMoodle } from './lib/program-loader';
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
-  import { getEmulatedProgram, toggleEmulator, isEmulatorActive } from './lib/emulator.svelte';
   import { getConfigByShortname } from './lib/program-config';
   import TreeNavigator from './components/TreeNavigator.svelte';
   import UnitDetailView from './components/UnitDetailView.svelte';
   import ActivitySlideView from './components/ActivitySlideView.svelte';
-  import EmulatorToggle from './components/EmulatorToggle.svelte';
   import BadgePanel from './components/BadgePanel.svelte';
 
   // Navigation state — owned here, passed down as callback props
@@ -22,16 +20,7 @@
 
   const theme = $derived(getTheme());
 
-  const allCompleted = $derived.by(() => {
-    if (appState.kind !== 'ready') return null;
-    return {
-      ...appState.data,
-      // TODO(moodle): `grade: 7` hardcodeado; reemplazar con el grade real de Moodle Workplace 4.5 cuando esté disponible.
-      units: appState.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100, grade: 7 })),
-    };
-  });
-
-  const homeProgram = $derived(allCompleted ? (getEmulatedProgram() ?? allCompleted) : null);
+  const homeProgram = $derived(appState.kind === 'ready' ? appState.data : null);
 
   const bgImage = $derived(
     appState.kind === 'ready'
@@ -110,9 +99,6 @@
       console.warn('Using mock data:', err);
       appState = { kind: 'ready', data: MOCK_PROGRAM };
     }
-    if (appState.kind === 'ready' && !isEmulatorActive()) {
-      toggleEmulator(appState.data);
-    }
   });
 </script>
 
@@ -167,10 +153,7 @@
   {/if}
 </main>
 
-<!-- EmulatorToggle and BadgePanel outside .app-root so they are also
-     zoom-independent — positioned in the body stacking context directly. -->
 {#if appState.kind === 'ready' && currentView === 'home' && homeProgram}
-  <EmulatorToggle program={appState.data} />
   <BadgePanel program={homeProgram} />
 {/if}
 
@@ -224,8 +207,7 @@
   :global(.android .modal-badge-wrap) {
     filter: none !important;
   }
-  /* Progress ring: stroke-dashoffset transition runs continuously (emulator 440ms < 1s transition)
-     — keeps a paint-heavy element in mid-transition at all times */
+  /* Progress ring: stroke-dashoffset transition → GPU compositing layer on Mali-G52 */
   :global(.android .progress-ring) {
     transition: none !important;
   }

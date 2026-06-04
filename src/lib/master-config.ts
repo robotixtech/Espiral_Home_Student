@@ -48,15 +48,6 @@ export const RADAR = {
   trailDeg:      110,  // ángulo de la estela difuminada detrás del haz (°)
 } as const;
 
-// ── EMULATOR ─────────────────────────────────────────────────────────────
-// Velocidad y granularidad de la demo de progreso animado.
-export const EMULATOR = {
-  tickMs:               440,   // ms entre cada tick de progreso
-  progressStep:           5,   // puntos porcentuales por tick (0 %, 5 %, 10 %… 100 %)
-  pauseBetweenUnitsMs: 1200,   // pausa (ms) tras completar una unidad antes de pasar a la siguiente
-  pauseBeforeRestartMs: 12000, // pausa (ms) tras completar todas las unidades antes de reiniciar
-} as const;
-
 // ── BADGES ────────────────────────────────────────────────────────────────
 // Criterios de evaluación y reconocimiento de badges.
 export const BADGES = {

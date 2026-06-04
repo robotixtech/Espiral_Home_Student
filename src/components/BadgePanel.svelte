@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { ProgramData } from '../lib/types';
   import { badgeUrl, hasBadge, isBadgeEarned } from '../lib/badges';
-  import { getEmulatedProgram } from '../lib/emulator.svelte';
   import { t } from '../lib/i18n';
   import { getConfigByShortname } from '../lib/program-config';
   import { BADGE_PANEL } from '../lib/master-config';
@@ -15,19 +14,18 @@
   const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_2.png');
 
   const badgeUnits = $derived.by(() => {
-    const prog = getEmulatedProgram() ?? program;
-    const sorted = prog.units
+    const sorted = program.units
       .filter(u => hasBadge(u.displayName))
       .sort((a, b) => parseInt(a.displayName.slice(1)) - parseInt(b.displayName.slice(1)));
     return sorted.map(u => {
       // Badge 'UN' is earned when the PREVIOUS unit (the one before UN in the
       // spiral) completes its DemoDay — one step behind the badge label.
-      const idx = prog.units.findIndex(u2 => u2.id === u.id);
-      const prevUnit = idx > 0 ? prog.units[idx - 1] : null;
+      const idx = program.units.findIndex(u2 => u2.id === u.id);
+      const prevUnit = idx > 0 ? program.units[idx - 1] : null;
       return {
         unit: u,
         earned: prevUnit ? isBadgeEarned(prevUnit) : false,
-        src: badgeUrl(prog.shortname, u.displayName),
+        src: badgeUrl(program.shortname, u.displayName),
       };
     });
   });

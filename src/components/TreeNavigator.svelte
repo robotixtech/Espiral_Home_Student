@@ -86,7 +86,6 @@
   }
 
   let panelUnit = $state<ProgramUnit | null>(null);
-  // Re-derive from live program.units so emulator progress updates animate in the orbit.
   const panelActivities = $derived.by(() => {
     if (!panelUnit) return [];
     const live = program.units.find(u => u.id === panelUnit!.id);
@@ -99,7 +98,6 @@
     panelUnitPos ? Math.atan2(panelUnitPos.y - cy, panelUnitPos.x - cx) : 0
   );
 
-  // Auto-close if the emulator cycles the open unit back to 'locked'.
   $effect(() => {
     if (panelUnit && panelUnitIdx >= 0 && effectiveStatuses[panelUnitIdx] === 'locked') panelUnit = null;
   });
