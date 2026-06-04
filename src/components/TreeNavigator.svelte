@@ -373,6 +373,8 @@
 
   function handleUnitClick(unit: ProgramUnit, i: number) {
     if (effectiveStatuses[i] === 'locked') return;
+    // If another unit is already open, ignore — user must collapse it first.
+    if (panelUnit && panelUnit.id !== unit.id) return;
     if ((unit.activities?.length ?? 0) === 0) { onUnitSelected(unit); return; }
     panelUnit = panelUnit?.id === unit.id ? null : unit;
   }
@@ -591,7 +593,7 @@
       <!-- Dimming overlay — outside zoom group so it always covers the full viewBox -->
       {#if panelUnit}
         <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h}
-              fill="rgba(2,6,20,0.85)" pointer-events="none" />
+              fill="rgba(2,6,20,0.93)" pointer-events="none" />
       {/if}
 
       <!-- Pass 2: Selected node + activity orbit — same zoom transform, rendered above overlay -->
