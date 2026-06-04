@@ -7,6 +7,7 @@
   import DistantGalaxy from './DistantGalaxy.svelte';
   import ActivityOrbit from './ActivityOrbit.svelte';
   import QuantaCluster from './QuantaCluster.svelte';
+  import { CANVAS, SPIRAL, ZOOM, RADAR } from '../lib/master-config';
 
   interface Props {
     program: ProgramData;
@@ -17,30 +18,14 @@
   let { program, onUnitSelected, onActivitySelected }: Props = $props();
 
 
-  // ── A: Canvas (reduced so content fills the viewport better) ─────────────
-  const W  = 1150;
-  const H  = 850;
-  const cx = 575;   // horizontal centre
-  const cy = 430;   // vertical centre (slight upward bias)
-
-  // ── B: Node sizes (larger for legibility on 14" displays) ────────────────
-  const UNIT_SIZE   = 100;   // planet diameter → r ≈ 50 (regular) / 57.5 (first)
-  const ACT_ORBIT   = 65;    // distance from planet centre to moon centre
-  const LABEL_GAP   = 80;    // from planet edge to label; clears moon ring (65+10=75)
-  const ORBIT_STEP  = 68;    // px between consecutive orbit radii (+10%)
-  const SUN_R       = 9;     // sun radius
-  const ORBIT_START = 80;    // radius of innermost orbit
-
-  // ── Label pill constants ──────────────────────────────────────────────────
-  const LABEL_LINE_H  = 19;  // px between line baselines
-  const LABEL_PAD_X   = 10;  // horizontal padding inside pill
-  const LABEL_PAD_Y   = 5;   // vertical padding inside pill
-  const LABEL_GAP_PX  = 14;  // gap from node visual edge to pill near-edge
-
-  // Golden angle (~137.5°): irrational step so no two adjacent-orbit planets
-  // ever align radially → moon rings on neighbouring orbits never collide.
-  const GOLDEN      = 137.508 * Math.PI / 180;
-  const START_ANGLE = -Math.PI / 2;   // first planet at 12 o'clock
+  // ── Layout constants — all values live in src/lib/master-config.ts ────────
+  const { width: W, height: H, cx, cy } = CANVAS;
+  const { unitSize: UNIT_SIZE, actOrbit: ACT_ORBIT, labelGap: LABEL_GAP,
+          orbitStep: ORBIT_STEP, sunRadius: SUN_R, orbitStart: ORBIT_START,
+          labelLineH: LABEL_LINE_H, labelPadX: LABEL_PAD_X, labelPadY: LABEL_PAD_Y,
+          labelGapPx: LABEL_GAP_PX } = SPIRAL;
+  const GOLDEN      = SPIRAL.goldenAngleDeg * Math.PI / 180;
+  const START_ANGLE = -Math.PI / 2;
 
   const t = $derived(getTheme());
 
@@ -179,7 +164,7 @@
     const rect = svgEl.getBoundingClientRect();
     const mx   = vb.x + (e.clientX - rect.left) / rect.width  * vb.w;
     const my   = vb.y + (e.clientY - rect.top)  / rect.height * vb.h;
-    const ns   = Math.max(0.20, Math.min(5, zoomScale * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+    const ns   = Math.max(ZOOM.min, Math.min(ZOOM.max, zoomScale * (e.deltaY < 0 ? ZOOM.scrollStep : 1 / ZOOM.scrollStep)));
     panX = mx - (mx - panX) * (ns / zoomScale);
     panY = my - (my - panY) * (ns / zoomScale);
     zoomScale = ns;
@@ -211,14 +196,14 @@
     const ipIdx = effectiveStatuses.findIndex(s => s === 'in-progress');
     const fx = ipIdx >= 0 ? unitPositions[ipIdx].x : cx;
     const fy = ipIdx >= 0 ? unitPositions[ipIdx].y : cy;
-    const ns = Math.min(5, zoomScale * 1.3);
+    const ns = Math.min(ZOOM.max, zoomScale * ZOOM.buttonStep);
     panX = cx - fx * ns;
     panY = cy - fy * ns;
     zoomScale = ns;
   }
 
   function zoomOutBtn() {
-    const ns = Math.max(0.20, zoomScale / 1.3);
+    const ns = Math.max(ZOOM.min, zoomScale / ZOOM.buttonStep);
     panX = cx - (cx - panX) * (ns / zoomScale);
     panY = cy - (cy - panY) * (ns / zoomScale);
     zoomScale = ns;
@@ -249,7 +234,7 @@
     if (hasPendingZoom) {
       const mx = vb.x + (pendingZoomMidX - rect.left) / rect.width  * vb.w;
       const my = vb.y + (pendingZoomMidY - rect.top)  / rect.height * vb.h;
-      const ns = Math.max(0.20, Math.min(5, zoomScale * pendingZoomRatio));
+      const ns = Math.max(ZOOM.min, Math.min(ZOOM.max, zoomScale * pendingZoomRatio));
       panX = mx - (mx - panX) * (ns / zoomScale);
       panY = my - (my - panY) * (ns / zoomScale);
       zoomScale = ns;
@@ -391,7 +376,7 @@
     let radarT0: number | null = null;
     function radarTick(ts: number) {
       if (radarT0 === null) radarT0 = ts;
-      radarDeg = ((ts - radarT0) / 5000 * 360) % 360;
+      radarDeg = ((ts - radarT0) / RADAR.revolutionMs * 360) % 360;
       radarRafId = requestAnimationFrame(radarTick);
     }
     radarRafId = requestAnimationFrame(radarTick);
@@ -552,8 +537,8 @@
         <!-- Radar sweep: rotating lighthouse — last-completed orbit ring -->
         {#if lastCompletedIdx >= 0}
           {@const pulseR   = orbitRadii[lastCompletedIdx]}
-          {@const beamDeg  = 30}
-          {@const trailDeg = 110}
+          {@const beamDeg  = RADAR.beamDeg}
+          {@const trailDeg = RADAR.trailDeg}
           {@const toRad    = (d: number) => d * Math.PI / 180}
           {@const sx  = cx + pulseR}
           {@const sy  = cy}

@@ -1,6 +1,7 @@
 <script lang="ts">
   import UnitIcon from './UnitIcon.svelte';
   import { getTheme } from '../lib/theme.svelte';
+  import { QUANTA, SPIRAL } from '../lib/master-config';
 
   interface Props {
     cx: number;
@@ -14,18 +15,18 @@
   const theme  = $derived(getTheme());
   const colors = $derived(isUnlocked ? theme.unit.inProgress : theme.unit.locked);
 
-  const isNano = $derived(programShortname === 'C350' || programShortname === 'C450');
-  const label  = $derived(isNano ? 'nanoQUANTA' : 'QUANTA');
-  const url    = $derived(isNano ? 'https://www.robotix.es' : 'https://www.robotix.com');
+  const isNano = $derived(QUANTA.nanoPrograms.includes(programShortname));
+  const label  = $derived(isNano ? QUANTA.nanoLabel : QUANTA.label);
+  const url    = $derived(isNano ? QUANTA.nanoUrl   : QUANTA.url);
 
-  // Sphere geometry — matches UNIT_SIZE=100 in TreeNavigator
-  const size = 100;
+  // Sphere geometry — matches SPIRAL.unitSize in master-config
+  const size = SPIRAL.unitSize;
   const r    = size / 2;       // 50
   const sw   = 3.5;
   const pr   = r - sw / 2;
   const circ = 2 * Math.PI * pr;
-  // Fixed progress at 45% — visually "in-progress"
-  const dashOff = circ - 0.45 * circ;
+  // Fixed progress — visually "in-progress" (value from master-config → QUANTA.fixedProgress)
+  const dashOff = circ - QUANTA.fixedProgress * circ;
   // Inner content scale factor (same formula as UnitNode compact)
   const cs = r / 50;           // 1.0 for r=50
   const firstWord = $derived(label.split(' ')[0]);

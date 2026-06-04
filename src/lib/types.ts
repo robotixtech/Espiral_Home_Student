@@ -101,3 +101,48 @@ export type AppState =
   | { kind: 'loading' }
   | { kind: 'error'; message: string }
   | { kind: 'ready'; data: ProgramData };
+
+// ── Interfaces de configuración estática ─────────────────────────────────
+// Usadas en master-config.ts para definir los datos de cada programa.
+// Distintas de ProgramUnit/Activity (que son datos en tiempo real de Moodle).
+
+export interface SunConfig {
+  label: string;
+  icon: UnitIcon;
+  href: string | null;
+}
+
+export interface SlideConfig {
+  title: string;
+  body: string;
+  video?: string;
+  image?: string;
+}
+
+export interface ActivityConfig {
+  label: string;
+  icon: UnitIcon;
+  href: string | null;
+  status: 'completed' | 'in-progress' | 'locked';
+  progress: number;
+  slides?: SlideConfig[];
+}
+
+export interface UnitConfig {
+  label: string;
+  displayName: string;
+  fullname: string;
+  icon: UnitIcon;
+  href: string | null;
+  status: 'completed' | 'in-progress' | 'locked';
+  progress: number;
+  activities?: ActivityConfig[];
+}
+
+export interface ProgramConfig {
+  shortname: string;
+  fullname: string;
+  bgImage: string;
+  sun: SunConfig;
+  units: UnitConfig[];
+}

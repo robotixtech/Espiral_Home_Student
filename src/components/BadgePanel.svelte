@@ -4,6 +4,7 @@
   import { getEmulatedProgram } from '../lib/emulator.svelte';
   import { t } from '../lib/i18n';
   import { getConfigByShortname } from '../lib/program-config';
+  import { BADGE_PANEL } from '../lib/master-config';
 
   interface Props {
     program: ProgramData;
@@ -33,7 +34,7 @@
 
   const earnedCount = $derived(badgeUnits.filter(b => b.earned).length);
 
-  let collapsed = $state(true);
+  let collapsed = $state(BADGE_PANEL.startCollapsed);
 
   type BadgeItem = (typeof badgeUnits)[number];
   let selectedBadge = $state<BadgeItem | null>(null);
