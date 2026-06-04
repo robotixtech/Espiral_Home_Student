@@ -343,3 +343,60 @@ export const PROGRAMS = {
   next:   C550_CONFIG,  // galaxia siguiente  (superior izquierda)
   future: C650_CONFIG,  // galaxia futura     (superior derecha)
 } as const;
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  INTEGRACIÓN MOODLE WORKPLACE 4.5 — Checklist para el equipo de desarrollo
+//
+//  Estado actual: la app carga datos reales de Moodle (curso, progreso,
+//  compleción) pero le faltan dos campos por unidad: `grade` y `activities`.
+//  Sin ellos los badges no se otorgan con nota real y las lunas de actividad
+//  muestran los datos estáticos del config en lugar del progreso real.
+//
+//  ┌─ PASO 1 — Implementar métodos en src/lib/moodle-api.ts ───────────────
+//  │
+//  │  getUnitGrade(courseId, userId) → number | null
+//  │    Endpoint: gradereport_overview_get_course_grades
+//  │    Devuelve la nota media del alumno (0–10).
+//  │
+//  │  getCourseActivities(courseId, userId) → Activity[]
+//  │    Endpoints:
+//  │      · core_course_get_contents                         (lista de módulos)
+//  │      · core_completion_get_activities_completion_status (estado por actividad)
+//  │    Mapear al tipo Activity definido en src/lib/types.ts, cruzando con los
+//  │    labels/icons/slides de master-config.ts (campo `activities` de cada unit).
+//  │
+//  ├─ PASO 2 — Conectar en src/lib/program-loader.ts ──────────────────────
+//  │
+//  │  En loadProgramFromMoodle(), dentro del map de programCourses, añadir:
+//  │    grade:      await api.getUnitGrade(course.id, userId) ?? undefined,
+//  │    activities: await api.getCourseActivities(course.id, userId),
+//  │
+//  ├─ PASO 3 — Validar criterios de badge en src/lib/master-config.ts ─────
+//  │
+//  │  Revisar estos valores una vez lleguen los datos reales de Moodle:
+//  │    BADGES.minGrade           = 6      ← nota mínima para el badge
+//  │    BADGES.completionActivity = 'DemoDay'  ← actividad que marca compleción
+//  │
+//  ├─ PASO 4 — Eliminar el fallback mock (opcional, cuando la API esté estable)
+//  │
+//  │  En src/App.svelte, el bloque catch actualmente carga MOCK_PROGRAM
+//  │  como red de seguridad. En producción puede eliminarse o convertirse
+//  │  en un error visible (appState = { kind: 'error', message: ... }).
+//  │  Fichero mock: src/lib/mock-data.ts
+//  │
+//  └────────────────────────────────────────────────────────────────────────
+export const MOODLE_INTEGRATION = {
+  // Endpoints REST pendientes (nombres orientativos — verificar en doc oficial)
+  pendingEndpoints: {
+    unitGrade:            'gradereport_overview_get_course_grades',
+    courseContents:       'core_course_get_contents',
+    activitiesCompletion: 'core_completion_get_activities_completion_status',
+  },
+  // Ficheros a modificar (en orden de ejecución)
+  files: {
+    step1_api:    'src/lib/moodle-api.ts',     // implementar getUnitGrade() y getCourseActivities()
+    step2_loader: 'src/lib/program-loader.ts', // añadir grade y activities al map de unidades
+    step3_config: 'src/lib/master-config.ts',  // validar BADGES.minGrade y completionActivity
+    step4_mock:   'src/lib/mock-data.ts',      // eliminar cuando la API esté estable
+  },
+} as const;

@@ -35,8 +35,25 @@ export async function loadProgramFromMoodle(
     // Match to config entry by index (courses are sorted to match config order)
     const cfg = programConfig.units[index];
 
-    // TODO(moodle): falta fetchear `grade` y `activities` desde Moodle Workplace 4.5 y añadirlos aquí.
-    // Los nombres de función y parámetros son orientativos — verificar en la documentación oficial de Moodle Workplace 4.5.
+    // ── PENDIENTE DE IMPLEMENTAR ─────────────────────────────────────────
+    // Dos campos faltan en cada ProgramUnit para que los badges y el progreso
+    // de actividades funcionen con datos reales de Moodle:
+    //
+    //   1. `grade` (number | undefined)
+    //      Nota media del alumno (0–10). Usada en BadgePanel para decidir si
+    //      se otorga el badge (condición: grade >= BADGES.minGrade en master-config.ts).
+    //      Llamar: await api.getUnitGrade(course.id, userId)
+    //      Añadir al return: grade: await api.getUnitGrade(course.id, userId) ?? undefined
+    //
+    //   2. `activities` (Activity[] | undefined)
+    //      Lista de actividades de la unidad con su estado y progreso individual.
+    //      Usada en UnitDetailView para mostrar las lunas de actividad.
+    //      Llamar: await api.getCourseActivities(course.id, userId)
+    //      Mapear el resultado al tipo Activity[] definido en src/lib/types.ts,
+    //      combinando el label/icon/slides de master-config.ts con el status/progress de Moodle.
+    //
+    //   Ver src/lib/master-config.ts → MOODLE_INTEGRATION para el checklist completo.
+    // ─────────────────────────────────────────────────────────────────────
     return {
       id: course.id,
       shortname: course.shortname,

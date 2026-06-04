@@ -70,7 +70,36 @@ export class MoodleApi {
     );
   }
 
-  // TODO(moodle): añadir método para obtener la nota de la unidad (orientativo: `gradereport_overview_get_course_grades`).
-  // TODO(moodle): añadir métodos para obtener actividades y su progreso (orientativo: `core_course_get_contents` + `core_completion_get_activities_completion_status`).
-  // Verificar disponibilidad y firma exacta en la documentación oficial de Moodle Workplace 4.5.
+
+  // ── PENDIENTE DE IMPLEMENTAR ────────────────────────────────────────────
+  // Los dos métodos siguientes son stubs. El equipo de integración debe
+  // implementarlos y conectarlos en program-loader.ts → loadProgramFromMoodle().
+  // Verificar la firma exacta de cada endpoint en la doc de Moodle Workplace 4.5
+  // antes de implementar — los nombres son orientativos.
+
+  /**
+   * Devuelve la nota media del alumno en un curso (0–10).
+   * Endpoint orientativo: `gradereport_overview_get_course_grades`
+   * Se usa en ProgramUnit.grade para decidir si se otorga el badge (nota >= BADGES.minGrade).
+   */
+  async getUnitGrade(_courseId: number, _userId: number): Promise<number | null> {
+    throw new Error(
+      'MoodleApi.getUnitGrade() no implementado. ' +
+      'Ver src/lib/master-config.ts → MOODLE_INTEGRATION para el punto de integración exacto.'
+    );
+  }
+
+  /**
+   * Devuelve las actividades de un curso y su estado de compleción por alumno.
+   * Endpoints orientativos:
+   *   · core_course_get_contents                        → lista de módulos/actividades
+   *   · core_completion_get_activities_completion_status → estado completado/no por actividad
+   * El resultado debe mapearse a Activity[] en program-loader.ts.
+   */
+  async getCourseActivities(_courseId: number, _userId: number): Promise<unknown> {
+    throw new Error(
+      'MoodleApi.getCourseActivities() no implementado. ' +
+      'Ver src/lib/master-config.ts → MOODLE_INTEGRATION para el punto de integración exacto.'
+    );
+  }
 }

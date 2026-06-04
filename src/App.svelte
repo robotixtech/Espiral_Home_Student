@@ -96,7 +96,13 @@
       const data = await loadProgramFromMoodle(config);
       appState = { kind: 'ready', data };
     } catch (err) {
-      console.warn('Using mock data:', err);
+      // Fallback a datos mock cuando Moodle no está disponible (dev / sin token).
+      // En producción este bloque no debería ejecutarse. Si lo hace, el error
+      // aparece en consola para facilitar el diagnóstico.
+      // Fichero de datos mock: src/lib/mock-data.ts
+      // Para eliminar el fallback: borrar este catch y dejar que el error
+      // propague al estado 'error' de appState.
+      console.warn('Moodle no disponible — usando datos mock:', err);
       appState = { kind: 'ready', data: MOCK_PROGRAM };
     }
   });
