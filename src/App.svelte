@@ -213,14 +213,21 @@
   :global(.android .scanline) {
     animation: none !important;
   }
+  /* Badge modal: opacity-based entry animations → GPU compositing layer during animation */
+  :global(.android .modal-backdrop) {
+    animation: none !important;
+  }
+  :global(.android .modal-card) {
+    animation: none !important;
+  }
+  /* Modal badge drop-shadow filter → compositing layer on Mali-G52 */
+  :global(.android .modal-badge-wrap) {
+    filter: none !important;
+  }
   /* Progress ring: stroke-dashoffset transition runs continuously (emulator 440ms < 1s transition)
      — keeps a paint-heavy element in mid-transition at all times */
   :global(.android .progress-ring) {
     transition: none !important;
-  }
-  /* QuantaCluster core-pulse: opacity animation on SVG element */
-  :global(.android .core-pulse) {
-    animation: none !important;
   }
 
   :global(html) {

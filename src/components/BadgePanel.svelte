@@ -15,19 +15,25 @@
 
   const badgeUnits = $derived.by(() => {
     const prog = getEmulatedProgram() ?? program;
-    return prog.units
+    const sorted = prog.units
       .filter(u => hasBadge(u.displayName))
-      .sort((a, b) => parseInt(a.displayName.slice(1)) - parseInt(b.displayName.slice(1)))
-      .map(u => ({
+      .sort((a, b) => parseInt(a.displayName.slice(1)) - parseInt(b.displayName.slice(1)));
+    return sorted.map(u => {
+      // Badge 'UN' is earned when the PREVIOUS unit (the one before UN in the
+      // spiral) completes its DemoDay — one step behind the badge label.
+      const idx = prog.units.findIndex(u2 => u2.id === u.id);
+      const prevUnit = idx > 0 ? prog.units[idx - 1] : null;
+      return {
         unit: u,
-        earned: isBadgeEarned(u),
+        earned: prevUnit ? isBadgeEarned(prevUnit) : false,
         src: badgeUrl(prog.shortname, u.displayName),
-      }));
+      };
+    });
   });
 
   const earnedCount = $derived(badgeUnits.filter(b => b.earned).length);
 
-  let collapsed = $state(false);
+  let collapsed = $state(true);
 
   type BadgeItem = (typeof badgeUnits)[number];
   let selectedBadge = $state<BadgeItem | null>(null);
@@ -205,8 +211,10 @@
     transition: background 0.2s ease;
   }
 
-  .panel-handle:hover {
-    background: rgba(80,140,255,0.07);
+  @media (hover: hover) {
+    .panel-handle:hover {
+      background: rgba(80,140,255,0.07);
+    }
   }
 
   .handle-chevron {
@@ -331,14 +339,16 @@
     padding: 0;
   }
 
-  .badge-slot.earned:hover .badge-img {
-    transform: scale(1.08);
-    transition: transform 0.18s ease;
+  @media (hover: hover) {
+    .badge-slot.earned:hover .badge-img {
+      transform: scale(1.08);
+      transition: transform 0.18s ease;
+    }
   }
 
   @keyframes badge-pop {
-    from { transform: scale(0.35); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
+    from { transform: scale(0.35); }
+    to   { transform: scale(1); }
   }
 
   .badge-img {
@@ -517,8 +527,8 @@
   }
 
   @keyframes backdrop-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from { transform: scale(1.04); }
+    to   { transform: scale(1); }
   }
 
   .modal-card {
@@ -545,8 +555,8 @@
   }
 
   @keyframes card-in {
-    from { transform: scale(0.55); opacity: 0; }
-    to   { transform: scale(1);    opacity: 1; }
+    from { transform: scale(0.55); }
+    to   { transform: scale(1); }
   }
 
   /* Corner brackets */
@@ -584,10 +594,12 @@
     transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   }
 
-  .modal-close:hover {
-    background: rgba(30, 50, 120, 0.98);
-    color: rgba(200,220,255,1);
-    box-shadow: 0 0 20px rgba(80,140,255,0.5);
+  @media (hover: hover) {
+    .modal-close:hover {
+      background: rgba(30, 50, 120, 0.98);
+      color: rgba(200,220,255,1);
+      box-shadow: 0 0 20px rgba(80,140,255,0.5);
+    }
   }
 
   .modal-close svg {

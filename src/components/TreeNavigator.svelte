@@ -145,7 +145,12 @@
   const dgPrev   = $derived({ cx: cx + 1.3 * (vb.x - 725),        cy: 66 });
   const dgNext   = $derived({ cx: cx,                               cy: cy + 1.3 * (vb.y - 980) });
   const dgFuture = $derived({ cx: cx + 1.3 * (vb.x + vb.w - 475), cy: 66 });
-  const dgQuanta = $derived({ cx: vb.x + vb.w * (isPortrait ? 0.78 : 0.86), cy: vb.y + vb.h * (isPortrait ? 0.15 : 0.15) });
+  // nanoQUANTA: off-screen upper-left, symmetric mirror of the right-side reference
+  // Same vertical as before, x negated to place it left of the radar center
+  const dgQuanta = $derived({
+    cx: cx - 1.3 * (vb.x + vb.w - 620),
+    cy: cy + 1.3 * (vb.y - 550),
+  });
   // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
 
@@ -154,8 +159,10 @@
   // Zooming toward the mouse pointer keeps the hovered point fixed on screen.
   // Pan: left-click drag. Reset: double-click anywhere on the canvas.
 
-  let zoomScale  = $state(1.0);
-  let panX       = $state(0.0);
+  let zoomScale    = $state(1.0);
+  let panX         = $state(0.0);
+  let zoomInActive = $state(false);
+  let zoomOutActive = $state(false);
   let panY       = $state(0.0);
   let isDragging = $state(false);
   let radarDeg   = $state(0);
@@ -469,6 +476,9 @@
         <DistantGalaxy config={distantConfigs[1].config} isCompleted={distantConfigs[1].isCompleted} cx={dgNext.cx}   cy={dgNext.cy}   scale={0.32} opacity={0.70} fontScale={0.7} />
         <DistantGalaxy config={distantConfigs[2].config} isCompleted={distantConfigs[2].isCompleted} cx={dgFuture.cx} cy={dgFuture.cy} scale={0.20} opacity={0.62} fontScale={0.7} />
         <DistantGalaxy config={distantConfigs[0].config} isCompleted={distantConfigs[0].isCompleted} cx={dgPrev.cx}   cy={dgPrev.cy}   scale={0.30} opacity={0.75} fontScale={0.6} />
+        <!-- nanoQUANTA — unlocks when U1 (index 1) is completed; never counted as completed -->
+        <QuantaCluster cx={dgQuanta.cx} cy={dgQuanta.cy} programShortname={program.shortname}
+          isUnlocked={effectiveStatuses[1] === 'completed'} />
 
         <!-- Central Sun — 0 compositing ops: rgba baked, filters removed -->
         <circle cx={cx} cy={cy} r={SUN_R + 38} fill="rgba(57,255,20,0.03)"  />
@@ -625,16 +635,26 @@
           />
         </g>
       {/if}
-      <!-- QUANTA cluster — fixed to screen, upper-right corner -->
-      <QuantaCluster cx={dgQuanta.cx} cy={dgQuanta.cy} programShortname={program.shortname} />
 
 
     </svg>
 
     <!-- Zoom controls — bottom-left -->
     <div class="zoom-controls">
-      <button class="zoom-btn" onclick={zoomInBtn} aria-label="Zoom in">+</button>
-      <button class="zoom-btn" onclick={zoomOutBtn} aria-label="Zoom out">−</button>
+      <button class="zoom-btn" class:is-active={zoomInActive}
+              onclick={zoomInBtn}
+              onpointerdown={() => zoomInActive = true}
+              onpointerup={() => zoomInActive = false}
+              onpointercancel={() => zoomInActive = false}
+              onpointerleave={() => zoomInActive = false}
+              aria-label="Zoom in">+</button>
+      <button class="zoom-btn" class:is-active={zoomOutActive}
+              onclick={zoomOutBtn}
+              onpointerdown={() => zoomOutActive = true}
+              onpointerup={() => zoomOutActive = false}
+              onpointercancel={() => zoomOutActive = false}
+              onpointerleave={() => zoomOutActive = false}
+              aria-label="Zoom out">−</button>
     </div>
 
     <!-- Zoom HUD (fixed to screen, outside SVG zoom group) -->
@@ -725,24 +745,33 @@
     z-index: 10;
   }
   .zoom-btn {
-    width: 36px; height: 36px;
-    border-radius: 9px;
+    width: 72px; height: 72px;
+    border-radius: 14px;
     border: 1px solid rgba(148,163,184,0.22);
     background: rgba(10,15,35,0.88);
     color: #cbd5e1;
-    font-size: 22px; line-height: 1;
+    font-size: 44px; line-height: 1;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: background 0.15s, border-color 0.15s, color 0.15s;
     user-select: none;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-appearance: none;
+    appearance: none;
   }
-  .zoom-btn:hover {
-    background: rgba(30,45,80,0.88);
-    border-color: rgba(148,163,184,0.45);
-    color: #f1f5f9;
+  .zoom-btn:focus { outline: none; }
+  /* hover: hover — prevents stuck hover state on Android touch after tap */
+  @media (hover: hover) {
+    .zoom-btn:hover {
+      background: rgba(30,45,80,0.88);
+      border-color: rgba(148,163,184,0.45);
+      color: #f1f5f9;
+    }
   }
-  .zoom-btn:active {
+  .zoom-btn.is-active {
     background: rgba(50,70,120,0.9);
+    transition: none;
   }
 
   /* ── Portrait: move zoom controls above the badge-panel handle (36px) ── */
