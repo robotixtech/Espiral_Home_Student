@@ -153,7 +153,6 @@
   // Timestamp of last touchend — used to ignore synthesized mouse events on Android.
   let lastTouchEndAt = 0;
 
-  const zoomPct       = $derived(Math.round(zoomScale * 100));
   const zoomTransform = $derived(`translate(${panX},${panY}) scale(${zoomScale})`);
 
   function onWheel(e: WheelEvent) {
@@ -642,12 +641,6 @@
               aria-label="Zoom out">−</button>
     </div>
 
-    <!-- Zoom HUD (fixed to screen, outside SVG zoom group) -->
-    <div class="zoom-hud">
-      <span class="zoom-pct">{zoomPct}%</span>
-      <button class="zoom-reset" onclick={resetView} title="Doble clic en el canvas para resetear">↺</button>
-    </div>
-
   </div>
 </div>
 
@@ -693,32 +686,6 @@
     pointer-events: none;
   }
 
-  /* ── Zoom HUD ── */
-  .zoom-hud {
-    position: absolute;
-    bottom: 14px; right: 14px;
-    display: flex; align-items: center; gap: 8px;
-    background: rgba(2, 10, 20, 0.82);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 5px 10px;
-    pointer-events: all;
-  }
-  .zoom-pct {
-    color: #94a3b8;
-    font: 500 12px/1 'Rubik', system-ui, sans-serif;
-    min-width: 36px;
-    text-align: right;
-  }
-  .zoom-reset {
-    background: none; border: none;
-    color: #64748b; cursor: pointer;
-    font-size: 15px; padding: 0 2px;
-    line-height: 1;
-    transition: color 0.15s;
-  }
-  .zoom-reset:hover { color: #f1f5f9; }
-
   /* ── Zoom +/- buttons ── */
   .zoom-controls {
     position: absolute;
@@ -763,9 +730,6 @@
   @media (orientation: portrait) {
     .zoom-controls {
       bottom: 60px; /* clears the 36px badge panel handle + margin */
-    }
-    .zoom-hud {
-      bottom: 60px;
     }
   }
 </style>
