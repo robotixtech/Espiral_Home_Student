@@ -1,7 +1,9 @@
 <script lang="ts">
   import type { ProgramData } from '../lib/types';
-  import { getEmulatedProgram } from '../lib/emulator.svelte';
   import { t } from '../lib/i18n';
+  import { getConfigByShortname } from '../lib/program-config';
+  import { BADGE_PANEL } from '../lib/master-config';
+  // 🗑️ Hemos eliminado las importaciones de '../lib/badges' porque Moodle ya nos da estos datos.
 
   interface Props {
     program: ProgramData;
@@ -9,22 +11,22 @@
 
   let { program }: Props = $props();
 
-  // Derivamos los badges estrictamente desde los datos enviados por Moodle
-  const badgeUnits = $derived.by(() => {
-    const prog = getEmulatedProgram() ?? program;
-    return prog.units
-      .filter(u => u.badge) // Filtramos solo las unidades que incluyen información de insignia
-      .sort((a, b) => parseInt(a.displayName.slice(1)) - parseInt(b.displayName.slice(1)))
+  const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_2.png');
+
+  // 🔥 SOLUCIÓN: Leemos directamente la data inyectada desde Moodle
+  const badgeUnits = $derived(
+    program.units
+      .filter(u => u.badge !== undefined) // Solo renderizamos unidades que tengan el nodo "badge"
       .map(u => ({
         unit: u,
-        earned: u.badge!.earned, // Leemos el estado (obtenida/bloqueada) desde el backend
-        src: u.badge!.badgeUrl,  // Usamos directamente la URL enviada por Moodle
-      }));
-  });
+        earned: u.badge!.earned, // Leemos el boolean del JSON
+        src: u.badge!.badgeUrl   // Leemos la URL absoluta del JSON
+      }))
+  );
 
   const earnedCount = $derived(badgeUnits.filter(b => b.earned).length);
 
-  let collapsed = $state(false);
+  let collapsed = $state(BADGE_PANEL.startCollapsed);
 
   type BadgeItem = (typeof badgeUnits)[number];
   let selectedBadge = $state<BadgeItem | null>(null);
@@ -34,7 +36,6 @@
 
 <div class="badge-panel" class:collapsed aria-label={t('badgesPanelAriaLabel')}>
 
-  <!-- Handle: organic left edge of the panel, always peeking out -->
   <button
     class="panel-handle"
     onclick={() => collapsed = !collapsed}
@@ -47,19 +48,15 @@
     <span class="handle-title">{t('badgesPanelTitle')}</span>
   </button>
 
-  <!-- Content: the badge showcase -->
   <div class="panel-content">
 
-    <!-- Corner bracket accents -->
     <span class="bracket tl"></span>
     <span class="bracket tr"></span>
     <span class="bracket bl"></span>
     <span class="bracket br"></span>
 
-    <!-- Scan line sweep -->
     <div class="scanline" aria-hidden="true"></div>
 
-    <!-- Badge grid -->
     <div class="badge-grid">
       {#each badgeUnits as item (item.unit.id)}
         <div class="badge-cell" title={item.earned ? `${item.unit.label} — ${t('badgeEarnedSuffix')}` : `${item.unit.label} — ${t('badgeLockedSuffix')}`}>
@@ -91,10 +88,10 @@
   </div>
 </div>
 
-<!-- ── Badge modal: shown when an earned badge is clicked ── -->
 {#if selectedBadge}
   <div
     class="modal-backdrop"
+    style:background-image={`linear-gradient(rgba(11,14,26,0.8), rgba(11,14,26,0.8)), url('${import.meta.env.BASE_URL}${bgImage}')`}
     role="button"
     tabindex="-1"
     aria-label="Cerrar"
@@ -103,13 +100,11 @@
   >
     <div class="modal-card" role="dialog" aria-modal="true" tabindex="-1">
 
-      <!-- Corner brackets -->
       <span class="modal-bracket tl"></span>
       <span class="modal-bracket tr"></span>
       <span class="modal-bracket bl"></span>
       <span class="modal-bracket br"></span>
 
-      <!-- Close button: floats outside the card (top-right) -->
       <button class="modal-close" onclick={() => selectedBadge = null} aria-label="Cerrar">
         <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
           <line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -117,7 +112,6 @@
         </svg>
       </button>
 
-      <!-- Badge image -->
       <div class="modal-badge-wrap">
         <img
           src={selectedBadge.src}
@@ -126,28 +120,28 @@
         />
       </div>
 
-      <!-- Badge name + unit code -->
-      <p class="modal-label">{selectedBadge.unit.label}</p>
       <p class="modal-unit-code">{selectedBadge.unit.displayName}</p>
-      <p class="modal-sublabel">{t('badgeEarnedSuffix')}</p>
 
     </div>
   </div>
 {/if}
 
 <style>
-  /* ── Panel: the whole unit slides as one piece ─── */
-  .badge-panel {
+ .badge-panel {
     position: fixed;
     right: 0;
-    top: 50%;
+    top: 0;
+    /* --vvh is set by App.svelte via visualViewport API (same fix used for app-root).
+       Conservative 240px overhead (190 + 50px) guards against pre-JS render. */
+    height: 100vh;
+    --badge-size: clamp(55px, calc((100vh - 240px) / 6), 110px);
     /* flex row: [handle | content] */
     display: flex;
     flex-direction: row;
     align-items: stretch;
 
     /* Expanded: fully visible */
-    transform: translateY(-50%) translateX(0);
+    transform: translateX(0);
     transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
 
     z-index: 60;
@@ -167,18 +161,17 @@
     overflow: hidden;
   }
 
-  /* Collapsed: only the handle (32px) remains visible at screen edge */
+  /* Collapsed: only the handle (38px) remains visible at screen edge.
+     Content width = --badge-size + 10px left + 14px right padding = badge + 24px */
   .badge-panel.collapsed {
-    transform: translateY(-50%) translateX(258px);
+    transform: translateX(calc(var(--badge-size) + 24px));
   }
 
-  /* ── Handle: the organic "ear" of the panel ──── */
+  /* ── Handle ──── */
   .panel-handle {
     width: 38px;
     flex-shrink: 0;
     align-self: stretch;
-
-    /* Landscape: chevron on top, title below (both centered in the narrow strip) */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -188,33 +181,30 @@
     background: transparent;
     border: none;
     border-right: 1px solid rgba(70,140,255,0.15);
-    border-radius: 0; /* inherits from parent panel */
     cursor: pointer;
     pointer-events: auto;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-
     transition: background 0.2s ease;
   }
 
-  .panel-handle:hover {
-    background: rgba(80,140,255,0.07);
+  @media (hover: hover) {
+    .panel-handle:hover {
+      background: rgba(80,140,255,0.07);
+    }
   }
 
   .handle-chevron {
     width: 14px;
     height: 14px;
     flex-shrink: 0;
-    /* Default: > (right-pointing) — panel is open, click to close */
     transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
-  /* Collapsed: rotate 180° → < (left-pointing, click to open) */
   .badge-panel.collapsed .handle-chevron {
     transform: rotate(180deg);
   }
 
-  /* Landscape: title rotated vertically, reads upward */
   .handle-title {
     writing-mode: vertical-rl;
     transform: rotate(180deg);
@@ -236,9 +226,11 @@
     padding: 14px 14px 14px 10px;
     overflow: hidden;
     pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
 
-  /* ── Corner brackets ──────────────────────────── */
   .bracket {
     position: absolute;
     width: 10px;
@@ -252,7 +244,6 @@
   .bracket.bl { bottom: 5px; left: 5px;  border-width: 0 0 1.5px 1.5px; border-radius: 0 0 0 2px; }
   .bracket.br { bottom: 5px; right: 5px; border-width: 0 1.5px 1.5px 0; border-radius: 0 0 2px 0; }
 
-  /* ── Scan line ────────────────────────────────── */
   .scanline {
     position: absolute;
     inset: 0;
@@ -278,7 +269,7 @@
   /* ── Badge grid ───────────────────────────────── */
   .badge-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 12px;
     position: relative;
     z-index: 2;
@@ -293,8 +284,8 @@
 
   .badge-slot {
     position: relative;
-    width: 110px;
-    height: 110px;
+    width: var(--badge-size);
+    height: var(--badge-size);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -307,32 +298,33 @@
   }
 
   .badge-slot.earned {
-    filter: drop-shadow(0 0 7px rgba(57,255,20,0.6))
-            drop-shadow(0 0 20px rgba(57,255,20,0.22));
+    filter: drop-shadow(0 0 7px rgba(0,117,191,0.6))
+            drop-shadow(0 0 20px rgba(0,117,191,0.22));
     animation: badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
     pointer-events: auto;
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
-    /* Reset <button> browser defaults */
     background: none;
     border: none;
     padding: 0;
   }
 
-  .badge-slot.earned:hover .badge-img {
-    transform: scale(1.08);
-    transition: transform 0.18s ease;
+  @media (hover: hover) {
+    .badge-slot.earned:hover .badge-img {
+      transform: scale(1.08);
+      transition: transform 0.18s ease;
+    }
   }
 
   @keyframes badge-pop {
-    from { transform: scale(0.35); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
+    from { transform: scale(0.35); }
+    to   { transform: scale(1); }
   }
 
   .badge-img {
-    width: 110px;
-    height: 110px;
+    width: var(--badge-size);
+    height: var(--badge-size);
     object-fit: contain;
     display: block;
     position: relative;
@@ -383,58 +375,53 @@
 
   /* ── Landscape phones ─────────────────────────── */
   @media (max-height: 500px) and (orientation: landscape) {
-    .badge-panel.collapsed { transform: translateY(-50%) translateX(192px); }
+    .badge-panel {
+      --badge-size: clamp(38px, calc((100% - 100px) / 6), 78px);
+    }
+    .badge-panel.collapsed { transform: translateX(calc(var(--badge-size) + 17px)); }
     .panel-content { padding: 9px 9px 9px 8px; }
-    .badge-slot, .badge-img { width: 78px; height: 78px; }
     .badge-grid { gap: 8px; }
     .lock-icon { width: 22px; height: 22px; }
     .unit-label { font-size: 8px; }
   }
 
-  /* ── Portrait (phones + tablets): panel slides up from bottom center ── */
+  /* ── Portrait ── */
   @media (orientation: portrait) {
     .badge-panel {
       right: auto;
       top: auto;
       bottom: 0;
       left: 50%;
-      /* Expanded: centered horizontally, flush with bottom */
+      height: auto;
+      width: 100%;
       transform: translateX(-50%) translateY(0);
-      /* Vertical stacking: handle on top, content below */
       flex-direction: column;
       border-radius: 12px 12px 0 0;
       border-right: 1px solid rgba(70,150,255,0.28);
       border-bottom: none;
     }
 
-    /* Collapsed: slide down until only the 36px handle peeks at the bottom */
     .badge-panel.collapsed {
       transform: translateX(-50%) translateY(calc(100% - 36px));
     }
 
-    /* Handle becomes a horizontal bar at the top of the panel */
     .panel-handle {
       width: 100%;
       height: 36px;
-      align-self: stretch;
-      /* Portrait: chevron left, title right */
       flex-direction: row;
       gap: 10px;
       border-right: none;
       border-bottom: 1px solid rgba(70,140,255,0.15);
     }
 
-    /* Expanded: chevron ↓ = "click to collapse downward" */
     .handle-chevron {
       transform: rotate(90deg);
     }
 
-    /* Collapsed: chevron ↑ = "click to expand upward" */
     .badge-panel.collapsed .handle-chevron {
       transform: rotate(-90deg);
     }
 
-    /* Portrait: title reads horizontally */
     .handle-title {
       writing-mode: horizontal-tb;
       transform: none;
@@ -445,24 +432,29 @@
 
   /* ── Portrait phones ──────────────────────────── */
   @media (max-width: 600px) and (orientation: portrait) {
-    .badge-panel { width: 220px; }
+    .badge-panel { width: 100%; }
     .panel-content { padding: 10px; }
-    .badge-slot, .badge-img { width: 88px; height: 88px; }
-    .badge-grid { gap: 10px; }
+    .badge-slot, .badge-img { width: 68px; height: 68px; }
+    .badge-grid { 
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px; 
+    }
   }
 
-  /* ── Portrait tablets (iPad, Android) ────────── */
+  /* ── Portrait tablets ── */
   @media (min-width: 601px) and (orientation: portrait) {
-    .badge-panel { width: auto; max-width: calc(100vw - 32px); }
-    .panel-content { padding: 12px 16px; }
-    /* Badges in a single horizontal row */
+    .badge-panel { width: 100%; }
+    .panel-content { padding: 8px 14px 10px; }
     .badge-grid {
       grid-template-columns: unset;
       grid-auto-flow: column;
       grid-auto-columns: auto;
-      gap: 12px;
+      gap: 10px;
+      justify-content: center;
     }
-    .badge-slot, .badge-img { width: 90px; height: 90px; }
+    .badge-slot, .badge-img { width: 72px; height: 72px; }
+    .lock-icon { width: 22px; height: 22px; }
+    .unit-label { font-size: 8px; }
   }
 
   /* ── Badge modal ──────────────────────────────── */
@@ -470,9 +462,9 @@
     position: fixed;
     inset: 0;
     z-index: 200;
-    background: rgba(0, 6, 20, 0.82);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background-size: cover;
+    background-position: bottom center;
+    background-repeat: no-repeat;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -480,17 +472,18 @@
   }
 
   @keyframes backdrop-in {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from { transform: scale(1.04); }
+    to   { transform: scale(1); }
   }
 
   .modal-card {
     position: relative;
+    z-index: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: 40px 36px 32px;
+    gap: 20px;
+    padding: 52px 52px 44px;
 
     background: linear-gradient(160deg, rgba(0,12,34,0.98) 0%, rgba(0,22,60,0.96) 100%);
     border: 1px solid rgba(70,150,255,0.35);
@@ -507,11 +500,10 @@
   }
 
   @keyframes card-in {
-    from { transform: scale(0.55); opacity: 0; }
-    to   { transform: scale(1);    opacity: 1; }
+    from { transform: scale(0.55); }
+    to   { transform: scale(1); }
   }
 
-  /* Corner brackets */
   .modal-bracket {
     position: absolute;
     width: 16px;
@@ -525,7 +517,6 @@
   .modal-bracket.bl { bottom: 8px; left: 8px;  border-width: 0 0 2px 2px; border-radius: 0 0 0 3px; }
   .modal-bracket.br { bottom: 8px; right: 8px; border-width: 0 2px 2px 0; border-radius: 0 0 3px 0; }
 
-  /* Close button: floats outside the top-right corner of the card */
   .modal-close {
     position: absolute;
     top: -52px;
@@ -546,10 +537,12 @@
     transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
   }
 
-  .modal-close:hover {
-    background: rgba(30, 50, 120, 0.98);
-    color: rgba(200,220,255,1);
-    box-shadow: 0 0 20px rgba(80,140,255,0.5);
+  @media (hover: hover) {
+    .modal-close:hover {
+      background: rgba(30, 50, 120, 0.98);
+      color: rgba(200,220,255,1);
+      box-shadow: 0 0 20px rgba(80,140,255,0.5);
+    }
   }
 
   .modal-close svg {
@@ -557,7 +550,6 @@
     height: 14px;
   }
 
-  /* Unit code badge (e.g. "U1") */
   .modal-unit-code {
     font-family: 'Rubik', system-ui, -apple-system, sans-serif;
     font-size: 13px;
@@ -565,46 +557,23 @@
     letter-spacing: 0.25em;
     color: rgba(90,150,255,0.7);
     text-transform: uppercase;
-    margin-top: -8px;
+    margin-top: 16px;
   }
 
-  /* Badge image */
   .modal-badge-wrap {
-    filter: drop-shadow(0 0 18px rgba(57,255,20,0.55))
-            drop-shadow(0 0 50px rgba(57,255,20,0.2));
+    filter: drop-shadow(0 0 18px rgba(0,117,191,0.55))
+            drop-shadow(0 0 50px rgba(0,117,191,0.2));
   }
 
   .modal-badge-img {
-    width: 220px;
-    height: 220px;
+    width: 320px;
+    height: 320px;
     object-fit: contain;
     display: block;
   }
 
-  /* Labels */
-  .modal-label {
-    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 17px;
-    font-weight: 700;
-    color: rgba(200,230,255,0.92);
-    text-align: center;
-    letter-spacing: 0.04em;
-    line-height: 1.2;
-  }
-
-  .modal-sublabel {
-    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    color: rgba(57,255,20,0.7);
-    text-shadow: 0 0 10px rgba(57,255,20,0.4);
-    text-transform: uppercase;
-  }
-
-  /* Smaller image on landscape phones */
   @media (max-height: 500px) {
-    .modal-badge-img { width: 140px; height: 140px; }
+    .modal-badge-img { width: 160px; height: 160px; }
     .modal-card { padding: 28px 24px 22px; gap: 10px; }
   }
 </style>

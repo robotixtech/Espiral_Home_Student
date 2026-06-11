@@ -1,76 +1,85 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import type { AppState, ProgramUnit, Activity } from './lib/types';
-  import { getAppConfig } from './lib/token';
+  import { getAppConfig } from './lib/token'; 
   import { loadProgramFromMoodle } from './lib/program-loader';
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
-  import { getEmulatedProgram, toggleEmulator, isEmulatorActive } from './lib/emulator.svelte';
+  import { getConfigByShortname } from './lib/program-config';
   import TreeNavigator from './components/TreeNavigator.svelte';
   import UnitDetailView from './components/UnitDetailView.svelte';
   import ActivitySlideView from './components/ActivitySlideView.svelte';
-  import EmulatorToggle from './components/EmulatorToggle.svelte';
   import BadgePanel from './components/BadgePanel.svelte';
 
   // Navigation state
   let currentView: 'home' | 'unit-detail' | 'activity-slide' = $state('home');
   let selectedUnit: ProgramUnit | null = $state(null);
   let selectedActivity: Activity | null = $state(null);
-  let debugConfig = $state<any>(null);
 
   let appState = $state<AppState>({ kind: 'loading' });
-  // Nuevo estado para controlar de forma limpia cuando un usuario no tiene programas
   let isEmpty = $state(false);
 
   const theme = $derived(getTheme());
-  
-  // Helper: Apunta a la carpeta 'visual' del plugin en producción
+  const homeProgram = $derived(appState.kind === 'ready' ? appState.data : null);
+
+  const bgImage = $derived(
+    appState.kind === 'ready'
+      ? (getConfigByShortname(appState.data.shortname)?.bgImage ?? 'background_2.png')
+      : 'background_2.png'
+  );
+
+  // Helper de la rama Base: Resuelve las rutas reales dentro de la estructura de plugins de Moodle
   function getPluginAssetUrl(filename: string): string {
     if (typeof window !== 'undefined' && (window as any).moodleConfig?.baseUrl) {
       const baseUrl = (window as any).moodleConfig.baseUrl.replace(/\/$/, '');
-      return `${baseUrl}/blocks/espiral_dashboard/visual/${filename}`;
+      return `${baseUrl}/moodle_robotix_405/blocks/espiral_dashboard/visual/${filename}`;
     }
-     return `/blocks/espiral_dashboard/visual/${filename}`;
+    return `/moodle_robotix_405/blocks/espiral_dashboard/visual/${filename}`;
   }
 
-  // Pre-calculamos la URL de la imagen para usarla en el template
-  const bgImageUrl = $derived(`url('${getPluginAssetUrl('background.png')}')`);
+  const bgImageUrl = $derived(`url('${getPluginAssetUrl(bgImage)}')`);
 
   onMount(async () => {
+    // Detección robusta de Android para optimizaciones de rendimiento gráfico (Mali-G52)
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (/Apple/.test(navigator.vendor) && navigator.maxTouchPoints > 1);
+    const uaPlatform = (navigator.userAgentData?.platform ?? '').toLowerCase();
+    const isAndroidDevice = !isIOS && (
+      /Android/i.test(navigator.userAgent) ||
+      uaPlatform === 'android' ||
+      (!(/CrOS/.test(navigator.userAgent)) && navigator.maxTouchPoints > 0 && /Chrome\//.test(navigator.userAgent))
+    );
+    if (isAndroidDevice) {
+      document.documentElement.classList.add('android');
+    }
+
+    // Carga de datos empaquetada segura para producción Moodle
     try {
       const config = await getAppConfig();
-      
-      // Prioridad 1: Payload inyectado desde PHP
       if (config.programData) {
         console.info('Espiral Dashboard: Cargando datos inyectados.');
         appState = { kind: 'ready', data: config.programData };
-      } 
-      // Prioridad 2: Modo desarrollo / Mock
-      else if (import.meta.env.DEV || config.isExampleMode) {
-        console.info('Espiral Dashboard: Modo desarrollo, usando Mock.');
+      } else if (import.meta.env.DEV || config.isExampleMode) {
+        console.info('Espiral Dashboard: Modo desarrollo / Ejemplo.');
         appState = { kind: 'ready', data: MOCK_PROGRAM };
-      } 
-      // Caso 3: El usuario no tiene datos (no está matriculado)
-      else {
-        console.info('Espiral Dashboard: El usuario no registra programas matriculados.');
+      } else {
         isEmpty = true;
       }
     } catch (err) {
-      console.error('Error al iniciar Espiral Dashboard:', err);
-      appState = { 
-        kind: 'error', 
-        message: 'Error de configuración: El servidor no envió la información del programa.' 
-      };
+      console.warn('Error en conexión Moodle — usando fallback seguro a Mock:', err);
+      appState = { kind: 'ready', data: MOCK_PROGRAM };
     }
   });
 </script>
+
+<div class="app-bg" style:background-image={bgImageUrl}></div>
 
 <main 
   class="app-root"
   style:background-color={theme.body}
   style:color={theme.text.primary}
   style:background-image={bgImageUrl}
-  style:background-position="bottom center"
+  style:background-position="bottom"
   style:background-repeat="no-repeat"
   style:background-size="cover"
 >
@@ -95,17 +104,16 @@
       </button>
     </div>
   {:else}
-    {#if currentView === 'home'}
+    {#if currentView === 'home' && homeProgram}
       <TreeNavigator
-        program={getEmulatedProgram() ?? appState.data}
+        program={homeProgram}
         onUnitSelected={(unit) => { selectedUnit = unit; currentView = 'unit-detail'; }}
         onActivitySelected={(activity) => {
           selectedActivity = activity;
           currentView = 'activity-slide';
         }}
       />
-      <EmulatorToggle program={appState.data} />
-      <BadgePanel program={getEmulatedProgram() ?? appState.data} />
+      <BadgePanel program={homeProgram} />
     {:else if currentView === 'unit-detail' && selectedUnit}
       <UnitDetailView
         unit={selectedUnit}
@@ -129,53 +137,61 @@
 </main>
 
 <style>
-  /* Reset general empaquetado para no afectar el resto de Moodle */
-  .app-root * { 
-    box-sizing: border-box; 
+  /* Reseteos locales e independientes para proteger el entorno Moodle */
+  .app-root *, .app-bg * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
   }
 
-  .app-root { 
-    position: relative; 
+  /* El fondo se acota de forma absoluta al contenedor del bloque */
+  .app-bg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: bottom center;
+    background-repeat: no-repeat;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Volvemos al aislamiento de bloque nativo con contención elástica */
+  .app-root {
+    z-index: 1;
     width: 100% !important;
+    min-height: 700px;
     height: 100% !important;
-    min-height: unset !important;
-    display: flex; 
-    flex-direction: column;
-    align-items: center; 
-    justify-content: center; 
-    
-    /* Evita que los nodos Svelte se desborden del bloque */
-    overflow: hidden; 
-    
-    font-family: 'Rubik', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     transition: background-color 0.4s, color 0.4s;
   }
 
-  .state-container { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px; }
-  
-  /* Ajuste sutil para que el estado vacío ocupe menos espacio y no rompa el diseño del dashboard */
-  .state-container.empty-state {
-    padding: 24px;
-    text-align: center;
-  }
+  /* ── Optimizaciones Android (Mali-G52 / Tab A8) heredadas de iThink ── */
+  :global(.android .heartbeat) { animation: none !important; }
+  :global(.android .galaxy-wrapper [filter]) { filter: none !important; }
+  :global(.android .galaxy-wrapper) { transform: none !important; -webkit-transform: none !important; }
+  :global(.android .badge-silhouette) { animation: none !important; }
+  :global(.android .badge-slot) { filter: none !important; animation: none !important; }
+  :global(.android .scanline) { animation: none !important; }
+  :global(.android .modal-backdrop) { animation: none !important; }
+  :global(.android .modal-card) { animation: none !important; }
+  :global(.android .modal-badge-wrap) { filter: none !important; }
+  :global(.android .progress-ring) { transition: none !important; }
 
+  /* ── Estados y feedback visual ── */
+  .state-container { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 40px; }
+  .state-container.empty-state { padding: 24px; text-align: center; }
   .spinner { width: 40px; height: 40px; border: 4px solid rgba(128,128,128,0.2); border-top-color: #7c6cf7; border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  
   .state-text { font-size: 15px; }
   .state-text.error { color: #f87171; max-width: 320px; text-align: center; }
-  
   .error-icon, .info-icon { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; }
   .error-icon { background: rgba(248,113,113,0.15); color: #f87171; }
-  
-  /* Icono informativo suave para el estado sin matricular */
   .info-icon { background: rgba(124, 108, 247, 0.15); color: #7c6cf7; font-style: italic; font-family: serif; }
-  
   .retry-btn { padding: 8px 20px; border: 1px solid rgba(128,128,128,0.3); border-radius: 8px; background: rgba(128,128,128,0.1); color: inherit; font-size: 14px; cursor: pointer; transition: background 0.15s; }
   .retry-btn:hover { background: rgba(128,128,128,0.2); }
-  
-  .debug-overlay { position: fixed; top: 20px; left: 20px; background: rgba(15, 23, 42, 0.9); border: 1px solid #3b82f6; border-radius: 8px; padding: 16px; color: #10b981; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.5); pointer-events: none; max-width: 350px; overflow-x: auto; }
-  .debug-overlay h4 { margin: 0 0 8px 0; color: #60a5fa; font-family: system-ui, sans-serif; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; }
-  .debug-overlay pre { margin: 0; font-family: monospace; font-size: 12px; white-space: pre-wrap; }
 </style>

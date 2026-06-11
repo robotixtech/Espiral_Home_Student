@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import type { ProgramUnit, Activity } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
-  import { EMULATOR_CONFIG } from '../lib/emulator-config';
   import UnitCenterNode from './UnitCenterNode.svelte';
   import ActivityNode from './ActivityNode.svelte';
   import UnitIcon from './UnitIcon.svelte';
@@ -18,90 +17,7 @@
 
   const theme = $derived(getTheme());
 
-  // --- Activity emulator state ---
-  let emuActive = $state(true);
-  let emuActivityIdx = $state(0);
-  let emuProgress = $state(0);
-  let emuTimer: ReturnType<typeof setTimeout> | null = null;
-
-  // Base activities (first promoted to in-progress)
-  const baseActivities = $derived.by((): Activity[] => {
-    const raw = unit.activities ?? [];
-    if (raw.length === 0) return raw;
-    const first = raw[0];
-    if (first.status === 'locked') {
-      return [{ ...first, status: 'in-progress' as const, progress: 0 }, ...raw.slice(1)];
-    }
-    return raw;
-  });
-
-  // Emulated activities: overlay emulator state on base
-  function buildEmuActivities(base: Activity[], activeIdx: number, progress: number): Activity[] {
-    return base.map((a, i) => {
-      if (i < activeIdx) return { ...a, status: 'completed' as const, progress: 100 };
-      if (i === activeIdx) return {
-        ...a,
-        status: progress >= 100 ? 'completed' as const : 'in-progress' as const,
-        progress: Math.min(progress, 100),
-      };
-      return { ...a, status: 'locked' as const, progress: 0 };
-    });
-  }
-
-  const activities = $derived<Activity[]>(
-    emuActive
-      ? buildEmuActivities(baseActivities, emuActivityIdx, emuProgress)
-      : baseActivities.map(a => ({ ...a, status: 'completed' as const, progress: 100 }))
-  );
-
-  // Emulator tick logic
-  function emuTick() {
-    if (!emuActive) return;
-    emuProgress += EMULATOR_CONFIG.progressStep;
-
-    if (emuProgress > 100) {
-      emuProgress = 0;
-      emuActivityIdx++;
-
-      if (emuActivityIdx >= baseActivities.length) {
-        // All done — collapse and pause then restart
-        activitiesCollapsed = true;
-        emuTimer = setTimeout(() => {
-          if (!emuActive) return;
-          emuActivityIdx = 0;
-          emuProgress = 0;
-          activitiesCollapsed = false;
-          scheduleEmuTick();
-        }, EMULATOR_CONFIG.pauseBeforeRestartMs);
-        return;
-      }
-
-      // Pause between activities
-      emuTimer = setTimeout(() => scheduleEmuTick(), EMULATOR_CONFIG.pauseBetweenUnitsMs);
-      return;
-    }
-
-    scheduleEmuTick();
-  }
-
-  function scheduleEmuTick() {
-    if (!emuActive) return;
-    emuTimer = setTimeout(emuTick, EMULATOR_CONFIG.tickMs);
-  }
-
-  function toggleActivityEmu() {
-    if (emuActive) {
-      emuActive = false;
-      if (emuTimer) { clearTimeout(emuTimer); emuTimer = null; }
-      activitiesCollapsed = true; // EMU OFF = all completed = collapse
-    } else {
-      emuActive = true;
-      emuActivityIdx = 0;
-      emuProgress = 0;
-      activitiesCollapsed = false;
-      scheduleEmuTick();
-    }
-  }
+  const activities = $derived<Activity[]>(unit.activities ?? []);
 
   // "Continuar" unlocks when the first activity is completed
   const continuarUnlocked = $derived(
@@ -149,14 +65,7 @@
       cH = entry.contentRect.height;
     });
     ro.observe(containerEl);
-
-    // Auto-start activity emulator
-    scheduleEmuTick();
-
-    return () => {
-      ro.disconnect();
-      if (emuTimer) clearTimeout(emuTimer);
-    };
+    return () => ro.disconnect();
   });
 
   const vb = $derived.by(() => {
@@ -183,7 +92,7 @@
     const count = activities.length;
     if (count === 0) return [];
 
-    const positions: Array<{ x: number; y: number }> = [];
+    const positions: Array<{ x: number; y: number; angle: number }> = [];
     const startAngle = Math.PI;
     const arcSpan = Math.PI;
     for (let i = 0; i < count; i++) {
@@ -191,6 +100,7 @@
       positions.push({
         x: centerX + orbitRadius * Math.cos(angle),
         y: centerY + orbitRadius * Math.sin(angle),
+        angle,
       });
     }
     return positions;
@@ -226,10 +136,6 @@
   const backX = $derived(vb.x + 30);
   const backY = $derived(vb.y + 30);
 
-  // Emulator toggle position
-  const emuBtnX = $derived(vb.x + vb.w - 80);
-  const emuBtnY = $derived(vb.y + vb.h - 40);
-
   function handleContinuar() {
     if (!continuarUnlocked) return;
     onBack();
@@ -249,10 +155,10 @@
         <stop offset="60%" stop-color={theme.bg.mid} />
         <stop offset="100%" stop-color={theme.bg.edge} />
       </radialGradient>
-      <radialGradient id="cont-grad" cx="35%" cy="35%" r="65%">
+      <linearGradient id="cont-grad" x1="0%" y1="0%" x2="100%" y2="100%">
         <stop offset="0%" stop-color={continuarColors.g1} />
         <stop offset="100%" stop-color={continuarColors.g2} />
-      </radialGradient>
+      </linearGradient>
       {#if continuarUnlocked}
         <filter id="cont-glow" x="-50%" y="-50%" width="200%" height="200%">
           <feGaussianBlur stdDeviation="5" result="blur" />
@@ -265,7 +171,6 @@
         </filter>
       {/if}
 
-      <!-- Line glow filters — userSpaceOnUse to handle thin/degenerate bbox on lines -->
       <filter id="line-glow-blue" filterUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
         <feGaussianBlur stdDeviation="6" in="SourceGraphic" result="blur-o" />
         <feFlood flood-color={theme.unit.inProgress.glow} flood-opacity="0.35" result="color-o" />
@@ -295,10 +200,8 @@
       </filter>
     </defs>
 
-    <!-- Background -->
     <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#detail-bg-grad)" opacity="0.85" />
 
-    <!-- Back button -->
     <g
       class="back-btn"
       transform="translate({backX}, {backY})"
@@ -315,14 +218,12 @@
       <text x="22" y="5" fill={theme.text.primary} class="back-text">Volver</text>
     </g>
 
-    <!-- Orbit ring (dashed) -->
     <circle
       cx={centerX} cy={centerY} r={orbitRadius}
       fill="none" stroke={theme.spiral} stroke-width="1.5"
       stroke-dasharray="10 7" opacity="0.55"
     />
 
-    <!-- Connection lines: activities -->
     {#if activitiesVisible}
       {#each activities as act, i (act.id)}
         {@const pos = activityPositions[i]}
@@ -341,7 +242,6 @@
         {/if}
       {/each}
 
-      <!-- Connection line: Continuar -->
       <line
         x1={centerX} y1={centerY}
         x2={continuarPos.x} y2={continuarPos.y}
@@ -354,8 +254,6 @@
       />
     {/if}
 
-    <!-- Center node -->
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <g
       class:center-toggle={allMandatoryDone}
       role={allMandatoryDone ? 'button' : undefined}
@@ -374,19 +272,16 @@
       >{activitiesCollapsed ? '▼ ver actividades' : '▲ ocultar'}</text>
     {/if}
 
-    <!-- Activity nodes -->
     {#if activitiesVisible}
       {#each activities as act, i (act.id)}
         {@const pos = activityPositions[i]}
         {#if pos}
-          <ActivityNode activity={act} x={pos.x} y={pos.y} index={i} isFirst={i === 0} {onActivitySelected} />
+          <ActivityNode activity={act} x={pos.x} y={pos.y} index={i} isFirst={i === 0} labelAngle={pos.angle} {onActivitySelected} />
         {/if}
       {/each}
     {/if}
 
-    <!-- Continuar node -->
     {#if activitiesVisible}
-    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <g
       class="continuar-node"
       class:unlocked={continuarUnlocked}
@@ -397,55 +292,16 @@
       onclick={handleContinuar}
       onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleContinuar(); } }}
     >
-      {#if continuarUnlocked}
-        <circle class="cont-halo" cx="0" cy="0" r="43" fill="none"
-                stroke={continuarColors.glow} stroke-width="0.8" opacity="0" />
-      {/if}
+      <rect class="cont-bg"
+            x="-41" y="-13" width="82" height="26" rx="5"
+            fill="url(#cont-grad)" />
 
-      <circle
-        cx="0" cy="0" r="38"
-        fill="url(#cont-grad)"
-        filter={continuarUnlocked ? 'url(#cont-glow)' : undefined}
-      />
-
-      {#if !continuarUnlocked}
-        <circle cx="0" cy="0" r="41" fill="none" stroke={continuarColors.ring} stroke-width="1.2" opacity="0.6" />
-        <svg x="-9" y="-11" width="18" height="22" viewBox="0 0 24 24"
-             fill="none" stroke={continuarColors.icon} stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
-      {:else}
-        <g transform="translate(-12, -12)">
-          <UnitIcon icon="binoculars" size={24} color={continuarColors.icon} />
-        </g>
-      {/if}
-
-      <text y="56" text-anchor="middle" class="cont-label" fill={theme.text.primary}>
+      <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
+            class="cont-label" fill={continuarColors.icon}>
         Continuar
       </text>
     </g>
     {/if}
-    <!-- Activity emulator toggle -->
-    <g
-      class="emu-btn"
-      transform="translate({emuBtnX}, {emuBtnY})"
-      role="button"
-      tabindex="0"
-      onclick={() => toggleActivityEmu()}
-      onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleActivityEmu(); } }}
-    >
-      <rect x="-50" y="-14" width="100" height="28" rx="14"
-            fill={emuActive ? 'rgba(59,130,246,0.2)' : 'rgba(128,128,128,0.12)'}
-            stroke={emuActive ? 'rgba(96,165,250,0.5)' : 'rgba(128,128,128,0.2)'}
-            stroke-width="1" />
-      <text x="-30" y="5" class="emu-text" fill={theme.text.secondary}>EMU</text>
-      <rect x="10" y="-6" width="28" height="12" rx="6"
-            fill={emuActive ? 'rgba(59,130,246,0.3)' : 'rgba(128,128,128,0.2)'} />
-      <circle cx={emuActive ? 32 : 16} cy="0" r="5"
-              fill={emuActive ? '#3b82f6' : '#6b7280'} />
-    </g>
   </svg>
 </div>
 
@@ -489,38 +345,17 @@
     opacity: 0.45;
   }
 
-  .continuar-node.unlocked:hover .cont-halo {
-    opacity: 0.7;
-    stroke-width: 2;
-    animation: cont-pulse 1.2s ease-in-out infinite;
-  }
-
-  .cont-halo {
-    transition: opacity 0.3s ease, stroke-width 0.3s ease;
-    pointer-events: none;
+  .continuar-node.unlocked:hover .cont-bg {
+    filter: brightness(1.15);
   }
 
   @keyframes cont-pulse {
-    0%, 100% { opacity: 0.4; stroke-width: 0.5; }
-    50% { opacity: 0.8; stroke-width: 1.5; }
+    0%, 100% { opacity: 0.4; }
+    50%       { opacity: 0.8; }
   }
 
   .cont-label {
-    font: 500 13px/1 'Rubik', system-ui, sans-serif;
-  }
-
-  .emu-btn {
-    cursor: pointer;
-    outline: none;
-  }
-
-  .emu-btn:hover rect:first-child {
-    opacity: 0.9;
-  }
-
-  .emu-text {
-    font: 600 10px/1 'Rubik', system-ui, sans-serif;
-    letter-spacing: 0.5px;
+    font: 600 13px/1 'Rubik', system-ui, sans-serif;
   }
 
   .center-toggle {

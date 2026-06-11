@@ -27,6 +27,7 @@ export async function loadProgramFromMoodle(
     .filter((c) => c.fullname.startsWith(programPrefix));
 
   // Step 4: Map over the CONFIGURATION (Single Source of Truth)
+  // Mantiene la espiral visual intacta incluso si Moodle no devuelve todas las unidades
   const units: ProgramUnit[] = programConfig.units.map((cfg, index) => {
     // Buscar si Moodle devolvió este curso específico comparando el índice
     const course = programCourses.find(c => extractUnitNumber(c.fullname) === index);
@@ -36,6 +37,20 @@ export async function loadProgramFromMoodle(
       const progress = course.progress ?? 0;
       const status = inferStatus(course.completed, progress);
 
+      // ── PENDIENTE DE IMPLEMENTAR (Integración Moodle) ────────────────────
+      // Dos campos faltan en cada ProgramUnit para que los badges y el progreso
+      // de actividades funcionen con datos reales de Moodle:
+      //
+      //   1. `grade` (number | undefined)
+      //      Nota media del alumno (0–10). Usada en BadgePanel para decidir si
+      //      se otorga el badge.
+      //      Llamar: await api.getUnitGrade(course.id, userId)
+      //
+      //   2. `activities` (Activity[] | undefined)
+      //      Lista de actividades de la unidad con su estado y progreso individual.
+      //      Llamar: await api.getCourseActivities(course.id, userId)
+      // ─────────────────────────────────────────────────────────────────────
+      
       return {
         id: course.id,
         shortname: course.shortname,

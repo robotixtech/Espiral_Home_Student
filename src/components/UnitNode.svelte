@@ -43,7 +43,6 @@
   const dashOff = $derived(circ - (unit.progress / 100) * circ);
 
   const gradId = $derived(`g${index}`);
-  const glowId = $derived(`w${index}`);
 
   const colors = $derived.by(() => {
     switch (unit.status) {
@@ -83,6 +82,23 @@
   const lblWords  = $derived(unit.label.split(' ')[0]);
   const isInProgress = $derived(unit.status === 'in-progress');
 
+  // Split label into lines of at most maxChars, max 2 lines
+  function splitLabel(text: string, maxChars = 14): string[] {
+    const words = text.split(' ');
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      if (current && (current + ' ' + word).length > maxChars) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = current ? current + ' ' + word : word;
+      }
+    }
+    if (current) lines.push(current);
+    return lines.slice(0, 2);
+  }
+
   let selected = $state(false);
   function onSelect() {
     if (!isActive) return;
@@ -108,37 +124,25 @@
       <stop offset="0%" stop-color={colors.g1} />
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
-    {#if isActive}
-      <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
-        <feGaussianBlur stdDeviation="5" result="blur" />
-        <feFlood flood-color={colors.glow} flood-opacity="0.3" result="color" />
-        <feComposite in="color" in2="blur" operator="in" result="glow" />
-        <feMerge>
-          <feMergeNode in="glow" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
-    {/if}
   </defs>
 
   {#if isActive}
-    <circle class:heartbeat={isInProgress} cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" opacity="0.25" />
+    <circle class:heartbeat={isInProgress} cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
     <!-- Hover glow border -->
     <circle class="halo-ring" cx="0" cy="0" r={r + 5} fill="none"
-            stroke={colors.glow} stroke-width="0.8" opacity="0" />
+            stroke={colors.glow} stroke-width="0.8" />
     <!-- Selected: soft ambient glow -->
     <circle class="selected-glow" cx="0" cy="0" r={r + 12} fill="none"
-            stroke={colors.glow} stroke-width="0" opacity="0" />
+            stroke={colors.glow} stroke-width="0" />
     <!-- Selected: solid border -->
     <circle class="selected-ring" cx="0" cy="0" r={r + 5} fill="none"
-            stroke="#ffffff" stroke-width="0" opacity="0" />
+            stroke="#ffffff" stroke-width="0" />
   {/if}
 
   <circle
     class:heartbeat={isInProgress}
     cx="0" cy="0" r={r}
     fill="url(#{gradId})"
-    filter={isActive ? `url(#${glowId})` : undefined}
   />
 
   {#if isActive}
@@ -154,14 +158,35 @@
   {/if}
 
   {#if !isActive}
-    <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.5" opacity="0.7" />
-    <svg x="-11" y="-13" width="22" height="26" viewBox="0 0 24 24"
-         fill="none" stroke={colors.icon} stroke-width="1.8"
-         stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-    </svg>
+    {@const firstWord = unit.label.split(' ')[0]}
+    {@const cs = r / 50}
+    <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.5" stroke-opacity="0.7" />
+    <g transform="scale({cs})">
+      <svg x="-7" y="-32" width="14" height="14" viewBox="0 0 24 24"
+           fill="none" stroke={colors.icon} stroke-width="1.8"
+           stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-inside" fill={colors.icon}>{firstWord}</text>
+      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-unit-num" fill={colors.icon}>U{index}</text>
+    </g>
+  {:else if compact}
+    {@const firstWord = unit.label.split(' ')[0]}
+    {@const cs = r / 50}
+    <g transform="scale({cs})">
+      <g transform="translate(-7,-32)">
+        <UnitIcon icon={unit.icon} size={14} color={colors.icon} />
+      </g>
+      <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-inside" fill={colors.icon}>{firstWord}</text>
+      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-unit-num" fill={colors.icon}>U{index}</text>
+    </g>
   {:else}
+    <!-- Full mode (UnitDetailView center node, etc.) -->
     <g transform="translate({-iconOff}, {-iconOff - 5})">
       <UnitIcon icon={unit.icon} size={iconSize} color={colors.icon} />
     </g>
@@ -224,49 +249,48 @@
   .node { cursor: default; outline: none; }
   .node.clickable { cursor: pointer; }
 
+  /* stroke-opacity instead of opacity — avoids GPU compositing layers on Mali-G52 */
   .halo-ring {
-    transition: opacity 0.3s ease, stroke-width 0.3s ease;
+    stroke-opacity: 0;
+    transition: stroke-opacity 0.3s ease, stroke-width 0.3s ease;
     pointer-events: none;
   }
 
   /* Only activate hover effects on real pointer devices — prevents stuck hover on Android touch */
   @media (hover: hover) {
     .node.clickable:hover .halo-ring {
-      opacity: 0.7;
+      stroke-opacity: 0.7;
       stroke-width: 2;
       animation: border-pulse 1.2s ease-in-out infinite;
     }
   }
   @keyframes border-pulse {
-    0%, 100% { opacity: 0.4; stroke-width: 0.5; }
-    50% { opacity: 0.8; stroke-width: 1.5; }
+    0%, 100% { stroke-opacity: 0.4; stroke-width: 0.5; }
+    50%       { stroke-opacity: 0.8; stroke-width: 1.5; }
   }
-  /* Selected state — solid border + soft ambient glow */
   .node.selected .halo-ring {
     animation: none !important;
-    opacity: 0.9;
+    stroke-opacity: 0.9;
     stroke-width: 1.5;
-    transition: opacity 0.3s ease, stroke-width 0.3s ease;
+    transition: stroke-opacity 0.3s ease, stroke-width 0.3s ease;
   }
   .node.selected .selected-ring {
-    opacity: 0.6;
+    stroke-opacity: 0.6;
     stroke-width: 1;
-    transition: opacity 0.4s ease;
+    transition: stroke-opacity 0.4s ease;
   }
   .node.selected .selected-glow {
-    opacity: 0.25;
+    stroke-opacity: 0.25;
     stroke-width: 6;
-    transition: opacity 0.5s ease, stroke-width 0.5s ease;
+    transition: stroke-opacity 0.5s ease, stroke-width 0.5s ease;
   }
 
   .selected-glow, .selected-ring {
+    stroke-opacity: 0;
     pointer-events: none;
-    transition: opacity 0.3s ease, stroke-width 0.3s ease;
+    transition: stroke-opacity 0.3s ease, stroke-width 0.3s ease;
   }
 
-  .node.locked { opacity: 1.0; }
-
-  /* Heartbeat pulse for in-progress units */
   .heartbeat {
     animation: heartbeat 2s ease-in-out infinite;
     transform-origin: 0 0;
@@ -285,5 +309,7 @@
   .lbl-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
-  .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; opacity: 0.85; }
+  .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
+  .lbl-inside      { font: 700 13px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .lbl-unit-num    { font: 400 10px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
 </style>

@@ -49,31 +49,31 @@
 
     <style>
       @keyframes sun-pulse {{
-        0%, 100% {{ opacity: 0.15; transform: scale(1); }}
-        50% {{ opacity: 0.25; transform: scale(1.08); }}
+        0%, 100% {{ stroke-opacity: 0.15; transform: scale(1); }}
+        50% {{ stroke-opacity: 0.25; transform: scale(1.08); }}
       }}
       @keyframes sun-wave {{
-        0% {{ transform: scale(1); opacity: 0.6; stroke-width: 2; }}
-        100% {{ transform: scale(2.2); opacity: 0; stroke-width: 0.3; }}
+        0% {{ transform: scale(1); stroke-opacity: 0.6; stroke-width: 2; }}
+        100% {{ transform: scale(2.2); stroke-opacity: 0; stroke-width: 0.3; }}
       }}
     </style>
   </defs>
 
-  <!-- Ambient pulse rings -->
-  <circle class="orbit-ring ring-inner" cx="0" cy="0" r={r + 14} fill="none" stroke={s.pulse} stroke-width="0.6" opacity="0.15"
+  <!-- Ambient pulse rings — stroke-opacity avoids compositing layer vs opacity -->
+  <circle class="orbit-ring ring-inner" cx="0" cy="0" r={r + 14} fill="none" stroke={s.pulse} stroke-width="0.6" stroke-opacity="0.15"
           style="animation: sun-pulse 4s ease-in-out infinite; transform-origin: 0 0;" />
-  <circle class="orbit-ring ring-outer" cx="0" cy="0" r={r + 26} fill="none" stroke={s.pulse} stroke-width="0.4" opacity="0.08"
+  <circle class="orbit-ring ring-outer" cx="0" cy="0" r={r + 26} fill="none" stroke={s.pulse} stroke-width="0.4" stroke-opacity="0.08"
           style="animation: sun-pulse 4s ease-in-out 1s infinite; transform-origin: 0 0;" />
 
   <!-- Hover: expanding wave rings (3 staggered) -->
   <circle class="hover-wave w1" cx="0" cy="0" r={r * 0.6}
-          fill="none" stroke={s.g2} stroke-width="0" opacity="0"
+          fill="none" stroke={s.g2} stroke-width="0" stroke-opacity="0"
           style="transform-origin: 0 0;" />
   <circle class="hover-wave w2" cx="0" cy="0" r={r * 0.6}
-          fill="none" stroke={s.g3} stroke-width="0" opacity="0"
+          fill="none" stroke={s.g3} stroke-width="0" stroke-opacity="0"
           style="transform-origin: 0 0;" />
   <circle class="hover-wave w3" cx="0" cy="0" r={r * 0.6}
-          fill="none" stroke={s.g4} stroke-width="0" opacity="0"
+          fill="none" stroke={s.g4} stroke-width="0" stroke-opacity="0"
           style="transform-origin: 0 0;" />
 
   <!-- Main body -->
@@ -83,7 +83,7 @@
   <circle cx="-6" cy="-8" r={r * 0.35} fill={s.highlight} />
 
   <!-- Icon (from config) -->
-  <g class="sun-icon" transform="translate(-16, -16)" opacity="0.8">
+  <g class="sun-icon" transform="translate(-16, -16)" fill-opacity="0.8" stroke-opacity="0.8">
     <UnitIcon icon={unit.icon} size={32} color={s.icon} />
   </g>
 
@@ -99,7 +99,7 @@
 
   /* Orbit rings — subtle +30% on hover */
   .orbit-ring {
-    transition: opacity 0.4s ease, stroke-width 0.4s ease;
+    transition: stroke-opacity 0.4s ease, stroke-width 0.4s ease;
   }
   .sun-node:hover .ring-inner {
     animation: sun-tilt-inner 1.4s ease-in-out infinite !important;
@@ -108,12 +108,12 @@
     animation: sun-tilt-outer 1.4s ease-in-out 0.3s infinite !important;
   }
   @keyframes sun-tilt-inner {
-    0%, 100% { opacity: 0.15; stroke-width: 0.6; }
-    50% { opacity: 0.45; stroke-width: 1.2; }
+    0%, 100% { stroke-opacity: 0.15; stroke-width: 0.6; }
+    50% { stroke-opacity: 0.45; stroke-width: 1.2; }
   }
   @keyframes sun-tilt-outer {
-    0%, 100% { opacity: 0.08; stroke-width: 0.4; }
-    50% { opacity: 0.25; stroke-width: 0.8; }
+    0%, 100% { stroke-opacity: 0.08; stroke-width: 0.4; }
+    50% { stroke-opacity: 0.25; stroke-width: 0.8; }
   }
 
   /* Hover waves — 3 expanding rings staggered */
