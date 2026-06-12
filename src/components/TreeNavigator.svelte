@@ -1,13 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { ProgramData, ProgramUnit, Activity } from '../lib/types';
+  import type { ProgramData, ProgramUnit, Activity, UnitStatus, UnitIcon } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
   import { getDistantConfigs } from '../lib/program-config';
   import UnitNode from './UnitNode.svelte';
   import DistantGalaxy from './DistantGalaxy.svelte';
   import ActivityOrbit from './ActivityOrbit.svelte';
   import QuantaCluster from './QuantaCluster.svelte';
-  import { CANVAS, SPIRAL, ZOOM, RADAR } from '../lib/master-config';
+  import IANode from './IANode.svelte';
+  import { CANVAS, SPIRAL, ZOOM, RADAR, IA_UNIT_CONFIG } from '../lib/master-config';
 
   interface Props {
     program: ProgramData;
@@ -138,6 +139,41 @@
   });
   // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
+
+  // ── IA Unit (off-radar, never locked) ─────────────────────────────────────
+  let iaProgress = $state(0);
+
+  const iaUnit = $derived.by(() => ({
+    id: 9999,
+    shortname: 'IA',
+    label: 'Inteligencia Artificial',
+    displayName: 'IA',
+    fullname: 'Inteligencia Artificial',
+    status: 'in-progress' as UnitStatus,
+    progress: iaProgress,
+    courseUrl: IA_UNIT_CONFIG.href ?? '#',
+    icon: 'signal' as UnitIcon,
+    activities: IA_UNIT_CONFIG.activities.map((a, i) => ({
+      id: 9000 + i,
+      label: a.label,
+      status: 'locked' as UnitStatus,
+      progress: 0,
+      icon: a.icon,
+      activityUrl: a.href ?? '#',
+      slides: a.slides,
+    })),
+  }));
+
+  const iaEffectiveStatus = $derived(
+    iaProgress >= 100 ? ('completed' as const) : ('in-progress' as const)
+  );
+
+  let panelIA = $state(false);
+
+  const iaNodePos           = $derived({ cx: (dgQuanta.cx * 3 + cx) / 4, cy: (dgQuanta.cy * 3 + cy) / 4 });
+  const iaUnitR             = $derived(Math.round(SPIRAL.unitSize / 2 * 1.35));
+  const iaOutwardAngle      = $derived(Math.atan2(iaNodePos.cy - cy, iaNodePos.cx - cx));
+  const iaDisplayActivities = $derived(displayActivities(iaUnit as ProgramUnit));
 
   // ── C: Zoom / Pan ─────────────────────────────────────────────────────────
   // State: translate(panX, panY) scale(zoomScale) applied to all content.
@@ -357,10 +393,15 @@
 
   function handleUnitClick(unit: ProgramUnit, i: number) {
     if (effectiveStatuses[i] === 'locked') return;
-    // If another unit is already open, ignore — user must collapse it first.
     if (panelUnit && panelUnit.id !== unit.id) return;
+    if (panelIA) panelIA = false;
     if ((unit.activities?.length ?? 0) === 0) { onUnitSelected(unit); return; }
     panelUnit = panelUnit?.id === unit.id ? null : unit;
+  }
+
+  function handleIAClick() {
+    if (panelUnit) panelUnit = null;
+    panelIA = !panelIA;
   }
 
   onMount(() => {
@@ -465,6 +506,13 @@
         <!-- nanoQUANTA — unlocks when U1 (index 1) is completed; never counted as completed -->
         <QuantaCluster cx={dgQuanta.cx} cy={dgQuanta.cy} programShortname={program.shortname}
           isUnlocked={effectiveStatuses[1] === 'completed'} />
+
+        <!-- IA Unit — off-radar, always unlocked, shown in pass-1 when panel is closed -->
+        {#if !panelIA}
+          <IANode cx={iaNodePos.cx} cy={iaNodePos.cy}
+                  status={iaEffectiveStatus} progress={iaProgress}
+                  onSelect={handleIAClick} />
+        {/if}
 
         <!-- Central Sun — 0 compositing ops: rgba baked, filters removed -->
         <circle cx={cx} cy={cy} r={SUN_R + 38} fill="rgba(57,255,20,0.03)"  />
@@ -575,7 +623,7 @@
       </g><!-- end zoomable -->
 
       <!-- Dimming overlay — outside zoom group so it always covers the full viewBox -->
-      {#if panelUnit}
+      {#if panelUnit || panelIA}
         <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h}
               fill="rgba(2,6,20,0.93)" pointer-events="none" />
       {/if}
@@ -622,6 +670,23 @@
         </g>
       {/if}
 
+
+      <!-- Pass 2: IA node + activity orbit above overlay -->
+      {#if panelIA}
+        <g transform={zoomTransform}>
+          <IANode cx={iaNodePos.cx} cy={iaNodePos.cy}
+                  status={iaEffectiveStatus} progress={iaProgress}
+                  onSelect={handleIAClick} />
+          <ActivityOrbit
+            activities={iaDisplayActivities}
+            cx={iaNodePos.cx}
+            cy={iaNodePos.cy}
+            unitR={iaUnitR}
+            outwardAngle={iaOutwardAngle}
+            {onActivitySelected}
+          />
+        </g>
+      {/if}
 
     </svg>
 
