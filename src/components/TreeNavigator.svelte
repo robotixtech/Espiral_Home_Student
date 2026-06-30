@@ -444,20 +444,12 @@
       ondblclick={resetView}
     >
       <defs>
-        <radialGradient id="ss-bg" cx="50%" cy="50%" r="60%">
-          <stop offset="0%"   stop-color={t.bg.center} stop-opacity="0.88" />
-          <stop offset="60%"  stop-color={t.bg.mid}    stop-opacity="0.88" />
-          <stop offset="100%" stop-color={t.bg.edge}   stop-opacity="0.88" />
-        </radialGradient>
         <radialGradient id="ss-sun" cx="35%" cy="35%" r="65%">
           <stop offset="0%"   stop-color="#d4ffcc" />
           <stop offset="50%"  stop-color="#39ff14" />
           <stop offset="100%" stop-color="#006622" />
         </radialGradient>
       </defs>
-
-      <!-- Static background (not affected by zoom) -->
-      <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#ss-bg)" />
 
       <!-- ── Zoomable content ───────────────────────────────────────── -->
       <g transform={zoomTransform}>
