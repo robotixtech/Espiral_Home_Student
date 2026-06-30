@@ -1,7 +1,7 @@
 <script lang="ts">
   import UnitIcon from './UnitIcon.svelte';
   import { getTheme } from '../lib/theme.svelte';
-  import { SPIRAL } from '../lib/master-config';
+  import { SPIRAL, IA_UNIT_CONFIG } from '../lib/master-config';
 
   interface Props {
     cx: number;
@@ -36,7 +36,7 @@
   }}
   tabindex="0"
   role="button"
-  aria-label="Inteligencia Artificial"
+  aria-label={IA_UNIT_CONFIG.ariaLabel}
 >
   <defs>
     <radialGradient id="ia-grad" cx="35%" cy="35%" r="65%">
@@ -80,9 +80,9 @@
       <UnitIcon icon="signal" size={14} color={colors.icon} />
     </g>
     <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside" fill={colors.icon}>IA</text>
+          class="lbl-inside" fill={colors.icon}>{IA_UNIT_CONFIG.label}</text>
     <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-num" fill={colors.icon}>AI</text>
+          class="lbl-unit-num" fill={colors.icon}>{IA_UNIT_CONFIG.sublabel}</text>
   </g>
 </g>
 

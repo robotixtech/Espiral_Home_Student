@@ -345,7 +345,16 @@ export const C350_CONFIG: ProgramConfig = {
 };
 
 // ── IA — Unidad de Inteligencia Artificial (fuera del radar, nunca bloqueada) ──
-export const IA_UNIT_CONFIG: { href: string | null; activities: ActivityConfig[] } = {
+export const IA_UNIT_CONFIG: {
+  label:     string;       // ← texto principal visible en la esfera (e.g. 'IA')
+  sublabel:  string;       // ← identificador secundario bajo la esfera  (e.g. 'AI')
+  ariaLabel: string;       // ← texto accesible (screen readers)
+  href: string | null;
+  activities: ActivityConfig[];
+} = {
+  label:     'IA',                      // ← NOMBRE DE LA ESFERA (texto grande)
+  sublabel:  'AI',                      // ← IDENTIFICADOR (texto pequeño inferior)
+  ariaLabel: 'Inteligencia Artificial', // ← accesibilidad
   href: null,   // ← URL de la unidad IA (null = sin enlace externo; usa el panel de actividades)
   activities: [
     {

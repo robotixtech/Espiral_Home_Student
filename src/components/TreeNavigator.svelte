@@ -31,7 +31,6 @@
   const t = $derived(getTheme());
 
   const orbitRadii    = $derived(program.units.map((_, i) => ORBIT_START + i * ORBIT_STEP));
-  const progLblR      = $derived(orbitRadii[orbitRadii.length - 1] + 160);
 
   // Outermost completed orbit radius — used for the sun pulse animation
   const lastCompletedIdx = $derived(
@@ -455,10 +454,6 @@
           <stop offset="50%"  stop-color="#39ff14" />
           <stop offset="100%" stop-color="#006622" />
         </radialGradient>
-        <!-- Program name label path — same double-loop pattern as DistantGalaxy, at outermost orbit -->
-        <path id="c450-prog-lbl"
-              d="M {cx - progLblR},{cy} a {progLblR},{progLblR} 0 1,1 {progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {-progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {-progLblR * 2},0"
-              fill="none" />
       </defs>
 
       <!-- Static background (not affected by zoom) -->
@@ -520,12 +515,6 @@
         <circle cx={cx} cy={cy} r={SUN_R + 10} fill="rgba(57,255,20,0.10)"  />
         <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="rgba(212,255,204,0.15)" />
         <circle cx={cx} cy={cy} r={SUN_R} fill="url(#ss-sun)" />
-        <text fill="rgba(255,255,255,0.92)" class="prog-label">
-          <textPath href="#c450-prog-lbl" startOffset="54%" text-anchor="middle">
-            {program.shortname}
-          </textPath>
-        </text>
-
         <!-- HUD ring — 0 compositing ops: all opacity baked into rgba stroke colors -->
         {#if true}
           {@const outerR = orbitRadii[orbitRadii.length - 1] + 120}
@@ -692,6 +681,7 @@
 
     <!-- Zoom controls — bottom-left -->
     <div class="zoom-controls">
+      <div class="prog-name-label">{program.shortname}</div>
       <button class="zoom-btn" class:is-active={zoomInActive}
               onclick={zoomInBtn}
               onpointerdown={() => zoomInActive = true}
@@ -742,10 +732,13 @@
   .galaxy-svg { position: absolute; inset: 0; display: block; }
 
 
-:global(.prog-label) {
-    font: 800 32px/1 'Rubik', system-ui, sans-serif;
-    letter-spacing: 8px;
+  .prog-name-label {
+    font: 800 18px/1 'Rubik', system-ui, sans-serif;
+    letter-spacing: 5px;
     text-transform: uppercase;
+    color: rgba(255,255,255,0.85);
+    pointer-events: none;
+    user-select: none;
   }
   :global(.unit-lbl) {
     font: 600 16px/1 'Rubik', system-ui, sans-serif;
