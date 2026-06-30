@@ -1,13 +1,14 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import type { ProgramData, ProgramUnit, Activity } from '../lib/types';
+  import type { ProgramData, ProgramUnit, Activity, UnitStatus, UnitIcon } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
   import { getDistantConfigs } from '../lib/program-config';
   import UnitNode from './UnitNode.svelte';
   import DistantGalaxy from './DistantGalaxy.svelte';
   import ActivityOrbit from './ActivityOrbit.svelte';
   import QuantaCluster from './QuantaCluster.svelte';
-  import { CANVAS, SPIRAL, ZOOM, RADAR } from '../lib/master-config';
+  import IANode from './IANode.svelte';
+  import { CANVAS, SPIRAL, ZOOM, RADAR, IA_UNIT_CONFIG } from '../lib/master-config';
 
   interface Props {
     program: ProgramData;
@@ -30,7 +31,6 @@
   const t = $derived(getTheme());
 
   const orbitRadii    = $derived(program.units.map((_, i) => ORBIT_START + i * ORBIT_STEP));
-  const progLblR      = $derived(orbitRadii[orbitRadii.length - 1] + 160);
 
   // Outermost completed orbit radius — used for the sun pulse animation
   const lastCompletedIdx = $derived(
@@ -136,6 +136,41 @@
   });
   // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
+
+  // ── IA Unit (off-radar, never locked) ─────────────────────────────────────
+  let iaProgress = $state(0);
+
+  const iaUnit = $derived.by(() => ({
+    id: 9999,
+    shortname: 'IA',
+    label: 'Inteligencia Artificial',
+    displayName: 'IA',
+    fullname: 'Inteligencia Artificial',
+    status: 'in-progress' as UnitStatus,
+    progress: iaProgress,
+    courseUrl: IA_UNIT_CONFIG.href ?? '#',
+    icon: 'signal' as UnitIcon,
+    activities: IA_UNIT_CONFIG.activities.map((a, i) => ({
+      id: 9000 + i,
+      label: a.label,
+      status: 'locked' as UnitStatus,
+      progress: 0,
+      icon: a.icon,
+      activityUrl: a.href ?? '#',
+      slides: a.slides,
+    })),
+  }));
+
+  const iaEffectiveStatus = $derived(
+    iaProgress >= 100 ? ('completed' as const) : ('in-progress' as const)
+  );
+
+  let panelIA = $state(false);
+
+  const iaNodePos           = $derived({ cx: (dgQuanta.cx * 3 + cx) / 4, cy: (dgQuanta.cy * 3 + cy) / 4 });
+  const iaUnitR             = $derived(Math.round(SPIRAL.unitSize / 2 * 1.35));
+  const iaOutwardAngle      = $derived(Math.atan2(iaNodePos.cy - cy, iaNodePos.cx - cx));
+  const iaDisplayActivities = $derived(displayActivities(iaUnit as ProgramUnit));
 
   // ── C: Zoom / Pan ─────────────────────────────────────────────────────────
   // State: translate(panX, panY) scale(zoomScale) applied to all content.
@@ -355,10 +390,15 @@
 
   function handleUnitClick(unit: ProgramUnit, i: number) {
     if (effectiveStatuses[i] === 'locked') return;
-    // If another unit is already open, ignore — user must collapse it first.
     if (panelUnit && panelUnit.id !== unit.id) return;
+    if (panelIA) panelIA = false;
     if ((unit.activities?.length ?? 0) === 0) { onUnitSelected(unit); return; }
     panelUnit = panelUnit?.id === unit.id ? null : unit;
+  }
+
+  function handleIAClick() {
+    if (panelUnit) panelUnit = null;
+    panelIA = !panelIA;
   }
 
   onMount(() => {
@@ -412,10 +452,6 @@
           <stop offset="50%"  stop-color="#39ff14" />
           <stop offset="100%" stop-color="#006622" />
         </radialGradient>
-        <!-- Program name label path — same double-loop pattern as DistantGalaxy, at outermost orbit -->
-        <path id="c450-prog-lbl"
-              d="M {cx - progLblR},{cy} a {progLblR},{progLblR} 0 1,1 {progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {-progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {progLblR * 2},0 a {progLblR},{progLblR} 0 1,1 {-progLblR * 2},0"
-              fill="none" />
       </defs>
 
       <!-- Static background (not affected by zoom) -->
@@ -464,17 +500,19 @@
         <QuantaCluster cx={dgQuanta.cx} cy={dgQuanta.cy} programShortname={program.shortname}
           isUnlocked={effectiveStatuses[1] === 'completed'} />
 
+        <!-- IA Unit — off-radar, always unlocked, shown in pass-1 when panel is closed -->
+        {#if !panelIA}
+          <IANode cx={iaNodePos.cx} cy={iaNodePos.cy}
+                  status={iaEffectiveStatus} progress={iaProgress}
+                  onSelect={handleIAClick} />
+        {/if}
+
         <!-- Central Sun — 0 compositing ops: rgba baked, filters removed -->
         <circle cx={cx} cy={cy} r={SUN_R + 38} fill="rgba(57,255,20,0.03)"  />
         <circle cx={cx} cy={cy} r={SUN_R + 22} fill="rgba(57,255,20,0.05)"  />
         <circle cx={cx} cy={cy} r={SUN_R + 10} fill="rgba(57,255,20,0.10)"  />
         <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="rgba(212,255,204,0.15)" />
         <circle cx={cx} cy={cy} r={SUN_R} fill="url(#ss-sun)" />
-        <text fill="rgba(255,255,255,0.92)" class="prog-label">
-          <textPath href="#c450-prog-lbl" startOffset="54%" text-anchor="middle">
-            {program.shortname}
-          </textPath>
-        </text>
 
         <!-- HUD ring — 0 compositing ops: all opacity baked into rgba stroke colors -->
         {#if true}
@@ -573,7 +611,7 @@
       </g><!-- end zoomable -->
 
       <!-- Dimming overlay — outside zoom group so it always covers the full viewBox -->
-      {#if panelUnit}
+      {#if panelUnit || panelIA}
         <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h}
               fill="rgba(2,6,20,0.93)" pointer-events="none" />
       {/if}
@@ -621,10 +659,28 @@
       {/if}
 
 
+      <!-- Pass 2: IA node + activity orbit above overlay -->
+      {#if panelIA}
+        <g transform={zoomTransform}>
+          <IANode cx={iaNodePos.cx} cy={iaNodePos.cy}
+                  status={iaEffectiveStatus} progress={iaProgress}
+                  onSelect={handleIAClick} />
+          <ActivityOrbit
+            activities={iaDisplayActivities}
+            cx={iaNodePos.cx}
+            cy={iaNodePos.cy}
+            unitR={iaUnitR}
+            outwardAngle={iaOutwardAngle}
+            {onActivitySelected}
+          />
+        </g>
+      {/if}
+
     </svg>
 
     <!-- Zoom controls — bottom-left -->
     <div class="zoom-controls">
+      <div class="prog-name-label">{program.shortname}</div>
       <button class="zoom-btn" class:is-active={zoomInActive}
               onclick={zoomInBtn}
               onpointerdown={() => zoomInActive = true}
@@ -675,10 +731,15 @@
   .galaxy-svg { position: absolute; inset: 0; display: block; }
 
 
-:global(.prog-label) {
-    font: 800 32px/1 'Rubik', system-ui, sans-serif;
-    letter-spacing: 8px;
+  .prog-name-label {
+    font: 800 18px/1 'Rubik', system-ui, sans-serif;
+    letter-spacing: 5px;
     text-transform: uppercase;
+    color: rgba(255,255,255,0.85);
+    text-align: center;
+    padding: 4px 6px;
+    pointer-events: none;
+    user-select: none;
   }
   :global(.unit-lbl) {
     font: 600 16px/1 'Rubik', system-ui, sans-serif;
