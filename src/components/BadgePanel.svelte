@@ -11,7 +11,7 @@
 
   let { program }: Props = $props();
 
-  const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_2.png');
+  const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_opacity.png');
 
   const badgeUnits = $derived.by(() => {
     const sorted = program.units
