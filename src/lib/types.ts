@@ -63,6 +63,7 @@ export interface ProgramData {
   id: number;
   shortname: string;
   fullname: string;
+  quantaUrl?: string;
   /** The central "sun" node — always rendered at the galaxy center */
   sun: ProgramUnit;
   /** Units that orbit the sun along the spiral */

@@ -461,8 +461,13 @@
         <DistantGalaxy config={distantConfigs[2].config} isCompleted={distantConfigs[2].isCompleted} cx={dgFuture.cx} cy={dgFuture.cy} scale={0.20} opacity={0.62} fontScale={0.7} />
         <DistantGalaxy config={distantConfigs[0].config} isCompleted={distantConfigs[0].isCompleted} cx={dgPrev.cx}   cy={dgPrev.cy}   scale={0.30} opacity={0.75} fontScale={0.6} />
         <!-- nanoQUANTA — unlocks when U1 (index 1) is completed; never counted as completed -->
-        <QuantaCluster cx={dgQuanta.cx} cy={dgQuanta.cy} programShortname={program.shortname}
-          isUnlocked={effectiveStatuses[1] === 'completed'} />
+<QuantaCluster 
+  cx={dgQuanta.cx} 
+  cy={dgQuanta.cy} 
+  programShortname={program.shortname}
+  isUnlocked={effectiveStatuses[1] === 'completed'} 
+  quantaUrl={program.quantaUrl} 
+/>
 
         <!-- Central Sun — 0 compositing ops: rgba baked, filters removed -->
         <circle cx={cx} cy={cy} r={SUN_R + 38} fill="rgba(57,255,20,0.03)"  />

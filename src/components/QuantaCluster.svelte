@@ -8,16 +8,20 @@
     cy: number;
     programShortname: string;
     isUnlocked?: boolean;
+    quantaUrl?: string | null; // <- NUEVO: Recibimos la prop
   }
 
-  let { cx, cy, programShortname, isUnlocked = false }: Props = $props();
+  // Desestructuramos la nueva prop con valor nulo por defecto
+  let { cx, cy, programShortname, isUnlocked = false, quantaUrl = null }: Props = $props();
 
   const theme  = $derived(getTheme());
   const colors = $derived(isUnlocked ? theme.unit.inProgress : theme.unit.locked);
 
   const isNano = $derived(QUANTA.nanoPrograms.includes(programShortname));
   const label  = $derived(isNano ? QUANTA.nanoLabel : QUANTA.label);
-  const url    = $derived(isNano ? QUANTA.nanoUrl   : QUANTA.url);
+  
+  // 🔥 LÓGICA CLAVE: Priorizamos la URL de Moodle. Si no existe, usamos la estática.
+  const url = $derived(quantaUrl ? quantaUrl : (isNano ? QUANTA.nanoUrl : QUANTA.url));
 
   // Sphere geometry — matches SPIRAL.unitSize in master-config
   const size = SPIRAL.unitSize;

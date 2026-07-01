@@ -134,7 +134,7 @@
     /* --vvh is set by App.svelte via visualViewport API (same fix used for app-root).
        Conservative 240px overhead (190 + 50px) guards against pre-JS render. */
     height: 100vh;
-    --badge-size: clamp(55px, calc((100vh - 240px) / 6), 110px);
+    --badge-size: clamp(50px, calc((100vh - 240px) / 6), 110px);
     /* flex row: [handle | content] */
     display: flex;
     flex-direction: row;
