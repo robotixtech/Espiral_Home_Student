@@ -106,16 +106,19 @@
   // container — no separate plaque. Both bands share the sphere's colour, so the title reads
   // as etched on the ring.
   const RING_RY = 10;                                    // orbital tilt: edge curvature
-  const BAND_HH = 14.3;                                  // half the ring band height (holds the title) — +30%
-  const titleFont = $derived(20 * statusScale);          // ring title font; grows with the inProgress sphere
+  // Half the ring band height (holds the title). inProgress spheres get a taller band so the
+  // enlarged title keeps comfortable top/bottom padding instead of hugging the edges.
+  const BAND_HH = $derived(unit.status === 'in-progress' ? 18.5 : 14.3);
+  const titleFont = $derived(20 * statusScale * (unit.status === 'in-progress' ? 1.2 : 1)); // inProgress: +20%
   const bandW   = $derived(Math.max(lblWords.length * 13 * statusScale + 24, sz * 0.85));
   const ringRX  = $derived(Math.max(bandW / 2, r + 12));  // ring extends past the sphere sides
 
-  // Compact icon: +30% larger (16 → 20.8) and vertically centred in the gap between the
-  // ring band's top edge (y = −BAND_HH at centre) and the sphere's top (y = −r).
-  const C_ICON  = 20.8;
-  const cIconTX = -C_ICON / 2;                            // top-left x so the icon centres on x=0
-  const cIconTY = $derived((-BAND_HH - r) / 2 - C_ICON / 2);
+  // Compact icon: base 20.8, doubled for inProgress spheres. Vertically centred in the gap
+  // between the ring band's top edge (y = −BAND_HH at centre) and the sphere's top (y = −r).
+  const C_ICON_BASE = 20.8;
+  const cIcon   = $derived(unit.status === 'in-progress' ? C_ICON_BASE * 2 : C_ICON_BASE);
+  const cIconTX = $derived(-cIcon / 2);                   // top-left x so the icon centres on x=0
+  const cIconTY = $derived((-BAND_HH - r) / 2 - cIcon / 2);
 
   // Shift the band up by RING_RY so the near band's centreline dips exactly onto y=0,
   // where the title sits — otherwise the downward bow pushes the text to the top edge.
@@ -243,7 +246,7 @@
 
   {#if !isActive}
     <!-- Icon on the upper sphere, outside the ring; title inside the front band -->
-    <svg x={cIconTX} y={cIconTY} width={C_ICON} height={C_ICON} viewBox="0 0 24 24"
+    <svg x={cIconTX} y={cIconTY} width={cIcon} height={cIcon} viewBox="0 0 24 24"
          fill="none" stroke="#4b5563" stroke-opacity="0.6" stroke-width="1.8"
          stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -256,7 +259,7 @@
   {:else if compact}
     <!-- Icon on the upper sphere, outside the band; title inside the front band -->
     <g transform="translate({cIconTX},{cIconTY})">
-      <UnitIcon icon={unit.icon} size={C_ICON} color="#00102A" />
+      <UnitIcon icon={unit.icon} size={cIcon} color="#00102A" />
     </g>
     <text text-anchor="middle" dominant-baseline="middle"
           class="lbl-inside-pill" fill="#001f3f" style="font-size: {titleFont}px">

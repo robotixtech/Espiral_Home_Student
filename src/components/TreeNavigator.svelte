@@ -83,7 +83,7 @@
   // widens toward the leading edge (the child's current position), like a beam of light —
   // conveying the "next step" flow through thickness alone, no reading required.
   const RIBBON_W_MIN = 1.5;   // width at the centre / start
-  const RIBBON_W_MAX = 11;    // width at the leading edge (current position)
+  const RIBBON_W_MAX = 13.2;  // width at the leading edge — +20% to emphasise the widening
 
   function learnRibbonPath(toIdx: number): string {
     const thetaTo = toIdx <= 0 ? THETA_ZERO : START_ANGLE + (toIdx - 1) * GOLDEN;
