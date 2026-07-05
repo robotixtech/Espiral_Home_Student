@@ -99,26 +99,28 @@
     return lines.slice(0, 2);
   }
 
-  /** Combined outline path: union of circle (radius R) + capsule (width W, height H).
-   *  Traces sphere arcs on top/bottom and capsule caps on left/right. */
-  function combinedOutline(R: number, W: number, H: number): string {
-    const hh = H / 2;              // capsule half-height
-    const hw = W / 2;              // capsule half-width
-    const cr = hh;                 // cap radius = half-height (fully rounded)
-    const cc = hw - cr;            // cap center x
-    const xi = Math.sqrt(R * R - hh * hh); // intersection x
-    return [
-      `M ${xi.toFixed(1)} ${-hh}`,
-      `L ${cc.toFixed(1)} ${-hh}`,
-      `A ${cr} ${cr} 0 0 1 ${cc.toFixed(1)} ${hh}`,
-      `L ${xi.toFixed(1)} ${hh}`,
-      `A ${R} ${R} 0 0 0 ${(-xi).toFixed(1)} ${hh}`,
-      `L ${(-cc).toFixed(1)} ${hh}`,
-      `A ${cr} ${cr} 0 0 1 ${(-cc).toFixed(1)} ${-hh}`,
-      `L ${(-xi).toFixed(1)} ${-hh}`,
-      `A ${R} ${R} 0 0 0 ${xi.toFixed(1)} ${-hh}`,
-      'Z',
-    ].join(' ');
+  // Elliptical belt wrapping the sphere's equator (a ring around a globe). Built from
+  // two rim ellipses offset vertically by the belt height, joined by side tabs. The
+  // near face crosses in front (below the title), the far face passes behind, and the
+  // side tabs stick out past the sphere silhouette — the 3-D "wrap" cue.
+  const BELT_RY = 11;                           // rim ellipse vertical radius (perspective)
+  const BELT_HH = 12;                           // half the belt strap height (holds the title)
+  const BELT_YC = -BELT_RY;                     // shift up so the near face (title band) centres on y=0
+  const pillW = $derived(Math.max(lblWords.length * 11 + 16, sz - 4));
+  const beltRX = $derived(Math.max(pillW / 2, r + 4));   // half width; sticks past the sphere
+
+  /** One face of the belt: a constant-height band between the two rim ellipses, closed
+   *  by vertical side tabs. front=true → near face (bows down, crosses in front and
+   *  carries the title); front=false → far face (bows up, behind the sphere). */
+  function beltFace(front: boolean): string {
+    const sTop = front ? 0 : 1;   // top rim arc: front bows down, back bows up
+    const sBot = front ? 1 : 0;   // bottom rim arc (traced back the other way)
+    const f = (n: number) => n.toFixed(1);
+    const RX = beltRX;
+    const yT = BELT_YC - BELT_HH; // top rim centre
+    const yB = BELT_YC + BELT_HH; // bottom rim centre
+    return `M ${f(-RX)} ${f(yT)} A ${f(RX)} ${BELT_RY} 0 0 ${sTop} ${f(RX)} ${f(yT)} `
+         + `L ${f(RX)} ${f(yB)} A ${f(RX)} ${BELT_RY} 0 0 ${sBot} ${f(-RX)} ${f(yB)} Z`;
   }
 
   let selected = $state(false);
@@ -161,7 +163,6 @@
   </defs>
 
   {#if isActive}
-    <circle class:heartbeat={isInProgress} cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
     <!-- Hover glow border -->
     <circle class="halo-ring" cx="0" cy="0" r={r + 5} fill="none"
             stroke={colors.glow} stroke-width="0.8" />
@@ -173,94 +174,65 @@
             stroke="#ffffff" stroke-width="0" />
   {/if}
 
-  <circle
-    class:heartbeat={isInProgress}
-    cx="0" cy="0" r={r}
-    fill="url(#{gradId})"
-    filter={unit.status === 'completed' ? `url(#glow-${index})` : undefined}
-  />
+  <!-- Beat group: sphere, rings and pill scale together on heartbeat / hover,
+       so the continuous sphere+pill outline moves as a single object. -->
+  <g class="beat" class:heartbeat={isInProgress}>
+    {#if isActive}
+      <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
+    {/if}
 
-  {#if isActive}
-    <circle cx="0" cy="0" r={pr} fill="none" stroke={theme.progressRingBg} stroke-width={sw} />
+    <!-- Belt: far face, drawn behind the sphere (peeks around the sides) -->
+    {#if compact}
+      <path d={beltFace(false)} fill={colors.ring} fill-opacity="0.35"
+            stroke={colors.ring} stroke-opacity="0.5" stroke-width="1" />
+    {/if}
+
     <circle
-      cx="0" cy="0" r={pr}
-      fill="none" stroke={colors.ring} stroke-width={sw}
-      stroke-dasharray={circ} stroke-dashoffset={dashOff}
-      stroke-linecap="round" transform="rotate(-90)"
-      class="progress-ring"
+      cx="0" cy="0" r={r}
+      fill="url(#{gradId})"
+      filter={unit.status === 'completed' ? `url(#glow-${index})` : undefined}
     />
 
+    {#if isActive}
+      <circle cx="0" cy="0" r={pr} fill="none" stroke={theme.progressRingBg} stroke-width={sw} />
+      <circle
+        cx="0" cy="0" r={pr}
+        fill="none" stroke={colors.ring} stroke-width={sw}
+        stroke-dasharray={circ} stroke-dashoffset={dashOff}
+        stroke-linecap="round" transform="rotate(-90)"
+        class="progress-ring"
+      />
+    {/if}
+
+  <!-- Belt: near face — the title band, crossing in front with side tabs -->
+  {#if compact}
+    {@const d = beltFace(true)}
+    <path {d} fill={colors.g2} filter="url(#pill-shadow-{index})" />
+    <path {d} fill="rgba(255,255,255,0.4)" stroke={colors.ring}
+          stroke-width="1.5" stroke-linejoin="round" />
   {/if}
 
   {#if !isActive}
-    {@const firstWord = unit.label.split(' ')[0]}
-    {@const cs = r / 50}
-    {@const pillW = Math.max(firstWord.length * 11 + 28, sz + 20)}
-    <!-- Combined outline: sphere + pill as one continuous border -->
-    <path d={combinedOutline(r, pillW, 32)} fill="none"
-          stroke={colors.ring} stroke-width="1.5" stroke-opacity="0.7" />
-    <!-- Opaque mask: covers sphere border behind the pill area -->
-    <rect x={-pillW / 2} y={-16} width={pillW} height={32} rx={16}
-          fill={colors.g2} />
-    <g transform="scale({cs})">
-      <svg x="-7" y="-32" width="14" height="14" viewBox="0 0 24 24"
-           fill="none" stroke={colors.icon} stroke-width="1.8"
-           stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-      </svg>
-      <rect x={-pillW / 2 / cs} y={-16 / cs} width={pillW / cs} height={32 / cs}
-            rx={16 / cs} fill="rgba(255,255,255,0.35)"
-            stroke="rgba(255,255,255,0.3)" stroke-width={1 / cs}
-            filter="url(#pill-shadow-{index})" />
-      <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-inside-pill" fill="#4b5563" fill-opacity="0.6">{firstWord}</text>
-      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-unit-num" fill="#4b5563" fill-opacity="0.5">U{index}</text>
-    </g>
+    <!-- Icon on the upper sphere, outside the ring; title inside the front band -->
+    <svg x="-8" y="-30" width="16" height="16" viewBox="0 0 24 24"
+         fill="none" stroke={colors.icon} stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
+          class="lbl-inside-pill" fill="#4b5563" fill-opacity="0.6">{lblWords}</text>
+    <text x="0" y={r - 9} text-anchor="middle" dominant-baseline="middle"
+          class="lbl-unit-num" fill="#4b5563" fill-opacity="0.5">U{index}</text>
   {:else if compact}
-    {@const firstWord = unit.label.split(' ')[0]}
-    {@const cs = r / 50}
-    {@const pillPad = isInProgress ? 44 : 28}
-    {@const pillW = Math.max(firstWord.length * 11 + pillPad, sz + 20)}
-    <!-- Opaque mask: covers progress ring behind the pill area -->
-    <rect x={-pillW / 2} y={-16} width={pillW} height={32} rx={16}
-          fill={colors.g2} />
-    <g transform="scale({cs})">
-      <g transform="translate(-7,-32)">
-        <UnitIcon icon={unit.icon} size={14} color={colors.icon} />
-      </g>
-      <rect x={-pillW / 2 / cs} y={-16 / cs} width={pillW / cs} height={32 / cs}
-            rx={16 / cs} fill="rgba(255,255,255,0.35)"
-            stroke="rgba(255,255,255,0.3)" stroke-width={1 / cs}
-            filter="url(#pill-shadow-{index})" />
-      <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-inside-pill" fill="#001f3f">{firstWord}</text>
-      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-unit-num" fill={colors.icon}>U{index}</text>
+    <!-- Icon on the upper sphere, outside the band; title inside the front band -->
+    <g transform="translate(-8,-30)">
+      <UnitIcon icon={unit.icon} size={16} color={colors.icon} />
     </g>
-    <!-- Combined outline borders: sphere arcs + pill caps as continuous paths -->
-    <defs>
-      <clipPath id="pcl-{index}">
-        <path fill-rule="evenodd"
-              d="M {-pillW - 10} {-r - 20} h {(pillW + 10) * 2} v {(r + 20) * 2} h {-(pillW + 10) * 2} Z M 0 {-pr} a {pr} {pr} 0 1 0 0 {pr * 2} a {pr} {pr} 0 1 0 0 {-pr * 2} Z" />
-      </clipPath>
-      <clipPath id="pclt-{index}">
-        <path fill-rule="evenodd"
-              d="M {-pillW - 10} {-r - 20} h {(pillW + 10) * 2} v {(r + 20) * 2} h {-(pillW + 10) * 2} Z M 0 {-(r + 3)} a {r + 3} {r + 3} 0 1 0 0 {(r + 3) * 2} a {r + 3} {r + 3} 0 1 0 0 {-(r + 3) * 2} Z" />
-      </clipPath>
-    </defs>
-    <!-- Thick border (continues progress ring) -->
-    <path d={combinedOutline(pr, pillW, 32)} fill="none"
-          stroke={theme.progressRingBg} stroke-width={sw}
-          clip-path="url(#pcl-{index})" />
-    <path d={combinedOutline(pr, pillW, 32)} fill="none"
-          stroke={colors.ring} stroke-width={sw}
-          clip-path="url(#pcl-{index})" />
-    <!-- Thin border (continues glow ring) -->
-    <path d={combinedOutline(r + 3, pillW + 6, 38)} fill="none"
-          stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25"
-          clip-path="url(#pclt-{index})" />
+    <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
+          class="lbl-inside-pill" fill="#001f3f">{lblWords}</text>
+    <text x="0" y={r - 9} text-anchor="middle" dominant-baseline="middle"
+          class="lbl-unit-num" fill={colors.icon}>U{index}</text>
   {:else}
     <!-- Full mode (UnitDetailView center node, etc.) -->
     <g transform="translate({-iconOff}, {-iconOff - 5})">
@@ -271,6 +243,7 @@
       {unit.displayName}
     </text>
   {/if}
+  </g>
 
   <!-- Labels -->
   {#if compact}
@@ -367,9 +340,17 @@
     transition: stroke-opacity 0.3s ease, stroke-width 0.3s ease;
   }
 
+  /* Whole sphere+pill group shares one transform origin so scale stays centered */
+  .beat { transform-origin: 0 0; }
+
   .heartbeat {
     animation: heartbeat 2s ease-in-out infinite;
     transform-origin: 0 0;
+  }
+
+  /* Hover: the entire shape (sphere + pill) breathes together, not just the sphere */
+  @media (hover: hover) {
+    .node.clickable:hover .beat { animation: heartbeat 2s ease-in-out infinite; }
   }
   @keyframes heartbeat {
     0%   { transform: scale(1); }
@@ -386,7 +367,6 @@
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
   .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
-  .lbl-inside      { font: 700 13px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
   .lbl-inside-pill { font: 700 16px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
   .lbl-unit-num    { font: 400 10px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
 </style>
