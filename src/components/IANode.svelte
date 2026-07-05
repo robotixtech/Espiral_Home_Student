@@ -24,6 +24,20 @@
   const circ  = 2 * Math.PI * pr;
   const dashOff = $derived(circ - (progress / 100) * circ);
   const cs    = r / 50;          // 1.0
+  const firstWord = IA_UNIT_CONFIG.label;
+  const pillW = Math.max(firstWord.length * 11 + 44, size + 20);
+
+  function combinedOutline(R: number, W: number, H: number): string {
+    const hh = H / 2, hw = W / 2, cr = hh, cc = hw - cr;
+    const xi = Math.sqrt(R * R - hh * hh);
+    return [
+      `M ${xi.toFixed(1)} ${-hh}`, `L ${cc.toFixed(1)} ${-hh}`,
+      `A ${cr} ${cr} 0 0 1 ${cc.toFixed(1)} ${hh}`, `L ${xi.toFixed(1)} ${hh}`,
+      `A ${R} ${R} 0 0 0 ${(-xi).toFixed(1)} ${hh}`, `L ${(-cc).toFixed(1)} ${hh}`,
+      `A ${cr} ${cr} 0 0 1 ${(-cc).toFixed(1)} ${-hh}`, `L ${(-xi).toFixed(1)} ${-hh}`,
+      `A ${R} ${R} 0 0 0 ${xi.toFixed(1)} ${-hh}`, 'Z',
+    ].join(' ');
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -74,20 +88,31 @@
           stroke-linecap="round" transform="rotate(-90)"
           class="progress-ring" />
 
-  <!-- Inner content -->
+  <!-- Opaque mask + pill -->
+  <rect x={-pillW / 2} y={-16} width={pillW} height={32} rx={16} fill={colors.g2} />
   <g transform="scale({cs})">
     <g transform="translate(-7,-32)">
       <UnitIcon icon="signal" size={14} color={colors.icon} />
     </g>
-    <text x="0.8" y="0.8" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside" fill="rgba(0,0,0,0.45)">{IA_UNIT_CONFIG.label}</text>
-    <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside" fill={colors.icon}>{IA_UNIT_CONFIG.label}</text>
-    <text x="0.8" y="25.8" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-num" fill="rgba(0,0,0,0.45)">{IA_UNIT_CONFIG.sublabel}</text>
+    <rect x={-pillW / 2 / cs} y={-16 / cs} width={pillW / cs} height={32 / cs}
+          rx={16 / cs} fill="rgba(255,255,255,0.35)"
+          stroke="rgba(255,255,255,0.3)" stroke-width={1 / cs} />
+    <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
+          class="lbl-inside-pill" fill="#001f3f">{IA_UNIT_CONFIG.label}</text>
     <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
           class="lbl-unit-num" fill={colors.icon}>{IA_UNIT_CONFIG.sublabel}</text>
   </g>
+  <!-- Combined outline borders clipped to outside sphere -->
+  <defs>
+    <clipPath id="pcl-ia">
+      <path fill-rule="evenodd"
+            d="M {-pillW - 10} {-r - 20} h {(pillW + 10) * 2} v {(r + 20) * 2} h {-(pillW + 10) * 2} Z M 0 {-pr} a {pr} {pr} 0 1 0 0 {pr * 2} a {pr} {pr} 0 1 0 0 {-pr * 2} Z" />
+    </clipPath>
+  </defs>
+  <path d={combinedOutline(pr, pillW, 32)} fill="none"
+        stroke={theme.progressRingBg} stroke-width={sw} clip-path="url(#pcl-ia)" />
+  <path d={combinedOutline(pr, pillW, 32)} fill="none"
+        stroke={colors.ring} stroke-width={sw} clip-path="url(#pcl-ia)" />
 </g>
 
 <style>
@@ -126,5 +151,6 @@
   }
 
   .lbl-inside   { font: 700 13px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .lbl-inside-pill { font: 700 16px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
   .lbl-unit-num { font: 400 10px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
 </style>

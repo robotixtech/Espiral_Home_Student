@@ -30,6 +30,19 @@
   // Inner content scale factor (same formula as UnitNode compact)
   const cs = r / 50;           // 1.0 for r=50
   const firstWord = $derived(label.split(' ')[0]);
+  const pillW = $derived(Math.max(firstWord.length * 11 + 28, size + 20));
+
+  function combinedOutline(R: number, W: number, H: number): string {
+    const hh = H / 2, hw = W / 2, cr = hh, cc = hw - cr;
+    const xi = Math.sqrt(R * R - hh * hh);
+    return [
+      `M ${xi.toFixed(1)} ${-hh}`, `L ${cc.toFixed(1)} ${-hh}`,
+      `A ${cr} ${cr} 0 0 1 ${cc.toFixed(1)} ${hh}`, `L ${xi.toFixed(1)} ${hh}`,
+      `A ${R} ${R} 0 0 0 ${(-xi).toFixed(1)} ${hh}`, `L ${(-cc).toFixed(1)} ${hh}`,
+      `A ${cr} ${cr} 0 0 1 ${(-cc).toFixed(1)} ${-hh}`, `L ${(-xi).toFixed(1)} ${-hh}`,
+      `A ${R} ${R} 0 0 0 ${xi.toFixed(1)} ${-hh}`, 'Z',
+    ].join(' ');
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -78,35 +91,54 @@
             stroke-dasharray={circ} stroke-dashoffset={dashOff}
             stroke-linecap="round" transform="rotate(-90)"
             class="progress-ring" />
-  {:else}
-    <!-- Locked: outer border ring -->
-    <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.5" stroke-opacity="0.7" />
-  {/if}
-
-  <!-- Inner content: icon/lock + label (same structure as UnitNode compact) -->
-  <g transform="scale({cs})" class:dimmed={!isUnlocked}>
-    <!-- Icon slot: rocket when unlocked, lock icon when locked — same position -->
-    <g transform="translate(-7,-32)">
-      {#if isUnlocked}
+    <!-- Opaque mask + pill -->
+    <rect x={-pillW / 2} y={-16} width={pillW} height={32} rx={16} fill={colors.g2} />
+    <g transform="scale({cs})">
+      <g transform="translate(-7,-32)">
         <UnitIcon icon="rocket" size={14} color={colors.icon} />
-      {:else}
+      </g>
+      <rect x={-pillW / 2 / cs} y={-16 / cs} width={pillW / cs} height={32 / cs}
+            rx={16 / cs} fill="rgba(255,255,255,0.35)"
+            stroke="rgba(255,255,255,0.3)" stroke-width={1 / cs} />
+      <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-inside-pill" fill="#001f3f">{firstWord}</text>
+      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-unit-num" fill={colors.icon}>OS</text>
+    </g>
+    <!-- Combined outline borders clipped to outside sphere -->
+    <defs>
+      <clipPath id="pcl-qc">
+        <path fill-rule="evenodd"
+              d="M {-pillW - 10} {-r - 20} h {(pillW + 10) * 2} v {(r + 20) * 2} h {-(pillW + 10) * 2} Z M 0 {-pr} a {pr} {pr} 0 1 0 0 {pr * 2} a {pr} {pr} 0 1 0 0 {-pr * 2} Z" />
+      </clipPath>
+    </defs>
+    <path d={combinedOutline(pr, pillW, 32)} fill="none"
+          stroke={theme.progressRingBg} stroke-width={sw} clip-path="url(#pcl-qc)" />
+    <path d={combinedOutline(pr, pillW, 32)} fill="none"
+          stroke={colors.ring} stroke-width={sw} clip-path="url(#pcl-qc)" />
+  {:else}
+    <!-- Locked: combined outline -->
+    <path d={combinedOutline(r, pillW, 32)} fill="none"
+          stroke={colors.ring} stroke-width="1.5" stroke-opacity="0.7" />
+    <rect x={-pillW / 2} y={-16} width={pillW} height={32} rx={16} fill={colors.g2} />
+    <g transform="scale({cs})" class="dimmed">
+      <g transform="translate(-7,-32)">
         <svg x="0" y="0" width="14" height="14" viewBox="0 0 24 24"
              fill="none" stroke={colors.icon} stroke-width="2.5"
              stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
-      {/if}
+      </g>
+      <rect x={-pillW / 2 / cs} y={-16 / cs} width={pillW / cs} height={32 / cs}
+            rx={16 / cs} fill="rgba(255,255,255,0.35)"
+            stroke="rgba(255,255,255,0.3)" stroke-width={1 / cs} />
+      <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-inside-pill" fill="#4b5563" fill-opacity="0.6">{firstWord}</text>
+      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-unit-num" fill="#4b5563" fill-opacity="0.5">OS</text>
     </g>
-    <text x="0.8" y="0.8" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside" fill="rgba(0,0,0,0.45)">{firstWord}</text>
-    <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside" fill={colors.icon}>{firstWord}</text>
-    <text x="0.8" y="25.8" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-num" fill="rgba(0,0,0,0.45)">OS</text>
-    <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-num" fill={colors.icon}>OS</text>
-  </g>
+  {/if}
 </g>
 
 <style>
@@ -134,5 +166,6 @@
   .progress-ring { transition: stroke-dashoffset 1s ease; }
 
   .lbl-inside   { font: 700 13px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .lbl-inside-pill { font: 700 16px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
   .lbl-unit-num { font: 400 10px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
 </style>

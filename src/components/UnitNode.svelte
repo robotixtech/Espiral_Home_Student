@@ -99,6 +99,28 @@
     return lines.slice(0, 2);
   }
 
+  /** Combined outline path: union of circle (radius R) + capsule (width W, height H).
+   *  Traces sphere arcs on top/bottom and capsule caps on left/right. */
+  function combinedOutline(R: number, W: number, H: number): string {
+    const hh = H / 2;              // capsule half-height
+    const hw = W / 2;              // capsule half-width
+    const cr = hh;                 // cap radius = half-height (fully rounded)
+    const cc = hw - cr;            // cap center x
+    const xi = Math.sqrt(R * R - hh * hh); // intersection x
+    return [
+      `M ${xi.toFixed(1)} ${-hh}`,
+      `L ${cc.toFixed(1)} ${-hh}`,
+      `A ${cr} ${cr} 0 0 1 ${cc.toFixed(1)} ${hh}`,
+      `L ${xi.toFixed(1)} ${hh}`,
+      `A ${R} ${R} 0 0 0 ${(-xi).toFixed(1)} ${hh}`,
+      `L ${(-cc).toFixed(1)} ${hh}`,
+      `A ${cr} ${cr} 0 0 1 ${(-cc).toFixed(1)} ${-hh}`,
+      `L ${(-xi).toFixed(1)} ${-hh}`,
+      `A ${R} ${R} 0 0 0 ${xi.toFixed(1)} ${-hh}`,
+      'Z',
+    ].join(' ');
+  }
+
   let selected = $state(false);
   function onSelect() {
     if (!isActive) return;
@@ -131,6 +153,10 @@
         <feMergeNode in="blur" />
         <feMergeNode in="SourceGraphic" />
       </feMerge>
+    </filter>
+    <filter id="pill-shadow-{index}" filterUnits="userSpaceOnUse"
+            x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.25)" />
     </filter>
   </defs>
 
@@ -169,7 +195,13 @@
   {#if !isActive}
     {@const firstWord = unit.label.split(' ')[0]}
     {@const cs = r / 50}
-    <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.5" stroke-opacity="0.7" />
+    {@const pillW = Math.max(firstWord.length * 11 + 28, sz + 20)}
+    <!-- Combined outline: sphere + pill as one continuous border -->
+    <path d={combinedOutline(r, pillW, 32)} fill="none"
+          stroke={colors.ring} stroke-width="1.5" stroke-opacity="0.7" />
+    <!-- Opaque mask: covers sphere border behind the pill area -->
+    <rect x={-pillW / 2} y={-16} width={pillW} height={32} rx={16}
+          fill={colors.g2} />
     <g transform="scale({cs})">
       <svg x="-7" y="-32" width="14" height="14" viewBox="0 0 24 24"
            fill="none" stroke={colors.icon} stroke-width="1.8"
@@ -177,23 +209,58 @@
         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
       </svg>
-      <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-inside" fill={colors.icon}>{firstWord}</text>
+      <rect x={-pillW / 2 / cs} y={-16 / cs} width={pillW / cs} height={32 / cs}
+            rx={16 / cs} fill="rgba(255,255,255,0.35)"
+            stroke="rgba(255,255,255,0.3)" stroke-width={1 / cs}
+            filter="url(#pill-shadow-{index})" />
+      <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-inside-pill" fill="#4b5563" fill-opacity="0.6">{firstWord}</text>
       <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-unit-num" fill={colors.icon}>U{index}</text>
+            class="lbl-unit-num" fill="#4b5563" fill-opacity="0.5">U{index}</text>
     </g>
   {:else if compact}
     {@const firstWord = unit.label.split(' ')[0]}
     {@const cs = r / 50}
+    {@const pillPad = isInProgress ? 44 : 28}
+    {@const pillW = Math.max(firstWord.length * 11 + pillPad, sz + 20)}
+    <!-- Opaque mask: covers progress ring behind the pill area -->
+    <rect x={-pillW / 2} y={-16} width={pillW} height={32} rx={16}
+          fill={colors.g2} />
     <g transform="scale({cs})">
       <g transform="translate(-7,-32)">
         <UnitIcon icon={unit.icon} size={14} color={colors.icon} />
       </g>
-      <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-inside" fill={colors.icon}>{firstWord}</text>
+      <rect x={-pillW / 2 / cs} y={-16 / cs} width={pillW / cs} height={32 / cs}
+            rx={16 / cs} fill="rgba(255,255,255,0.35)"
+            stroke="rgba(255,255,255,0.3)" stroke-width={1 / cs}
+            filter="url(#pill-shadow-{index})" />
+      <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
+            class="lbl-inside-pill" fill="#001f3f">{firstWord}</text>
       <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
             class="lbl-unit-num" fill={colors.icon}>U{index}</text>
     </g>
+    <!-- Combined outline borders: sphere arcs + pill caps as continuous paths -->
+    <defs>
+      <clipPath id="pcl-{index}">
+        <path fill-rule="evenodd"
+              d="M {-pillW - 10} {-r - 20} h {(pillW + 10) * 2} v {(r + 20) * 2} h {-(pillW + 10) * 2} Z M 0 {-pr} a {pr} {pr} 0 1 0 0 {pr * 2} a {pr} {pr} 0 1 0 0 {-pr * 2} Z" />
+      </clipPath>
+      <clipPath id="pclt-{index}">
+        <path fill-rule="evenodd"
+              d="M {-pillW - 10} {-r - 20} h {(pillW + 10) * 2} v {(r + 20) * 2} h {-(pillW + 10) * 2} Z M 0 {-(r + 3)} a {r + 3} {r + 3} 0 1 0 0 {(r + 3) * 2} a {r + 3} {r + 3} 0 1 0 0 {-(r + 3) * 2} Z" />
+      </clipPath>
+    </defs>
+    <!-- Thick border (continues progress ring) -->
+    <path d={combinedOutline(pr, pillW, 32)} fill="none"
+          stroke={theme.progressRingBg} stroke-width={sw}
+          clip-path="url(#pcl-{index})" />
+    <path d={combinedOutline(pr, pillW, 32)} fill="none"
+          stroke={colors.ring} stroke-width={sw}
+          clip-path="url(#pcl-{index})" />
+    <!-- Thin border (continues glow ring) -->
+    <path d={combinedOutline(r + 3, pillW + 6, 38)} fill="none"
+          stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25"
+          clip-path="url(#pclt-{index})" />
   {:else}
     <!-- Full mode (UnitDetailView center node, etc.) -->
     <g transform="translate({-iconOff}, {-iconOff - 5})">
@@ -320,5 +387,6 @@
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
   .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
   .lbl-inside      { font: 700 13px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .lbl-inside-pill { font: 700 16px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
   .lbl-unit-num    { font: 400 10px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
 </style>
