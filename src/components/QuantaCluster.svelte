@@ -48,6 +48,15 @@
     return `M ${f(-RX)} ${f(yT)} A ${f(RX)} ${RY} 0 0 ${sTop} ${f(RX)} ${f(yT)} `
          + `L ${f(RX)} ${f(yB)} A ${f(RX)} ${RY} 0 0 ${sBot} ${f(-RX)} ${f(yB)} Z`;
   }
+
+  /** Baseline for the curved title: the near band's midline arc, so the title follows the
+   *  exact curvature of the band. Coords are divided by cs because the title lives inside a
+   *  scale(cs) group — scaling the text back up lands the glyphs on the real band midline. */
+  function titlePath(): string {
+    const f = (n: number) => n.toFixed(1);
+    const RX = ringRX / cs, RY = RING_RY / cs, YC = BAND_YC / cs;
+    return `M ${f(-RX)} ${f(YC)} A ${f(RX)} ${f(RY)} 0 0 0 ${f(RX)} ${f(YC)}`;
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -68,6 +77,7 @@
       <stop offset="0%"   stop-color={colors.g1} />
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
+    <path id="qc-title-path" d={titlePath()} fill="none" />
   </defs>
 
   <!-- Ambient glow halos (in-progress only) — same rgba values as UnitNode pass-1 halos -->
@@ -108,10 +118,10 @@
       <g transform="translate(-7,-32)">
         <UnitIcon icon="rocket" size={14} color={colors.icon} />
       </g>
-      <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-inside-pill" fill="#001f3f">{firstWord}</text>
-      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-unit-num" fill={colors.icon}>OS</text>
+      <text text-anchor="middle" dominant-baseline="middle"
+            class="lbl-inside-pill" fill="#001f3f">
+        <textPath href="#qc-title-path" startOffset="50%">{firstWord}</textPath>
+      </text>
     </g>
   {:else}
     <!-- Locked: near band crossing in front -->
@@ -127,10 +137,10 @@
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
       </g>
-      <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-inside-pill" fill="#4b5563" fill-opacity="0.6">{firstWord}</text>
-      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-unit-num" fill="#4b5563" fill-opacity="0.5">OS</text>
+      <text text-anchor="middle" dominant-baseline="middle"
+            class="lbl-inside-pill" fill="#4b5563" fill-opacity="0.6">
+        <textPath href="#qc-title-path" startOffset="50%">{firstWord}</textPath>
+      </text>
     </g>
   {/if}
 </g>
@@ -160,5 +170,4 @@
   .progress-ring { transition: stroke-dashoffset 1s ease; }
 
   .lbl-inside-pill { font: 700 16px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
-  .lbl-unit-num { font: 400 10px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
 </style>

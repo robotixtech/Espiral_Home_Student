@@ -43,6 +43,15 @@
     return `M ${f(-RX)} ${f(yT)} A ${f(RX)} ${RY} 0 0 ${sTop} ${f(RX)} ${f(yT)} `
          + `L ${f(RX)} ${f(yB)} A ${f(RX)} ${RY} 0 0 ${sBot} ${f(-RX)} ${f(yB)} Z`;
   }
+
+  /** Baseline for the curved title: the near band's midline arc, so the title follows the
+   *  exact curvature of the band. Coords are divided by cs because the title lives inside a
+   *  scale(cs) group — scaling the text back up lands the glyphs on the real band midline. */
+  function titlePath(): string {
+    const f = (n: number) => n.toFixed(1);
+    const RX = ringRX / cs, RY = RING_RY / cs, YC = BAND_YC / cs;
+    return `M ${f(-RX)} ${f(YC)} A ${f(RX)} ${f(RY)} 0 0 0 ${f(RX)} ${f(YC)}`;
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -62,6 +71,7 @@
       <stop offset="0%"   stop-color={colors.g1} />
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
+    <path id="ia-title-path" d={titlePath()} fill="none" />
   </defs>
 
   <!-- Ambient halos -->
@@ -105,10 +115,10 @@
     <g transform="translate(-7,-32)">
       <UnitIcon icon="signal" size={14} color={colors.icon} />
     </g>
-    <text x="0" y="1" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside-pill" fill="#001f3f">{IA_UNIT_CONFIG.label}</text>
-    <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-num" fill={colors.icon}>{IA_UNIT_CONFIG.sublabel}</text>
+    <text text-anchor="middle" dominant-baseline="middle"
+          class="lbl-inside-pill" fill="#001f3f">
+      <textPath href="#ia-title-path" startOffset="50%">{IA_UNIT_CONFIG.label}</textPath>
+    </text>
   </g>
 </g>
 
@@ -148,5 +158,4 @@
   }
 
   .lbl-inside-pill { font: 700 16px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
-  .lbl-unit-num { font: 400 10px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
 </style>

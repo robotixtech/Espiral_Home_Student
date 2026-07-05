@@ -99,16 +99,23 @@
     return lines.slice(0, 2);
   }
 
-  // Saturn-style orbital ring: a single thin, tilted ellipse encircling the sphere at
-  // its equator. Split into two arcs — the far arc (top half) passes behind the sphere,
-  // the near arc (bottom half) crosses in front. Together they read as an orbit, not a
-  // strap. The title sits on a small glass plaque threaded onto the ring's centre.
-  // Two curved, translucent bands make the ring itself the title container — no separate
-  // plaque. Both bands share the sphere's colour, so the title reads as etched on the ring.
+  // Saturn-style orbital ring: two curved, translucent bands make the ring itself the title
+  // container — no separate plaque. Both bands share the sphere's colour, so the title reads
+  // as etched on the ring.
   const RING_RY = 10;                                    // orbital tilt: edge curvature
-  const BAND_HH = 11;                                    // half the ring band height (holds the title)
-  const bandW   = $derived(Math.max(lblWords.length * 10 + 24, sz * 0.85));
+  const BAND_HH = 14.3;                                  // half the ring band height (holds the title) — +30%
+  const bandW   = $derived(Math.max(lblWords.length * 13 + 24, sz * 0.85));
   const ringRX  = $derived(Math.max(bandW / 2, r + 12));  // ring extends past the sphere sides
+
+  // Compact icon: +30% larger (16 → 20.8) and vertically centred in the gap between the
+  // ring band's top edge (y = −BAND_HH at centre) and the sphere's top (y = −r).
+  const C_ICON  = 20.8;
+  const cIconTX = -C_ICON / 2;                            // top-left x so the icon centres on x=0
+  const cIconTY = $derived((-BAND_HH - r) / 2 - C_ICON / 2);
+
+  // Unit number: vertically centred in the gap between the ring band's bottom edge
+  // (y = +BAND_HH at centre) and the sphere's bottom (y = +r).
+  const cNumCY  = $derived((BAND_HH + r) / 2);
 
   // Shift the band up by RING_RY so the near band's centreline dips exactly onto y=0,
   // where the title sits — otherwise the downward bow pushes the text to the top edge.
@@ -126,6 +133,14 @@
     const sBot = front ? 1 : 0;   // bottom edge: traced back the other way
     return `M ${f(-RX)} ${f(yT)} A ${f(RX)} ${RY} 0 0 ${sTop} ${f(RX)} ${f(yT)} `
          + `L ${f(RX)} ${f(yB)} A ${f(RX)} ${RY} 0 0 ${sBot} ${f(-RX)} ${f(yB)} Z`;
+  }
+
+  /** Baseline for the curved title: the near band's midline arc (same ellipse as the ring
+   *  edge), so the title follows the exact curvature of the band. Left→right, bows down to
+   *  y=0 at centre; the title is centred on it via startOffset 50%. */
+  function titlePath(): string {
+    const f = (n: number) => n.toFixed(1);
+    return `M ${f(-ringRX)} ${f(BAND_YC)} A ${f(ringRX)} ${RING_RY} 0 0 0 ${f(ringRX)} ${f(BAND_YC)}`;
   }
 
   let selected = $state(false);
@@ -153,6 +168,7 @@
       <stop offset="0%" stop-color={colors.g1} />
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
+    <path id="title-path-{index}" d={titlePath()} fill="none" />
     <filter id="glow-{index}" filterUnits="userSpaceOnUse"
             x={-r - 20} y={-r - 20} width={(r + 20) * 2} height={(r + 20) * 2}>
       <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
@@ -218,25 +234,29 @@
 
   {#if !isActive}
     <!-- Icon on the upper sphere, outside the ring; title inside the front band -->
-    <svg x="-8" y="-30" width="16" height="16" viewBox="0 0 24 24"
+    <svg x={cIconTX} y={cIconTY} width={C_ICON} height={C_ICON} viewBox="0 0 24 24"
          fill="none" stroke={colors.icon} stroke-width="1.8"
          stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
       <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
-    <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside-pill" fill="#4b5563" fill-opacity="0.6">{lblWords}</text>
-    <text x="0" y={r - 9} text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-num" fill="#4b5563" fill-opacity="0.5">U{index}</text>
+    <text text-anchor="middle" dominant-baseline="middle"
+          class="lbl-inside-pill" fill="#4b5563" fill-opacity="0.6">
+      <textPath href="#title-path-{index}" startOffset="50%">{lblWords}</textPath>
+    </text>
+    <text x="0" y={cNumCY} text-anchor="middle" dominant-baseline="middle"
+          class="lbl-unit-num" fill="#4b5563" fill-opacity="0.5">{index}</text>
   {:else if compact}
     <!-- Icon on the upper sphere, outside the band; title inside the front band -->
-    <g transform="translate(-8,-30)">
-      <UnitIcon icon={unit.icon} size={16} color={colors.icon} />
+    <g transform="translate({cIconTX},{cIconTY})">
+      <UnitIcon icon={unit.icon} size={C_ICON} color={colors.icon} />
     </g>
-    <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside-pill" fill="#001f3f">{lblWords}</text>
-    <text x="0" y={r - 9} text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-num" fill={colors.icon}>U{index}</text>
+    <text text-anchor="middle" dominant-baseline="middle"
+          class="lbl-inside-pill" fill="#001f3f">
+      <textPath href="#title-path-{index}" startOffset="50%">{lblWords}</textPath>
+    </text>
+    <text x="0" y={cNumCY} text-anchor="middle" dominant-baseline="middle"
+          class="lbl-unit-num" fill={colors.icon}>{index}</text>
   {:else}
     <!-- Full mode (UnitDetailView center node, etc.) -->
     <g transform="translate({-iconOff}, {-iconOff - 5})">
@@ -371,6 +391,6 @@
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
   .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
-  .lbl-inside-pill { font: 700 16px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
-  .lbl-unit-num    { font: 400 10px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
+  .lbl-inside-pill { font: 700 20px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .lbl-unit-num    { font: 700 14px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
 </style>
