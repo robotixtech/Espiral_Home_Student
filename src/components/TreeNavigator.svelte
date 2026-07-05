@@ -8,7 +8,7 @@
   import ActivityOrbit from './ActivityOrbit.svelte';
   import QuantaCluster from './QuantaCluster.svelte';
   import IANode from './IANode.svelte';
-  import { CANVAS, SPIRAL, ZOOM, RADAR, IA_UNIT_CONFIG } from '../lib/master-config';
+  import { CANVAS, SPIRAL, ZOOM, IA_UNIT_CONFIG } from '../lib/master-config';
 
   interface Props {
     program: ProgramData;
@@ -30,9 +30,55 @@
 
   const t = $derived(getTheme());
 
-  const orbitRadii    = $derived(program.units.map((_, i) => ORBIT_START + i * ORBIT_STEP));
+  const orbitRadii    = $derived(program.units.map((_, i) => i === 0 ? 0 : ORBIT_START + (i - 1) * ORBIT_STEP));
 
-  // Outermost completed orbit radius — used for the sun pulse animation
+  // ── Galaxy spiral path ──────────────────────────────────────────────────
+  // Archimedean spiral: r(θ) = a + b·θ, fitted so it passes through each unit orbit.
+  const SPIRAL_B = ORBIT_STEP / GOLDEN;
+  const SPIRAL_A = ORBIT_START - SPIRAL_B * START_ANGLE;
+  const SPIRAL_SAMPLES = 200; // points for smooth curve
+
+  /** Generate SVG path for a spiral arc between unit indices.
+   *  Unit 0 is at center; the spiral grows from r=0 at θ₀ using the Archimedean equation.
+   *  θ₀ is the angle where r=0: θ₀ = -SPIRAL_A / SPIRAL_B. */
+  const THETA_ZERO = -SPIRAL_A / SPIRAL_B; // angle where spiral radius = 0 (origin)
+
+  function spiralPathD(from: number, to: number): string {
+    // Map unit indices to spiral angles (unit 0 = center = THETA_ZERO, unit i≥1 shifted)
+    const thetaFrom = from === 0 ? THETA_ZERO : START_ANGLE + (from - 1) * GOLDEN;
+    const thetaTo   = to   === 0 ? THETA_ZERO : START_ANGLE + (to   - 1) * GOLDEN;
+    const steps     = Math.max(Math.round(SPIRAL_SAMPLES * Math.abs(thetaTo - thetaFrom) / (2 * Math.PI)), 80);
+    const parts: string[] = [];
+    for (let i = 0; i <= steps; i++) {
+      const theta = thetaFrom + (thetaTo - thetaFrom) * (i / steps);
+      const r     = Math.max(0, SPIRAL_A + SPIRAL_B * theta);
+      const px    = cx + r * Math.cos(theta);
+      const py    = cy + r * Math.sin(theta);
+      parts.push(i === 0 ? `M ${px.toFixed(1)} ${py.toFixed(1)}` : `L ${px.toFixed(1)} ${py.toFixed(1)}`);
+    }
+    return parts.join(' ');
+  }
+
+  // Full spiral path (center → last unit)
+  const spiralFullPath = $derived(program.units.length > 1 ? spiralPathD(0, program.units.length - 1) : '');
+
+  // Progress spiral: completed portion + partial in-progress (starts from center)
+  const spiralProgressIdx = $derived.by(() => {
+    let last = -1;
+    for (let i = 0; i < effectiveStatuses.length; i++) {
+      if (effectiveStatuses[i] === 'completed') last = i;
+      else if (effectiveStatuses[i] === 'in-progress') {
+        const unit = program.units[i];
+        return i + (unit.progress / 100);
+      } else break;
+    }
+    return last >= 0 ? last + 0.001 : -1;
+  });
+  const spiralProgressPath = $derived(
+    spiralProgressIdx >= 1 ? spiralPathD(0, Math.min(spiralProgressIdx, program.units.length - 1)) : ''
+  );
+
+  // Completed spiral segment: up to the last completed unit
   const lastCompletedIdx = $derived(
     effectiveStatuses.reduce((last, st, i) => st === 'completed' ? i : last, -1)
   );
@@ -60,13 +106,26 @@
     return UNIT_SIZE / 2 * (i === 0 ? 1.15 : 1.0) * (isIP ? 1.35 : 1.0);
   }
 
+  // Unit 0 sits at the center (telescope focal point); remaining units spiral outward.
   const unitPositions = $derived(
     program.units.map((_, i) => {
-      const a = START_ANGLE + i * GOLDEN;
-      const r = ORBIT_START + i * ORBIT_STEP;
+      if (i === 0) return { x: cx, y: cy };
+      const a = START_ANGLE + (i - 1) * GOLDEN;
+      const r = ORBIT_START + (i - 1) * ORBIT_STEP;
       return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
     }),
   );
+
+  // Dynamic telescope radius: max distance from center to any unit edge (incl. in-progress scale)
+  const telescopeR = $derived.by(() => {
+    let maxR = 0;
+    for (let i = 0; i < unitPositions.length; i++) {
+      const dist = Math.hypot(unitPositions[i].x - cx, unitPositions[i].y - cy);
+      const visualR = nodeVisualR(i);
+      maxR = Math.max(maxR, dist + visualR);
+    }
+    return maxR + 30; // 30px padding inside the lens edge
+  });
 
   // ── Activity moons ───────────────────────────────────────────────────────
 
@@ -130,10 +189,10 @@
   const dgPrev   = $derived({ cx: cx + 1.3 * (vb.x - 725),        cy: 66 });
   const dgNext   = $derived({ cx: cx,                               cy: cy + 1.3 * (vb.y - 980) });
   const dgFuture = $derived({ cx: cx + 1.3 * (vb.x + vb.w - 475), cy: 66 });
-  // nanoQUANTA: left margin, visible on load
+  // nanoQUANTA: upper-left area, visible on load
   const dgQuanta = $derived({
-    cx: vb.x + 80,
-    cy: cy - (H * 0.12),
+    cx: vb.x + 130,
+    cy: vb.y + 130,
   });
   // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
@@ -168,7 +227,11 @@
 
   let panelIA = $state(false);
 
-  const iaNodePos           = $derived({ cx: dgQuanta.cx, cy: dgQuanta.cy + 120 });
+  // IA: centered between left viewport edge and radar left edge
+  const iaNodePos           = $derived({
+    cx: (vb.x + (cx - (orbitRadii[orbitRadii.length - 1] + 100))) / 2,
+    cy: cy,
+  });
   const iaUnitR             = $derived(Math.round(SPIRAL.unitSize / 2 * 1.35));
   const iaOutwardAngle      = $derived(Math.atan2(iaNodePos.cy - cy, iaNodePos.cx - cx));
   const iaDisplayActivities = $derived(displayActivities(iaUnit as ProgramUnit));
@@ -184,7 +247,6 @@
   let zoomOutActive = $state(false);
   let panY       = $state(0.0);
   let isDragging = $state(false);
-  let radarDeg   = $state(0);
   let lastMX = 0, lastMY = 0;
   // Timestamp of last touchend — used to ignore synthesized mouse events on Android.
   let lastTouchEndAt = 0;
@@ -409,20 +471,9 @@
     svgEl?.addEventListener('touchmove',  onTouchMove,  { passive: false });
     svgEl?.addEventListener('touchend',   onTouchEnd,   { passive: false });
 
-    // Radar rotation — rAF loop, 5 s per revolution
-    let radarRafId: number;
-    let radarT0: number | null = null;
-    function radarTick(ts: number) {
-      if (radarT0 === null) radarT0 = ts;
-      radarDeg = ((ts - radarT0) / RADAR.revolutionMs * 360) % 360;
-      radarRafId = requestAnimationFrame(radarTick);
-    }
-    radarRafId = requestAnimationFrame(radarTick);
-
     return () => {
       svgEl?.removeEventListener('wheel', onWheel);
       if (rafId !== null) cancelAnimationFrame(rafId);
-      cancelAnimationFrame(radarRafId);
     };
   });
 </script>
@@ -442,48 +493,29 @@
       onmouseleave={onMouseLeave}
       ondblclick={resetView}
     >
-      <defs>
-        <radialGradient id="ss-sun" cx="35%" cy="35%" r="65%">
-          <stop offset="0%"   stop-color="#d4ffcc" />
-          <stop offset="50%"  stop-color="#39ff14" />
-          <stop offset="100%" stop-color="#006622" />
-        </radialGradient>
-      </defs>
+      <defs></defs>
 
       <!-- ── Zoomable content ───────────────────────────────────────── -->
       <g transform={zoomTransform}>
 
-        <!-- Orbit rings — 0 compositing ops: all opacity baked into rgba stroke colors -->
-        <g fill="none" stroke="rgba(52,211,153,0.55)" stroke-width="1">
-          {#each program.units as _, i}
-            {#if effectiveStatuses[i] === 'completed'}
-              <circle cx={cx} cy={cy} r={orbitRadii[i]} />
-            {/if}
-          {/each}
-        </g>
-        <g fill="none" stroke="rgba(0,180,255,0.09)" stroke-width="1" stroke-dasharray="4 7">
-          {#each program.units as _, i}
-            {#if effectiveStatuses[i] === 'locked'}
-              <circle cx={cx} cy={cy} r={orbitRadii[i]} />
-            {/if}
-          {/each}
-        </g>
-        {#each program.units as unit, i (unit.id)}
-          {#if effectiveStatuses[i] === 'in-progress'}
-            {@const r = orbitRadii[i]}
-            {@const orbC = 2 * Math.PI * r}
-            {@const dashLen = orbC * (unit.progress / 100)}
-            {@const unitAngleDeg = (START_ANGLE + i * GOLDEN) * 180 / Math.PI}
-            <circle cx={cx} cy={cy} r={r} fill="none"
-                    stroke="rgba(52,211,153,0.20)" stroke-width="1"
-                    stroke-dasharray="5 8" />
-            <circle cx={cx} cy={cy} r={r} fill="none"
-                    stroke="rgba(52,211,153,0.55)" stroke-width="1"
-                    stroke-dasharray="{dashLen} {orbC}"
-                    stroke-linecap="round"
-                    transform="rotate({unitAngleDeg}, {cx}, {cy})" />
-          {/if}
-        {/each}
+        <!-- Radar glass background -->
+        {#if true}
+          {@const radarR = telescopeR + 4}
+          <foreignObject x={cx - radarR} y={cy - radarR} width={radarR * 2} height={radarR * 2}>
+            <div class="radar-glass"></div>
+          </foreignObject>
+        {/if}
+
+        <!-- Galaxy spiral — pending (full path, faint) -->
+        <path d={spiralFullPath} fill="none"
+              stroke="rgba(0,180,255,0.12)" stroke-width="1.5"
+              stroke-dasharray="6 10" stroke-linecap="round" />
+        <!-- Galaxy spiral — completed progress (bright overlay) -->
+        {#if spiralProgressPath}
+          <path d={spiralProgressPath} fill="none"
+                stroke="rgba(52,211,153,0.6)" stroke-width="2"
+                stroke-linecap="round" />
+        {/if}
 
         <!-- Distant galaxies -->
         <DistantGalaxy config={distantConfigs[1].config} isCompleted={distantConfigs[1].isCompleted} cx={dgNext.cx}   cy={dgNext.cy}   scale={0.32} opacity={0.70} fontScale={0.7} />
@@ -500,15 +532,9 @@
                   onSelect={handleIAClick} />
         {/if}
 
-        <!-- Central Sun — 0 compositing ops: rgba baked, filters removed -->
-        <circle cx={cx} cy={cy} r={SUN_R + 38} fill="rgba(57,255,20,0.03)"  />
-        <circle cx={cx} cy={cy} r={SUN_R + 22} fill="rgba(57,255,20,0.05)"  />
-        <circle cx={cx} cy={cy} r={SUN_R + 10} fill="rgba(57,255,20,0.10)"  />
-        <circle cx={cx} cy={cy} r={SUN_R + 5}  fill="rgba(212,255,204,0.15)" />
-        <circle cx={cx} cy={cy} r={SUN_R} fill="url(#ss-sun)" />
         <!-- HUD ring — 0 compositing ops: all opacity baked into rgba stroke colors -->
         {#if true}
-          {@const outerR = orbitRadii[orbitRadii.length - 1] + 80}
+          {@const outerR = telescopeR}
           {@const ticks  = 72}
           <circle cx={cx} cy={cy} r={outerR + 4}  fill="none" stroke="rgba(0,180,255,0.85)" stroke-width="1"   />
           <circle cx={cx} cy={cy} r={outerR - 14} fill="none" stroke="rgba(0,180,255,0.64)" stroke-width="0.7" />
@@ -561,44 +587,6 @@
           {/if}
         {/each}
 
-        <!-- Radar sweep: rotating lighthouse — last-completed orbit ring -->
-        {#if lastCompletedIdx >= 0}
-          {@const pulseR   = orbitRadii[lastCompletedIdx]}
-          {@const beamDeg  = RADAR.beamDeg}
-          {@const trailDeg = RADAR.trailDeg}
-          {@const toRad    = (d: number) => d * Math.PI / 180}
-          {@const sx  = cx + pulseR}
-          {@const sy  = cy}
-          {@const bx  = cx + pulseR * Math.cos(-toRad(beamDeg))}
-          {@const by  = cy + pulseR * Math.sin(-toRad(beamDeg))}
-          {@const tx  = cx + pulseR * Math.cos(-toRad(trailDeg))}
-          {@const ty  = cy + pulseR * Math.sin(-toRad(trailDeg))}
-          <defs>
-            <radialGradient id="sweep-beam-grad" cx={cx} cy={cy} r={pulseR} gradientUnits="userSpaceOnUse">
-              <stop offset="0%"   stop-color="#d4ffcc" stop-opacity="0.05" />
-              <stop offset="10%"  stop-color="#39ff14" stop-opacity="0.72" />
-              <stop offset="55%"  stop-color="#00cc44" stop-opacity="0.38" />
-              <stop offset="100%" stop-color="#006622" stop-opacity="0" />
-            </radialGradient>
-            <radialGradient id="sweep-trail-grad" cx={cx} cy={cy} r={pulseR} gradientUnits="userSpaceOnUse">
-              <stop offset="0%"   stop-color="#39ff14" stop-opacity="0.04" />
-              <stop offset="45%"  stop-color="#00cc44" stop-opacity="0.13" />
-              <stop offset="100%" stop-color="#006622" stop-opacity="0" />
-            </radialGradient>
-            <clipPath id="sweep-clip">
-              <circle cx={cx} cy={cy} r={pulseR} />
-            </clipPath>
-          </defs>
-          <!-- SVG rotate(angle,cx,cy) pivots explicitly at galaxy center — no CSS transform-origin needed -->
-          <g clip-path="url(#sweep-clip)" pointer-events="none">
-            <g transform="rotate({radarDeg}, {cx}, {cy})">
-              <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {tx} {ty} Z"
-                    fill="url(#sweep-trail-grad)" />
-              <path d="M {cx} {cy} L {sx} {sy} A {pulseR} {pulseR} 0 0 0 {bx} {by} Z"
-                    fill="url(#sweep-beam-grad)" />
-            </g>
-          </g>
-        {/if}
 
       </g><!-- end zoomable -->
 
@@ -693,6 +681,22 @@
 </div>
 
 <style>
+  .radar-glass {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: rgba(31, 51, 71, 0.65);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.2);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    pointer-events: none;
+  }
+
   .galaxy-container {
     /* position: absolute; inset: 0 is more reliable than width/height 100%
        on iOS Safari flex children where percentage heights can mis-resolve */

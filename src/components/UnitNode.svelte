@@ -124,6 +124,14 @@
       <stop offset="0%" stop-color={colors.g1} />
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
+    <filter id="glow-{index}" filterUnits="userSpaceOnUse"
+            x={-r - 20} y={-r - 20} width={(r + 20) * 2} height={(r + 20) * 2}>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
   </defs>
 
   {#if isActive}
@@ -143,6 +151,7 @@
     class:heartbeat={isInProgress}
     cx="0" cy="0" r={r}
     fill="url(#{gradId})"
+    filter={unit.status === 'completed' ? `url(#glow-${index})` : undefined}
   />
 
   {#if isActive}
@@ -259,14 +268,14 @@
   /* Only activate hover effects on real pointer devices — prevents stuck hover on Android touch */
   @media (hover: hover) {
     .node.clickable:hover .halo-ring {
-      stroke-opacity: 0.7;
-      stroke-width: 2;
+      stroke-opacity: 0.85;
+      stroke-width: 3;
       animation: border-pulse 1.2s ease-in-out infinite;
     }
   }
   @keyframes border-pulse {
-    0%, 100% { stroke-opacity: 0.4; stroke-width: 0.5; }
-    50%       { stroke-opacity: 0.8; stroke-width: 1.5; }
+    0%, 100% { stroke-opacity: 0.5; stroke-width: 1.5; }
+    50%       { stroke-opacity: 1.0; stroke-width: 3; }
   }
   .node.selected .halo-ring {
     animation: none !important;

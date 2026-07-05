@@ -98,8 +98,12 @@
         </svg>
       {/if}
     </g>
+    <text x="0.8" y="0.8" text-anchor="middle" dominant-baseline="middle"
+          class="lbl-inside" fill="rgba(0,0,0,0.45)">{firstWord}</text>
     <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
           class="lbl-inside" fill={colors.icon}>{firstWord}</text>
+    <text x="0.8" y="25.8" text-anchor="middle" dominant-baseline="middle"
+          class="lbl-unit-num" fill="rgba(0,0,0,0.45)">OS</text>
     <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
           class="lbl-unit-num" fill={colors.icon}>OS</text>
   </g>
@@ -117,14 +121,14 @@
   }
   @media (hover: hover) {
     .quanta:hover .halo-ring {
-      stroke-opacity: 0.7;
-      stroke-width: 2;
+      stroke-opacity: 0.85;
+      stroke-width: 3;
       animation: border-pulse 1.2s ease-in-out infinite;
     }
   }
   @keyframes border-pulse {
-    0%, 100% { stroke-opacity: 0.4; stroke-width: 0.5; }
-    50%       { stroke-opacity: 0.8; stroke-width: 1.5; }
+    0%, 100% { stroke-opacity: 0.5; stroke-width: 1.5; }
+    50%       { stroke-opacity: 1.0; stroke-width: 3; }
   }
 
   .progress-ring { transition: stroke-dashoffset 1s ease; }

@@ -79,8 +79,12 @@
     <g transform="translate(-7,-32)">
       <UnitIcon icon="signal" size={14} color={colors.icon} />
     </g>
+    <text x="0.8" y="0.8" text-anchor="middle" dominant-baseline="middle"
+          class="lbl-inside" fill="rgba(0,0,0,0.45)">{IA_UNIT_CONFIG.label}</text>
     <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
           class="lbl-inside" fill={colors.icon}>{IA_UNIT_CONFIG.label}</text>
+    <text x="0.8" y="25.8" text-anchor="middle" dominant-baseline="middle"
+          class="lbl-unit-num" fill="rgba(0,0,0,0.45)">{IA_UNIT_CONFIG.sublabel}</text>
     <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
           class="lbl-unit-num" fill={colors.icon}>{IA_UNIT_CONFIG.sublabel}</text>
   </g>
@@ -96,14 +100,14 @@
   }
   @media (hover: hover) {
     .ia-node:hover .halo-ring {
-      stroke-opacity: 0.7;
-      stroke-width: 2;
+      stroke-opacity: 0.85;
+      stroke-width: 3;
       animation: border-pulse 1.2s ease-in-out infinite;
     }
   }
   @keyframes border-pulse {
-    0%, 100% { stroke-opacity: 0.4; stroke-width: 0.5; }
-    50%       { stroke-opacity: 0.8; stroke-width: 1.5; }
+    0%, 100% { stroke-opacity: 0.5; stroke-width: 1.5; }
+    50%       { stroke-opacity: 1.0; stroke-width: 3; }
   }
 
   .progress-ring { transition: stroke-dashoffset 1s ease; }

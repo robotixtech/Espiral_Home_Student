@@ -18,12 +18,12 @@ export const CANVAS = {
 // ── SPIRAL ────────────────────────────────────────────────────────────────
 // Geometría de la espiral: tamaños de nodos, órbitas y etiquetas.
 export const SPIRAL = {
-  unitSize:       100,      // diámetro de los nodos planeta (px)
-  actOrbit:        65,      // distancia del centro del planeta al centro de su luna (px)
-  labelGap:        80,      // distancia del borde del planeta al borde de la etiqueta (px)
-  orbitStep:       45,      // separación entre órbitas consecutivas (px)
+  unitSize:       118,      // diámetro de los nodos planeta (px)
+  actOrbit:        78,      // distancia del centro del planeta al centro de su luna (px)
+  labelGap:        85,      // distancia del borde del planeta al borde de la etiqueta (px)
+  orbitStep:       40,      // separación entre órbitas consecutivas (px)
   sunRadius:        9,      // radio del sol central (px)
-  orbitStart:      70,      // radio de la órbita más interior (px)
+  orbitStart:     172,      // radio de la órbita más interior — clears unit 0 at center (px)
   labelLineH:      19,      // separación entre líneas de la etiqueta (px)
   labelPadX:       10,      // padding horizontal dentro de la píldora de etiqueta (px)
   labelPadY:        5,      // padding vertical dentro de la píldora de etiqueta (px)
@@ -62,7 +62,7 @@ export const EMULATOR = {
 export const BADGES = {
   minGrade:           6,             // nota mínima (sobre 10) para recibir el badge
   completionActivity: 'DemoDay',     // actividad que marca la unidad como "completada"
-  unitPattern:        /^U[1-9]\d*$/, // qué unidades reciben badge (U1, U2 … excluye MC, U0)
+  unitPattern:        /^U[2-9]\d*$/, // qué unidades reciben badge (U2, U3 … excluye MC, U0, U1)
 } as const;
 
 // ── BADGE_PANEL ───────────────────────────────────────────────────────────
@@ -279,6 +279,26 @@ export const C450_CONFIG: ProgramConfig = {
         { label: 'Detección de emergencia', icon: 'alert', href: null, status: 'locked', progress: 0 },
         { label: 'Protocolo de respuesta',  icon: 'gear',  href: null, status: 'locked', progress: 0 },
         { label: 'Evacuación segura',       icon: 'car',   href: null, status: 'locked', progress: 0 },
+        // sistema — NO editar el label
+        { label: 'DemoDay',   icon: 'trophy',     href: null, status: 'locked', progress: 0 },
+        { label: 'Continuar', icon: 'binoculars', href: null, status: 'locked', progress: 0 },
+      ],
+    },
+
+    // ── U7 ───────────────────────────────────────────────────────────────
+    {
+      label:       'Exploración final',  // ← 2. NOMBRE DE LA UNIDAD
+      displayName: 'U7',
+      fullname:    'C450 – Unidad 7. Exploración final',
+      icon:        'binoculars',
+      href:        null,
+      status:      'locked',
+      progress:    0,
+      activities: [
+        // lessons
+        { label: 'Revisión de misión',   icon: 'search', href: null, status: 'locked', progress: 0 },
+        { label: 'Informe de hallazgos', icon: 'gear',   href: null, status: 'locked', progress: 0 },
+        { label: 'Presentación final',   icon: 'flag',   href: null, status: 'locked', progress: 0 },
         // sistema — NO editar el label
         { label: 'DemoDay',   icon: 'trophy',     href: null, status: 'locked', progress: 0 },
         { label: 'Continuar', icon: 'binoculars', href: null, status: 'locked', progress: 0 },
