@@ -57,6 +57,13 @@
     const RX = ringRX / cs, RY = RING_RY / cs, YC = BAND_YC / cs;
     return `M ${f(-RX)} ${f(YC)} A ${f(RX)} ${f(RY)} 0 0 0 ${f(RX)} ${f(YC)}`;
   }
+
+  /** Mix a hex colour with white; w = weight of the colour (0..1), the rest white. */
+  function tint(hex: string, w: number): string {
+    const n = parseInt(hex.replace('#', ''), 16);
+    const m = (c: number) => Math.round(c * w + 255 * (1 - w));
+    return `rgb(${m((n >> 16) & 255)} ${m((n >> 8) & 255)} ${m(n & 255)})`;
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -78,6 +85,10 @@
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
     <path id="qc-title-path" d={titlePath()} fill="none" />
+    <filter id="qc-shadow" filterUnits="userSpaceOnUse"
+            x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color={colors.ring} flood-opacity="0.5" />
+    </filter>
   </defs>
 
   <!-- Ambient glow halos (in-progress only) — same rgba values as UnitNode pass-1 halos -->
@@ -94,8 +105,8 @@
           fill="none" stroke={colors.glow} stroke-width="0.8" />
 
   <!-- Orbital ring: far band, behind the sphere (dim, peeks around the sides) -->
-  <path d={ringBand(false)} fill={colors.ring} fill-opacity={isUnlocked ? 0.28 : 0.2}
-        stroke={colors.ring} stroke-opacity="0.4" stroke-width="1" />
+  <path d={ringBand(false)} fill={tint(colors.ring, 0.1)} fill-opacity={isUnlocked ? 0.4 : 0.3}
+        stroke={colors.ring} stroke-opacity="0.8" stroke-width="1.5" />
 
   <!-- Main sphere -->
   <circle class:heartbeat={isUnlocked} cx="0" cy="0" r={r} fill="url(#qc-grad)" />
@@ -111,12 +122,12 @@
             stroke-linecap="round" transform="rotate(-90)"
             class="progress-ring" />
     <!-- Orbital ring: near band crossing in front — this band IS the title container -->
-    <path d={ringBand(true)} fill={colors.ring} fill-opacity="0.55"
-          stroke={colors.ring} stroke-opacity="0.9" stroke-width="1.5"
-          stroke-linejoin="round" />
+    <path d={ringBand(true)} fill={tint(colors.ring, 0.1)} fill-opacity="0.92"
+          stroke={colors.ring} stroke-width="2"
+          stroke-linejoin="round" filter="url(#qc-shadow)" />
     <g transform="scale({cs})">
       <g transform="translate(-7,-32)">
-        <UnitIcon icon="rocket" size={14} color={colors.icon} />
+        <UnitIcon icon="rocket" size={14} color="#00102A" />
       </g>
       <text text-anchor="middle" dominant-baseline="middle"
             class="lbl-inside-pill" fill="#001f3f">
@@ -125,20 +136,20 @@
     </g>
   {:else}
     <!-- Locked: near band crossing in front -->
-    <path d={ringBand(true)} fill={colors.ring} fill-opacity="0.4"
-          stroke={colors.ring} stroke-opacity="0.7" stroke-width="1.5"
-          stroke-linejoin="round" />
-    <g transform="scale({cs})" class="dimmed">
+    <path d={ringBand(true)} fill={tint(colors.ring, 0.1)} fill-opacity="0.92"
+          stroke={colors.ring} stroke-width="2"
+          stroke-linejoin="round" filter="url(#qc-shadow)" />
+    <g transform="scale({cs})">
       <g transform="translate(-7,-32)">
         <svg x="0" y="0" width="14" height="14" viewBox="0 0 24 24"
-             fill="none" stroke={colors.icon} stroke-width="2.5"
+             fill="none" stroke="#00102A" stroke-width="2.5"
              stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
       </g>
       <text text-anchor="middle" dominant-baseline="middle"
-            class="lbl-inside-pill" fill="#4b5563" fill-opacity="0.6">
+            class="lbl-inside-pill" fill="#4b5563">
         <textPath href="#qc-title-path" startOffset="50%">{firstWord}</textPath>
       </text>
     </g>
@@ -148,7 +159,6 @@
 <style>
   .quanta          { cursor: default; outline: none; }
   .quanta.unlocked { cursor: pointer; }
-  .dimmed          { fill-opacity: 0.35; stroke-opacity: 0.35; }
 
   .halo-ring {
     stroke-opacity: 0;

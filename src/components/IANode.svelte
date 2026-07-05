@@ -52,6 +52,13 @@
     const RX = ringRX / cs, RY = RING_RY / cs, YC = BAND_YC / cs;
     return `M ${f(-RX)} ${f(YC)} A ${f(RX)} ${f(RY)} 0 0 0 ${f(RX)} ${f(YC)}`;
   }
+
+  /** Mix a hex colour with white; w = weight of the colour (0..1), the rest white. */
+  function tint(hex: string, w: number): string {
+    const n = parseInt(hex.replace('#', ''), 16);
+    const m = (c: number) => Math.round(c * w + 255 * (1 - w));
+    return `rgb(${m((n >> 16) & 255)} ${m((n >> 8) & 255)} ${m(n & 255)})`;
+  }
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -72,6 +79,10 @@
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
     <path id="ia-title-path" d={titlePath()} fill="none" />
+    <filter id="ia-shadow" filterUnits="userSpaceOnUse"
+            x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color={colors.ring} flood-opacity="0.5" />
+    </filter>
   </defs>
 
   <!-- Ambient halos -->
@@ -92,8 +103,8 @@
           fill="none" stroke={colors.glow} stroke-width="0.8" />
 
   <!-- Orbital ring: far band, behind the sphere (dim, peeks around the sides) -->
-  <path d={ringBand(false)} fill={colors.ring} fill-opacity="0.28"
-        stroke={colors.ring} stroke-opacity="0.4" stroke-width="1" />
+  <path d={ringBand(false)} fill={tint(colors.ring, 0.1)} fill-opacity="0.4"
+        stroke={colors.ring} stroke-opacity="0.8" stroke-width="1.5" />
 
   <!-- Main sphere -->
   <circle class:heartbeat={isIP} cx="0" cy="0" r={r} fill="url(#ia-grad)" />
@@ -108,12 +119,12 @@
           class="progress-ring" />
 
   <!-- Orbital ring: near band crossing in front — this band IS the title container -->
-  <path d={ringBand(true)} fill={colors.ring} fill-opacity="0.55"
-        stroke={colors.ring} stroke-opacity="0.9" stroke-width="1.5"
-        stroke-linejoin="round" />
+  <path d={ringBand(true)} fill={tint(colors.ring, 0.1)} fill-opacity="0.92"
+        stroke={colors.ring} stroke-width="2"
+        stroke-linejoin="round" filter="url(#ia-shadow)" />
   <g transform="scale({cs})">
     <g transform="translate(-7,-32)">
-      <UnitIcon icon="signal" size={14} color={colors.icon} />
+      <UnitIcon icon="signal" size={14} color="#00102A" />
     </g>
     <text text-anchor="middle" dominant-baseline="middle"
           class="lbl-inside-pill" fill="#001f3f">

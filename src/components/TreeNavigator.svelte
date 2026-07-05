@@ -78,6 +78,42 @@
     spiralProgressIdx >= 1 ? spiralPathD(0, Math.min(spiralProgressIdx, program.units.length - 1)) : ''
   );
 
+  // ── Learning route "beam of light" ────────────────────────────────────────
+  // The travelled route is a filled ribbon that starts as a thin stroke at the centre and
+  // widens toward the leading edge (the child's current position), like a beam of light —
+  // conveying the "next step" flow through thickness alone, no reading required.
+  const RIBBON_W_MIN = 1.5;   // width at the centre / start
+  const RIBBON_W_MAX = 11;    // width at the leading edge (current position)
+
+  function learnRibbonPath(toIdx: number): string {
+    const thetaTo = toIdx <= 0 ? THETA_ZERO : START_ANGLE + (toIdx - 1) * GOLDEN;
+    const steps = Math.max(Math.round(SPIRAL_SAMPLES * Math.abs(thetaTo - THETA_ZERO) / (2 * Math.PI)), 40);
+    const pts: { x: number; y: number }[] = [];
+    const hw: number[] = [];
+    for (let i = 0; i <= steps; i++) {
+      const f = i / steps;
+      const theta = THETA_ZERO + (thetaTo - THETA_ZERO) * f;
+      const r = Math.max(0, SPIRAL_A + SPIRAL_B * theta);
+      pts.push({ x: cx + r * Math.cos(theta), y: cy + r * Math.sin(theta) });
+      hw.push((RIBBON_W_MIN + f * (RIBBON_W_MAX - RIBBON_W_MIN)) / 2);
+    }
+    const left: string[] = [];
+    const right: string[] = [];
+    for (let i = 0; i <= steps; i++) {
+      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(steps, i + 1)];
+      let tx = b.x - a.x, ty = b.y - a.y;
+      const len = Math.hypot(tx, ty) || 1;
+      const nx = -ty / len, ny = tx / len; // unit normal
+      left.push(`${i === 0 ? 'M' : 'L'} ${(pts[i].x + nx * hw[i]).toFixed(1)} ${(pts[i].y + ny * hw[i]).toFixed(1)}`);
+      right.push(`L ${(pts[i].x - nx * hw[i]).toFixed(1)} ${(pts[i].y - ny * hw[i]).toFixed(1)}`);
+    }
+    return left.join(' ') + ' ' + right.reverse().join(' ') + ' Z';
+  }
+
+  const learnRibbon = $derived(
+    spiralProgressIdx >= 1 ? learnRibbonPath(Math.min(spiralProgressIdx, program.units.length - 1)) : ''
+  );
+
   // Completed spiral segment: up to the last completed unit
   const lastCompletedIdx = $derived(
     effectiveStatuses.reduce((last, st, i) => st === 'completed' ? i : last, -1)
@@ -493,7 +529,15 @@
       onmouseleave={onMouseLeave}
       ondblclick={resetView}
     >
-      <defs></defs>
+      <defs>
+        <!-- Learning-path gradient: intensifies outward (dim at the centre/start → bright at
+             the leading edge) so the travelled route reads as "you are here → next step". -->
+        <radialGradient id="learn-path-grad" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={telescopeR}>
+          <stop offset="0%"   stop-color="#34d399" stop-opacity="0.3" />
+          <stop offset="55%"  stop-color="#34d399" stop-opacity="0.85" />
+          <stop offset="100%" stop-color="#c6fff0" stop-opacity="1" />
+        </radialGradient>
+      </defs>
 
       <!-- ── Zoomable content ───────────────────────────────────────── -->
       <g transform={zoomTransform}>
@@ -506,15 +550,14 @@
           </foreignObject>
         {/if}
 
-        <!-- Galaxy spiral — pending (full path, faint) -->
+        <!-- Learning route — path ahead (not yet reached): faint, thin, dashed -->
         <path d={spiralFullPath} fill="none"
               stroke="rgba(0,180,255,0.12)" stroke-width="1.5"
               stroke-dasharray="6 10" stroke-linecap="round" />
-        <!-- Galaxy spiral — completed progress (bright overlay) -->
-        {#if spiralProgressPath}
-          <path d={spiralProgressPath} fill="none"
-                stroke="rgba(52,211,153,0.6)" stroke-width="2"
-                stroke-linecap="round" />
+        <!-- Learning route — travelled so far: a "beam of light" ribbon, thin at the start
+             and widening toward the leading edge (current position → next step). -->
+        {#if learnRibbon}
+          <path d={learnRibbon} fill="url(#learn-path-grad)" stroke="none" />
         {/if}
 
         <!-- Distant galaxies -->

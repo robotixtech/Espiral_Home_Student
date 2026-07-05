@@ -36,7 +36,10 @@
 
   const sw = 3.5;
   const isStart = $derived(index === 0);
-  const sz = $derived(isStart ? size * 1.15 : size);
+  // inProgress spheres are enlarged 15% to emphasise the active unit; the ring title font
+  // and band width scale by the same proportion (see titleFont / bandW).
+  const statusScale = $derived(unit.status === 'in-progress' ? 1.15 : 1);
+  const sz = $derived((isStart ? size * 1.15 : size) * statusScale);
   const r = $derived(sz / 2);
   const pr = $derived(r - sw / 2);
   const circ = $derived(2 * Math.PI * pr);
@@ -104,7 +107,8 @@
   // as etched on the ring.
   const RING_RY = 10;                                    // orbital tilt: edge curvature
   const BAND_HH = 14.3;                                  // half the ring band height (holds the title) — +30%
-  const bandW   = $derived(Math.max(lblWords.length * 13 + 24, sz * 0.85));
+  const titleFont = $derived(20 * statusScale);          // ring title font; grows with the inProgress sphere
+  const bandW   = $derived(Math.max(lblWords.length * 13 * statusScale + 24, sz * 0.85));
   const ringRX  = $derived(Math.max(bandW / 2, r + 12));  // ring extends past the sphere sides
 
   // Compact icon: +30% larger (16 → 20.8) and vertically centred in the gap between the
@@ -113,13 +117,18 @@
   const cIconTX = -C_ICON / 2;                            // top-left x so the icon centres on x=0
   const cIconTY = $derived((-BAND_HH - r) / 2 - C_ICON / 2);
 
-  // Unit number: vertically centred in the gap between the ring band's bottom edge
-  // (y = +BAND_HH at centre) and the sphere's bottom (y = +r).
-  const cNumCY  = $derived((BAND_HH + r) / 2);
-
   // Shift the band up by RING_RY so the near band's centreline dips exactly onto y=0,
   // where the title sits — otherwise the downward bow pushes the text to the top edge.
   const BAND_YC = -RING_RY;
+
+  /** Mix a hex colour with white; w = weight of the colour (0..1), the rest white.
+   *  Used to give the band a faint tint of the sphere's status colour while staying
+   *  mostly white for text contrast. */
+  function tint(hex: string, w: number): string {
+    const n = parseInt(hex.replace('#', ''), 16);
+    const m = (c: number) => Math.round(c * w + 255 * (1 - w));
+    return `rgb(${m((n >> 16) & 255)} ${m((n >> 8) & 255)} ${m(n & 255)})`;
+  }
 
   /** One curved band of the orbital ring — two parallel elliptical edges BAND_HH apart,
    *  capped by short side edges. front=true → near band (bows down, crosses in front and
@@ -179,7 +188,7 @@
     </filter>
     <filter id="pill-shadow-{index}" filterUnits="userSpaceOnUse"
             x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="rgba(0,0,0,0.25)" />
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color={colors.ring} flood-opacity="0.5" />
     </filter>
   </defs>
 
@@ -204,8 +213,8 @@
 
     <!-- Orbital ring: far band, behind the sphere (dim, peeks around the sides) -->
     {#if compact}
-      <path d={ringBand(false)} fill={colors.ring} fill-opacity="0.28"
-            stroke={colors.ring} stroke-opacity="0.4" stroke-width="1" />
+      <path d={ringBand(false)} fill={tint(colors.ring, 0.1)} fill-opacity="0.4"
+            stroke={colors.ring} stroke-opacity="0.8" stroke-width="1.5" />
     {/if}
 
     <circle
@@ -227,36 +236,32 @@
 
   <!-- Orbital ring: near band crossing in front — this band IS the title container -->
   {#if compact}
-    <path d={ringBand(true)} fill={colors.ring} fill-opacity="0.55"
-          stroke={colors.ring} stroke-opacity="0.9" stroke-width="1.5"
+    <path d={ringBand(true)} fill={tint(colors.ring, 0.1)} fill-opacity="0.92"
+          stroke={colors.ring} stroke-width="2"
           stroke-linejoin="round" filter="url(#pill-shadow-{index})" />
   {/if}
 
   {#if !isActive}
     <!-- Icon on the upper sphere, outside the ring; title inside the front band -->
     <svg x={cIconTX} y={cIconTY} width={C_ICON} height={C_ICON} viewBox="0 0 24 24"
-         fill="none" stroke={colors.icon} stroke-width="1.8"
+         fill="none" stroke="#4b5563" stroke-opacity="0.6" stroke-width="1.8"
          stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
       <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
     <text text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside-pill" fill="#4b5563" fill-opacity="0.6">
+          class="lbl-inside-pill" fill="#4b5563">
       <textPath href="#title-path-{index}" startOffset="50%">{lblWords}</textPath>
     </text>
-    <text x="0" y={cNumCY} text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-num" fill="#4b5563" fill-opacity="0.5">{index}</text>
   {:else if compact}
     <!-- Icon on the upper sphere, outside the band; title inside the front band -->
     <g transform="translate({cIconTX},{cIconTY})">
-      <UnitIcon icon={unit.icon} size={C_ICON} color={colors.icon} />
+      <UnitIcon icon={unit.icon} size={C_ICON} color="#00102A" />
     </g>
     <text text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside-pill" fill="#001f3f">
+          class="lbl-inside-pill" fill="#001f3f" style="font-size: {titleFont}px">
       <textPath href="#title-path-{index}" startOffset="50%">{lblWords}</textPath>
     </text>
-    <text x="0" y={cNumCY} text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-num" fill={colors.icon}>{index}</text>
   {:else}
     <!-- Full mode (UnitDetailView center node, etc.) -->
     <g transform="translate({-iconOff}, {-iconOff - 5})">
@@ -392,5 +397,4 @@
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
   .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
   .lbl-inside-pill { font: 700 20px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
-  .lbl-unit-num    { font: 700 14px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
 </style>
