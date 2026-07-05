@@ -194,6 +194,15 @@
     panelUnitPos ? Math.atan2(panelUnitPos.y - cy, panelUnitPos.x - cx) : 0
   );
 
+  // When a unit is selected, focus it: move the sphere + its activity orbit to the screen
+  // centre (viewBox is centred on cx,cy) and scale up 20%, ignoring the galaxy pan/zoom.
+  const PANEL_SCALE = 1.2;
+  const panelTransform = $derived(
+    panelUnitPos
+      ? `translate(${cx},${cy}) scale(${PANEL_SCALE}) translate(${-panelUnitPos.x},${-panelUnitPos.y})`
+      : ''
+  );
+
   // Auto-close if the emulator cycles the open unit back to 'locked'.
   $effect(() => {
     if (panelUnit && panelUnitIdx >= 0 && effectiveStatuses[panelUnitIdx] === 'locked') panelUnit = null;
@@ -271,6 +280,10 @@
   const iaUnitR             = $derived(Math.round(SPIRAL.unitSize / 2 * 1.35));
   const iaOutwardAngle      = $derived(Math.atan2(iaNodePos.cy - cy, iaNodePos.cx - cx));
   const iaDisplayActivities = $derived(displayActivities(iaUnit as ProgramUnit));
+  // Focus transform for the IA panel: centre it on screen and scale up 20% (same as units).
+  const iaPanelTransform    = $derived(
+    `translate(${cx},${cy}) scale(${PANEL_SCALE}) translate(${-iaNodePos.cx},${-iaNodePos.cy})`
+  );
 
   // ── C: Zoom / Pan ─────────────────────────────────────────────────────────
   // State: translate(panX, panY) scale(zoomScale) applied to all content.
@@ -639,13 +652,13 @@
               fill="rgba(2,6,20,0.93)" pointer-events="none" />
       {/if}
 
-      <!-- Pass 2: Selected node + activity orbit — same zoom transform, rendered above overlay -->
+      <!-- Pass 2: Selected node + activity orbit — centred on screen and scaled up 20% -->
       {#if panelUnit && panelUnitPos}
         {@const si    = panelUnitIdx}
         {@const isIP  = effectiveStatuses[si] === 'in-progress'}
         {@const nSize = Math.round(UNIT_SIZE * 1.35)}
         {@const vr    = UNIT_SIZE / 2 * (si === 0 ? 1.15 : 1.0) * 1.35}
-        <g transform={zoomTransform}>
+        <g transform={panelTransform}>
           {#if isIP}
             <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 38} fill="rgba(245,158,11,0.08)" />
             <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 22} fill="rgba(245,158,11,0.14)" />
@@ -682,9 +695,9 @@
       {/if}
 
 
-      <!-- Pass 2: IA node + activity orbit above overlay -->
+      <!-- Pass 2: IA node + activity orbit — centred on screen and scaled up 20% -->
       {#if panelIA}
-        <g transform={zoomTransform}>
+        <g transform={iaPanelTransform}>
           <IANode cx={iaNodePos.cx} cy={iaNodePos.cy}
                   status={iaEffectiveStatus} progress={iaProgress}
                   onSelect={handleIAClick} />
