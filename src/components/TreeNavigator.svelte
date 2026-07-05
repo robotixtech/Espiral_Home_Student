@@ -9,6 +9,7 @@
   import QuantaCluster from './QuantaCluster.svelte';
   import IANode from './IANode.svelte';
   import { CANVAS, SPIRAL, ZOOM, IA_UNIT_CONFIG } from '../lib/master-config';
+  import { activityOrbitLayout } from '../lib/activity-orbit';
 
   interface Props {
     program: ProgramData;
@@ -194,12 +195,40 @@
     panelUnitPos ? Math.atan2(panelUnitPos.y - cy, panelUnitPos.x - cx) : 0
   );
 
-  // When a unit is selected, focus it: move the sphere + its activity orbit to the screen
-  // centre (viewBox is centred on cx,cy) and scale up 20%, ignoring the galaxy pan/zoom.
+  // When a unit is selected, focus it: centre the sphere + its activity orbit on screen and
+  // scale up 20%. The container is capped at 80% of the viewBox (≈ viewport); if the orbit is
+  // too big, the sphere + pills are scaled DOWN so everything fits inside with padding.
   const PANEL_SCALE = 1.2;
+  const CARD_PAD    = 30;   // content-space margin between the pills and the container border
+  const CARD_MAX    = 0.8;  // container never exceeds 80% of the viewBox width/height
+
+  // Content scale bounded so (orbit + padding) fits within the max container half-size.
+  function fitScale(hw: number, hh: number): number {
+    return Math.max(0.3, Math.min(
+      PANEL_SCALE,
+      (CARD_MAX * vb.w / 2 - CARD_PAD) / hw,
+      (CARD_MAX * vb.h / 2 - CARD_PAD) / hh,
+    ));
+  }
+
+  // Unit title font in the detail view — activity pills render 20% smaller than this.
+  const panelTitleFont = $derived(
+    panelUnitIdx >= 0 && effectiveStatuses[panelUnitIdx] === 'in-progress' ? 27.6 : 20
+  );
+  const panelOrbit  = $derived(activityOrbitLayout(panelActivities, panelUnitR, panelOutwardAngle, panelTitleFont));
+  const panelScale  = $derived(fitScale(panelOrbit.hw, panelOrbit.hh));
+  const panelCardHW = $derived((panelOrbit.hw * panelScale + CARD_PAD) * panelZoom);
+  const panelCardHH = $derived((panelOrbit.hh * panelScale + CARD_PAD) * panelZoom);
+  // Close cross: at the card's top-right corner, but clamped to stay inside the viewport
+  // even when the user zooms the card past the screen edges. The right margin also clears
+  // the "Mis insignias" badge-panel strip that sits over the right edge.
+  const CLOSE_MARGIN   = 28;
+  const CLOSE_MARGIN_R = 60;
+  const panelCloseX  = $derived(Math.min(cx + panelCardHW, vb.x + vb.w - CLOSE_MARGIN_R));
+  const panelCloseY  = $derived(Math.max(cy - panelCardHH, vb.y + CLOSE_MARGIN));
   const panelTransform = $derived(
     panelUnitPos
-      ? `translate(${cx},${cy}) scale(${PANEL_SCALE}) translate(${-panelUnitPos.x},${-panelUnitPos.y})`
+      ? `translate(${cx},${cy}) scale(${panelScale * panelZoom}) translate(${-panelUnitPos.x},${-panelUnitPos.y})`
       : ''
   );
 
@@ -280,9 +309,16 @@
   const iaUnitR             = $derived(Math.round(SPIRAL.unitSize / 2 * 1.35));
   const iaOutwardAngle      = $derived(Math.atan2(iaNodePos.cy - cy, iaNodePos.cx - cx));
   const iaDisplayActivities = $derived(displayActivities(iaUnit as ProgramUnit));
-  // Focus transform for the IA panel: centre it on screen and scale up 20% (same as units).
-  const iaPanelTransform    = $derived(
-    `translate(${cx},${cy}) scale(${PANEL_SCALE}) translate(${-iaNodePos.cx},${-iaNodePos.cy})`
+  // IA panel: centre on screen, scale to fit within the 80% cap (same rules as units).
+  const IA_TITLE_FONT = 19;
+  const iaOrbit    = $derived(activityOrbitLayout(iaDisplayActivities, iaUnitR, iaOutwardAngle, IA_TITLE_FONT));
+  const iaScale    = $derived(fitScale(iaOrbit.hw, iaOrbit.hh));
+  const iaCardHW   = $derived((iaOrbit.hw * iaScale + CARD_PAD) * panelZoom);
+  const iaCardHH   = $derived((iaOrbit.hh * iaScale + CARD_PAD) * panelZoom);
+  const iaCloseX   = $derived(Math.min(cx + iaCardHW, vb.x + vb.w - CLOSE_MARGIN_R));
+  const iaCloseY   = $derived(Math.max(cy - iaCardHH, vb.y + CLOSE_MARGIN));
+  const iaPanelTransform = $derived(
+    `translate(${cx},${cy}) scale(${iaScale * panelZoom}) translate(${-iaNodePos.cx},${-iaNodePos.cy})`
   );
 
   // ── C: Zoom / Pan ─────────────────────────────────────────────────────────
@@ -300,10 +336,16 @@
   // Timestamp of last touchend — used to ignore synthesized mouse events on Android.
   let lastTouchEndAt = 0;
 
+  // Detail-view (panel) zoom, driven by the +/- buttons. Separate from the galaxy zoom.
+  let panelZoom = $state(1);
+  const panelOpen = $derived(!!panelUnit || panelIA);
+
   const zoomTransform = $derived(`translate(${panX},${panY}) scale(${zoomScale})`);
 
   function onWheel(e: WheelEvent) {
     e.preventDefault();
+    // Detail view open → background is static (no galaxy zoom/pan).
+    if (panelOpen) return;
     if (!svgEl) return;
     const rect = svgEl.getBoundingClientRect();
     const mx   = vb.x + (e.clientX - rect.left) / rect.width  * vb.w;
@@ -316,13 +358,14 @@
 
   function onMouseDown(e: MouseEvent) {
     if (e.button !== 0) return;
+    if (panelOpen) return; // no dragging while the detail view is open
     // Ignore synthesized mouse events that Android fires after touchend
     if (Date.now() - lastTouchEndAt < 500) return;
     isDragging = true; lastMX = e.clientX; lastMY = e.clientY;
   }
 
   function onMouseMove(e: MouseEvent) {
-    if (!isDragging || !svgEl) return;
+    if (panelOpen || !isDragging || !svgEl) return;
     const rect = svgEl.getBoundingClientRect();
     panX += (e.clientX - lastMX) * vb.w / rect.width;
     panY += (e.clientY - lastMY) * vb.h / rect.height;
@@ -336,6 +379,8 @@
   }
 
   function zoomInBtn() {
+    // Detail view open → zoom the focused unit + its lessons, not the galaxy.
+    if (panelOpen) { panelZoom = Math.min(2.4, panelZoom * ZOOM.buttonStep); return; }
     // Center the in-progress unit in the viewport and zoom in.
     const ipIdx = effectiveStatuses.findIndex(s => s === 'in-progress');
     const fx = ipIdx >= 0 ? unitPositions[ipIdx].x : cx;
@@ -347,6 +392,7 @@
   }
 
   function zoomOutBtn() {
+    if (panelOpen) { panelZoom = Math.max(0.5, panelZoom / ZOOM.buttonStep); return; }
     const ns = Math.max(ZOOM.min, zoomScale / ZOOM.buttonStep);
     panX = cx - (cx - panX) * (ns / zoomScale);
     panY = cy - (cy - panY) * (ns / zoomScale);
@@ -395,6 +441,7 @@
   }
 
   function onTouchStart(e: TouchEvent) {
+    if (panelOpen) return; // static background while the detail view is open
     if (svgEl) cachedRect = svgEl.getBoundingClientRect();
     if (e.touches.length === 1) {
       isDragging = true;
@@ -412,7 +459,7 @@
 
   function onTouchMove(e: TouchEvent) {
     e.preventDefault();
-    if (!cachedRect) return;
+    if (panelOpen || !cachedRect) return;
 
     if (e.touches.length === 1 && isDragging) {
       // Accumulate pixel deltas — applied in bulk on the next rAF tick.
@@ -506,11 +553,13 @@
     if (panelIA) panelIA = false;
     if ((unit.activities?.length ?? 0) === 0) { onUnitSelected(unit); return; }
     panelUnit = panelUnit?.id === unit.id ? null : unit;
+    panelZoom = 1; // reset detail zoom each time the panel opens/closes
   }
 
   function handleIAClick() {
     if (panelUnit) panelUnit = null;
     panelIA = !panelIA;
+    panelZoom = 1;
   }
 
   onMount(() => {
@@ -535,7 +584,7 @@
       class="galaxy-svg"
       preserveAspectRatio="xMidYMid meet"
       xmlns="http://www.w3.org/2000/svg"
-      style:cursor={isDragging ? 'grabbing' : 'grab'}
+      style:cursor={panelOpen ? 'default' : (isDragging ? 'grabbing' : 'grab')}
       onmousedown={onMouseDown}
       onmousemove={onMouseMove}
       onmouseup={onMouseUp}
@@ -658,6 +707,9 @@
         {@const isIP  = effectiveStatuses[si] === 'in-progress'}
         {@const nSize = Math.round(UNIT_SIZE * 1.35)}
         {@const vr    = UNIT_SIZE / 2 * (si === 0 ? 1.15 : 1.0) * 1.35}
+        <!-- Modal card frame (thin border, rounded corners) — analogous to the badge modal -->
+        <rect x={cx - panelCardHW} y={cy - panelCardHH} width={panelCardHW * 2} height={panelCardHH * 2}
+              rx="20" fill="rgba(6,16,40,0.7)" stroke="rgba(70,150,255,0.35)" stroke-width="1.5" />
         <g transform={panelTransform}>
           {#if isIP}
             <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 38} fill="rgba(245,158,11,0.08)" />
@@ -689,14 +741,28 @@
             cy={panelUnitPos.y}
             unitR={panelUnitR}
             outwardAngle={panelOutwardAngle}
+            titleFontSize={panelTitleFont}
             {onActivitySelected}
           />
+        </g>
+        <!-- Close cross (floats top-right of the card, like the badge modal) -->
+        <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+        <g class="detail-close" role="button" tabindex="0" aria-label="Cerrar"
+           transform="translate({panelCloseX},{panelCloseY})"
+           onclick={() => (panelUnit = null)}
+           onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); panelUnit = null; } }}>
+          <circle r="16" fill="rgba(10,20,55,0.97)" stroke="rgba(80,140,255,0.4)" stroke-width="1" />
+          <line x1="-5" y1="-5" x2="5" y2="5" stroke="rgba(150,190,255,0.9)" stroke-width="1.8" stroke-linecap="round" />
+          <line x1="5" y1="-5" x2="-5" y2="5" stroke="rgba(150,190,255,0.9)" stroke-width="1.8" stroke-linecap="round" />
         </g>
       {/if}
 
 
       <!-- Pass 2: IA node + activity orbit — centred on screen and scaled up 20% -->
       {#if panelIA}
+        <!-- Modal card frame (thin border, rounded corners) — analogous to the badge modal -->
+        <rect x={cx - iaCardHW} y={cy - iaCardHH} width={iaCardHW * 2} height={iaCardHH * 2}
+              rx="20" fill="rgba(6,16,40,0.7)" stroke="rgba(70,150,255,0.35)" stroke-width="1.5" />
         <g transform={iaPanelTransform}>
           <IANode cx={iaNodePos.cx} cy={iaNodePos.cy}
                   status={iaEffectiveStatus} progress={iaProgress}
@@ -707,8 +773,19 @@
             cy={iaNodePos.cy}
             unitR={iaUnitR}
             outwardAngle={iaOutwardAngle}
+            titleFontSize={19}
             {onActivitySelected}
           />
+        </g>
+        <!-- Close cross (floats top-right of the card, like the badge modal) -->
+        <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+        <g class="detail-close" role="button" tabindex="0" aria-label="Cerrar"
+           transform="translate({iaCloseX},{iaCloseY})"
+           onclick={() => (panelIA = false)}
+           onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); panelIA = false; } }}>
+          <circle r="16" fill="rgba(10,20,55,0.97)" stroke="rgba(80,140,255,0.4)" stroke-width="1" />
+          <line x1="-5" y1="-5" x2="5" y2="5" stroke="rgba(150,190,255,0.9)" stroke-width="1.8" stroke-linecap="round" />
+          <line x1="5" y1="-5" x2="-5" y2="5" stroke="rgba(150,190,255,0.9)" stroke-width="1.8" stroke-linecap="round" />
         </g>
       {/if}
 
@@ -782,6 +859,13 @@
      on iOS Safari inside absolutely-positioned containers */
   .galaxy-svg { position: absolute; inset: 0; display: block; }
 
+
+  /* Detail-view close cross */
+  .detail-close { cursor: pointer; outline: none; }
+  .detail-close circle { transition: fill 0.15s ease; }
+  @media (hover: hover) {
+    .detail-close:hover circle { fill: rgba(30,50,120,0.98); }
+  }
 
   .prog-name-label {
     font: 800 18px/1 'Rubik', system-ui, sans-serif;
