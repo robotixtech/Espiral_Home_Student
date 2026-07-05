@@ -21,9 +21,9 @@ export const SPIRAL = {
   unitSize:       100,      // diámetro de los nodos planeta (px)
   actOrbit:        65,      // distancia del centro del planeta al centro de su luna (px)
   labelGap:        80,      // distancia del borde del planeta al borde de la etiqueta (px)
-  orbitStep:       68,      // separación entre órbitas consecutivas (px)
+  orbitStep:       45,      // separación entre órbitas consecutivas (px)
   sunRadius:        9,      // radio del sol central (px)
-  orbitStart:      80,      // radio de la órbita más interior (px)
+  orbitStart:      70,      // radio de la órbita más interior (px)
   labelLineH:      19,      // separación entre líneas de la etiqueta (px)
   labelPadX:       10,      // padding horizontal dentro de la píldora de etiqueta (px)
   labelPadY:        5,      // padding vertical dentro de la píldora de etiqueta (px)
@@ -112,7 +112,7 @@ export const STATUS_LABELS = {
 export const C450_CONFIG: ProgramConfig = {
   shortname: 'C450',    // ← 1. NOMBRE DEL PROGRAMA
   fullname:  'C450',
-  bgImage:   'background_opacity.png',
+  bgImage:   'background_lola.svg',
 
   sun: {
     label: 'Open Scentia',
@@ -293,7 +293,7 @@ export const C450_CONFIG: ProgramConfig = {
 export const C550_CONFIG: ProgramConfig = {
   shortname: 'C550',
   fullname:  'C550',
-  bgImage:   'background_opacity.png',
+  bgImage:   'background_lola.svg',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                       displayName: 'Misión Control', fullname: 'C550 – Misión control',                              icon: 'gear',   href: null, status: 'locked', progress: 0 },
@@ -312,7 +312,7 @@ export const C550_CONFIG: ProgramConfig = {
 export const C650_CONFIG: ProgramConfig = {
   shortname: 'C650',
   fullname:  'C650',
-  bgImage:   'background_opacity.png',
+  bgImage:   'background_lola.svg',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                         displayName: 'Misión Control', fullname: 'C650 – Misión control',                                icon: 'gear',   href: null, status: 'locked', progress: 0 },
@@ -331,7 +331,7 @@ export const C650_CONFIG: ProgramConfig = {
 export const C350_CONFIG: ProgramConfig = {
   shortname: 'C350',
   fullname:  'C350',
-  bgImage:   'background_opacity.png',
+  bgImage:   'background_lola.svg',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                      displayName: 'Misión Control', fullname: 'C350 – Misión control',                             icon: 'gear',   href: null, status: 'completed', progress: 100 },

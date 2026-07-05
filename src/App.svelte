@@ -35,8 +35,8 @@
 
   const bgImage = $derived(
     appState.kind === 'ready'
-      ? (getConfigByShortname(appState.data.shortname)?.bgImage ?? 'background_opacity.png')
-      : 'background_opacity.png'
+      ? (getConfigByShortname(appState.data.shortname)?.bgImage ?? 'background_lola.svg')
+      : 'background_lola.svg'
   );
 
   // Reactively update body background when theme changes

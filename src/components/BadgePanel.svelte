@@ -12,7 +12,7 @@
 
   let { program }: Props = $props();
 
-  const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_opacity.png');
+  const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_lola.svg');
 
   const badgeUnits = $derived.by(() => {
     const prog = getEmulatedProgram() ?? program;

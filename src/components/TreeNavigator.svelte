@@ -130,11 +130,10 @@
   const dgPrev   = $derived({ cx: cx + 1.3 * (vb.x - 725),        cy: 66 });
   const dgNext   = $derived({ cx: cx,                               cy: cy + 1.3 * (vb.y - 980) });
   const dgFuture = $derived({ cx: cx + 1.3 * (vb.x + vb.w - 475), cy: 66 });
-  // nanoQUANTA: off-screen upper-left, symmetric mirror of the right-side reference
-  // Same vertical as before, x negated to place it left of the radar center
+  // nanoQUANTA: left margin, visible on load
   const dgQuanta = $derived({
-    cx: cx - 1.3 * (vb.x + vb.w - 620),
-    cy: cy + 1.3 * (vb.y - 550),
+    cx: vb.x + 80,
+    cy: cy - (H * 0.12),
   });
   // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
@@ -169,7 +168,7 @@
 
   let panelIA = $state(false);
 
-  const iaNodePos           = $derived({ cx: (dgQuanta.cx * 3 + cx) / 4, cy: (dgQuanta.cy * 3 + cy) / 4 });
+  const iaNodePos           = $derived({ cx: dgQuanta.cx, cy: dgQuanta.cy + 120 });
   const iaUnitR             = $derived(Math.round(SPIRAL.unitSize / 2 * 1.35));
   const iaOutwardAngle      = $derived(Math.atan2(iaNodePos.cy - cy, iaNodePos.cx - cx));
   const iaDisplayActivities = $derived(displayActivities(iaUnit as ProgramUnit));
@@ -509,7 +508,7 @@
         <circle cx={cx} cy={cy} r={SUN_R} fill="url(#ss-sun)" />
         <!-- HUD ring — 0 compositing ops: all opacity baked into rgba stroke colors -->
         {#if true}
-          {@const outerR = orbitRadii[orbitRadii.length - 1] + 120}
+          {@const outerR = orbitRadii[orbitRadii.length - 1] + 80}
           {@const ticks  = 72}
           <circle cx={cx} cy={cy} r={outerR + 4}  fill="none" stroke="rgba(0,180,255,0.85)" stroke-width="1"   />
           <circle cx={cx} cy={cy} r={outerR - 14} fill="none" stroke="rgba(0,180,255,0.64)" stroke-width="0.7" />
