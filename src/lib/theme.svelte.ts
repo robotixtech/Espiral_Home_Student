@@ -75,8 +75,8 @@ const DARK: ThemeColors = {
       icon: '#001f3f', lBg: 'rgba(245,158,11,0.3)', lBorder: 'rgba(251,191,36,0.5)', lText: '#fef3c7',
     },
     locked: {
-      g1: '#9ca3af', g2: '#6b7280', ring: '#9ca3af', glow: 'transparent',
-      icon: '#001f3f', lBg: 'rgba(156,163,175,0.2)', lBorder: 'rgba(156,163,175,0.3)', lText: '#d1d5db',
+      g1: '#8695a5', g2: '#5e6a78', ring: '#708090', glow: 'transparent',
+      icon: '#001f3f', lBg: 'rgba(112,128,144,0.2)', lBorder: 'rgba(112,128,144,0.3)', lText: '#d5dbe2',
     },
     finalProject: {
       g1: '#a855f7', g2: '#7c3aed', ring: '#c084fc', glow: '#a855f7',

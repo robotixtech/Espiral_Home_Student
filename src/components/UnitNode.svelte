@@ -116,7 +116,11 @@
   // Compact icon: base 20.8, doubled for inProgress spheres. Vertically centred in the gap
   // between the ring band's top edge (y = −BAND_HH at centre) and the sphere's top (y = −r).
   const C_ICON_BASE = 20.8;
-  const cIcon   = $derived(unit.status === 'in-progress' ? C_ICON_BASE * 2 : C_ICON_BASE);
+  const cIcon   = $derived(
+    unit.status === 'in-progress' ? C_ICON_BASE * 2
+    : unit.status === 'locked'    ? C_ICON_BASE * 1.2   // locked lock icon +20%
+    : C_ICON_BASE
+  );
   const cIconTX = $derived(-cIcon / 2);                   // top-left x so the icon centres on x=0
   const cIconTY = $derived((-BAND_HH - r) / 2 - cIcon / 2);
 
@@ -154,6 +158,33 @@
     const f = (n: number) => n.toFixed(1);
     return `M ${f(-ringRX)} ${f(BAND_YC)} A ${f(ringRX)} ${RING_RY} 0 0 0 ${f(ringRX)} ${f(BAND_YC)}`;
   }
+
+  // HUD-style tick marks flanking the title — small gauge strokes that give the ring a
+  // galactic/tech instrument feel instead of a plain headband. Plain <line> primitives (NOT
+  // components), stroke-opacity (no compositing layers) — cheap on Mali-G52 tablets.
+  // FIXED count (2 per side) so status changes only update attributes, never add/remove DOM.
+  const TICKS_PER_SIDE = 2;
+  const TICK_GAP = 11;                                              // clear space kept from the text
+  const TICK_L   = 4;                                               // dash half-length (short, tech tick)
+  const titleHalfW = $derived(lblWords.length * titleFont * 0.31);  // approx half title width (generous)
+  const sideTicks  = $derived.by(() => {
+    // Innermost dash centre so its inner end stays TICK_GAP away from the text.
+    const startX = titleHalfW + TICK_GAP + TICK_L;
+    const endX   = Math.max(startX, ringRX - 4 - TICK_L);           // outermost near the band edge
+    const marks: { x1: number; y1: number; x2: number; y2: number }[] = [];
+    for (let i = 0; i < TICKS_PER_SIDE; i++) {
+      const x = startX + (endX - startX) * (i / (TICKS_PER_SIDE - 1));
+      const frac = Math.min(x / ringRX, 0.999);
+      const sinF = Math.sqrt(Math.max(0, 1 - frac * frac));
+      const y = BAND_YC + RING_RY * sinF;
+      // tangent to the band's midline ellipse → the ring's horizontal "flow" direction
+      let tx = -ringRX * sinF, ty = RING_RY * frac;
+      const tl = Math.hypot(tx, ty) || 1;
+      tx /= tl; ty /= tl;
+      marks.push({ x1: x - TICK_L * tx, y1: y - TICK_L * ty, x2: x + TICK_L * tx, y2: y + TICK_L * ty });
+    }
+    return marks;
+  });
 
   let selected = $state(false);
   function onSelect() {
@@ -242,6 +273,12 @@
     <path d={ringBand(true)} fill={tint(colors.ring, 0.1)} fill-opacity="0.92"
           stroke={colors.ring} stroke-width="2"
           stroke-linejoin="round" filter="url(#pill-shadow-{index})" />
+    {#each sideTicks as m}
+      <line x1={m.x1} y1={m.y1} x2={m.x2} y2={m.y2}
+            stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />
+      <line x1={-m.x1} y1={m.y1} x2={-m.x2} y2={m.y2}
+            stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />
+    {/each}
   {/if}
 
   {#if !isActive}

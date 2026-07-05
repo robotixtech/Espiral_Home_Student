@@ -59,6 +59,28 @@
     const m = (c: number) => Math.round(c * w + 255 * (1 - w));
     return `rgb(${m((n >> 16) & 255)} ${m((n >> 8) & 255)} ${m(n & 255)})`;
   }
+
+  // HUD-style tick marks flanking the title (galactic/tech instrument feel). Plain <line>
+  // primitives in node coords; the title width is × cs because it lives in a scale(cs) group.
+  const TICK_GAP = 11;
+  const TICK_L   = 4;
+  const titleHalfW = firstWord.length * (16 * cs) * 0.31;
+  const sideTicks  = $derived.by(() => {
+    const startX = titleHalfW + TICK_GAP + TICK_L;
+    const endX   = Math.max(startX, ringRX - 4 - TICK_L);
+    const marks: { x1: number; y1: number; x2: number; y2: number }[] = [];
+    for (let i = 0; i < 2; i++) {
+      const x = startX + (endX - startX) * i;
+      const frac = Math.min(x / ringRX, 0.999);
+      const sinF = Math.sqrt(Math.max(0, 1 - frac * frac));
+      const y = BAND_YC + RING_RY * sinF;
+      let tx = -ringRX * sinF, ty = RING_RY * frac;
+      const tl = Math.hypot(tx, ty) || 1;
+      tx /= tl; ty /= tl;
+      marks.push({ x1: x - TICK_L * tx, y1: y - TICK_L * ty, x2: x + TICK_L * tx, y2: y + TICK_L * ty });
+    }
+    return marks;
+  });
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -122,6 +144,12 @@
   <path d={ringBand(true)} fill={tint(colors.ring, 0.1)} fill-opacity="0.92"
         stroke={colors.ring} stroke-width="2"
         stroke-linejoin="round" filter="url(#ia-shadow)" />
+  {#each sideTicks as m}
+    <line x1={m.x1} y1={m.y1} x2={m.x2} y2={m.y2}
+          stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />
+    <line x1={-m.x1} y1={m.y1} x2={-m.x2} y2={m.y2}
+          stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />
+  {/each}
   <g transform="scale({cs})">
     <g transform="translate(-7,-32)">
       <UnitIcon icon="signal" size={14} color="#00102A" />
