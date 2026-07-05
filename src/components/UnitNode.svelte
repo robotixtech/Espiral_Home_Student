@@ -99,28 +99,33 @@
     return lines.slice(0, 2);
   }
 
-  // Elliptical belt wrapping the sphere's equator (a ring around a globe). Built from
-  // two rim ellipses offset vertically by the belt height, joined by side tabs. The
-  // near face crosses in front (below the title), the far face passes behind, and the
-  // side tabs stick out past the sphere silhouette — the 3-D "wrap" cue.
-  const BELT_RY = 11;                           // rim ellipse vertical radius (perspective)
-  const BELT_HH = 12;                           // half the belt strap height (holds the title)
-  const BELT_YC = -BELT_RY;                     // shift up so the near face (title band) centres on y=0
-  const pillW = $derived(Math.max(lblWords.length * 11 + 16, sz - 4));
-  const beltRX = $derived(Math.max(pillW / 2, r + 4));   // half width; sticks past the sphere
+  // Saturn-style orbital ring: a single thin, tilted ellipse encircling the sphere at
+  // its equator. Split into two arcs — the far arc (top half) passes behind the sphere,
+  // the near arc (bottom half) crosses in front. Together they read as an orbit, not a
+  // strap. The title sits on a small glass plaque threaded onto the ring's centre.
+  // Two curved, translucent bands make the ring itself the title container — no separate
+  // plaque. Both bands share the sphere's colour, so the title reads as etched on the ring.
+  const RING_RY = 10;                                    // orbital tilt: edge curvature
+  const BAND_HH = 11;                                    // half the ring band height (holds the title)
+  const bandW   = $derived(Math.max(lblWords.length * 10 + 24, sz * 0.85));
+  const ringRX  = $derived(Math.max(bandW / 2, r + 12));  // ring extends past the sphere sides
 
-  /** One face of the belt: a constant-height band between the two rim ellipses, closed
-   *  by vertical side tabs. front=true → near face (bows down, crosses in front and
-   *  carries the title); front=false → far face (bows up, behind the sphere). */
-  function beltFace(front: boolean): string {
-    const sTop = front ? 0 : 1;   // top rim arc: front bows down, back bows up
-    const sBot = front ? 1 : 0;   // bottom rim arc (traced back the other way)
+  // Shift the band up by RING_RY so the near band's centreline dips exactly onto y=0,
+  // where the title sits — otherwise the downward bow pushes the text to the top edge.
+  const BAND_YC = -RING_RY;
+
+  /** One curved band of the orbital ring — two parallel elliptical edges BAND_HH apart,
+   *  capped by short side edges. front=true → near band (bows down, crosses in front and
+   *  carries the title); false → far band (bows up, passes behind the sphere). */
+  function ringBand(front: boolean): string {
     const f = (n: number) => n.toFixed(1);
-    const RX = beltRX;
-    const yT = BELT_YC - BELT_HH; // top rim centre
-    const yB = BELT_YC + BELT_HH; // bottom rim centre
-    return `M ${f(-RX)} ${f(yT)} A ${f(RX)} ${BELT_RY} 0 0 ${sTop} ${f(RX)} ${f(yT)} `
-         + `L ${f(RX)} ${f(yB)} A ${f(RX)} ${BELT_RY} 0 0 ${sBot} ${f(-RX)} ${f(yB)} Z`;
+    const RX = ringRX, RY = RING_RY;
+    const yT = BAND_YC - BAND_HH;  // top edge centre
+    const yB = BAND_YC + BAND_HH;  // bottom edge centre
+    const sTop = front ? 0 : 1;   // top edge:    front bows down, back bows up
+    const sBot = front ? 1 : 0;   // bottom edge: traced back the other way
+    return `M ${f(-RX)} ${f(yT)} A ${f(RX)} ${RY} 0 0 ${sTop} ${f(RX)} ${f(yT)} `
+         + `L ${f(RX)} ${f(yB)} A ${f(RX)} ${RY} 0 0 ${sBot} ${f(-RX)} ${f(yB)} Z`;
   }
 
   let selected = $state(false);
@@ -181,10 +186,10 @@
       <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
     {/if}
 
-    <!-- Belt: far face, drawn behind the sphere (peeks around the sides) -->
+    <!-- Orbital ring: far band, behind the sphere (dim, peeks around the sides) -->
     {#if compact}
-      <path d={beltFace(false)} fill={colors.ring} fill-opacity="0.35"
-            stroke={colors.ring} stroke-opacity="0.5" stroke-width="1" />
+      <path d={ringBand(false)} fill={colors.ring} fill-opacity="0.28"
+            stroke={colors.ring} stroke-opacity="0.4" stroke-width="1" />
     {/if}
 
     <circle
@@ -204,12 +209,11 @@
       />
     {/if}
 
-  <!-- Belt: near face — the title band, crossing in front with side tabs -->
+  <!-- Orbital ring: near band crossing in front — this band IS the title container -->
   {#if compact}
-    {@const d = beltFace(true)}
-    <path {d} fill={colors.g2} filter="url(#pill-shadow-{index})" />
-    <path {d} fill="rgba(255,255,255,0.4)" stroke={colors.ring}
-          stroke-width="1.5" stroke-linejoin="round" />
+    <path d={ringBand(true)} fill={colors.ring} fill-opacity="0.55"
+          stroke={colors.ring} stroke-opacity="0.9" stroke-width="1.5"
+          stroke-linejoin="round" filter="url(#pill-shadow-{index})" />
   {/if}
 
   {#if !isActive}
