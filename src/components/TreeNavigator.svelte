@@ -866,7 +866,7 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background: rgba(31, 51, 71, 0.65);
+    background: rgba(31, 51, 71, 0.25);
     border: 1px solid rgba(255, 255, 255, 0.15);
     box-shadow: 0 4px 20px 0 rgba(0, 0, 0, 0.2);
     -webkit-backdrop-filter: blur(16px);
