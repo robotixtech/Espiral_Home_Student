@@ -224,11 +224,13 @@
   // the "Mis insignias" badge-panel strip that sits over the right edge.
   const CLOSE_MARGIN   = 28;
   const CLOSE_MARGIN_R = 60;
-  const panelCloseX  = $derived(Math.min(cx + panelCardHW, vb.x + vb.w - CLOSE_MARGIN_R));
-  const panelCloseY  = $derived(Math.max(cy - panelCardHH, vb.y + CLOSE_MARGIN));
+  // Follows the window's top-right corner (moves with the pan), clamped to the viewport so
+  // it stays visible if the window is dragged/zoomed past an edge.
+  const panelCloseX  = $derived(Math.max(vb.x + CLOSE_MARGIN, Math.min(cx + panelCardHW + panelPanX, vb.x + vb.w - CLOSE_MARGIN_R)));
+  const panelCloseY  = $derived(Math.max(vb.y + CLOSE_MARGIN, Math.min(cy - panelCardHH + panelPanY, vb.y + vb.h - CLOSE_MARGIN)));
   const panelTransform = $derived(
     panelUnitPos
-      ? `translate(${cx},${cy}) scale(${panelScale * panelZoom}) translate(${-panelUnitPos.x},${-panelUnitPos.y})`
+      ? `translate(${cx + panelPanX},${cy + panelPanY}) scale(${panelScale * panelZoom}) translate(${-panelUnitPos.x},${-panelUnitPos.y})`
       : ''
   );
 
@@ -315,10 +317,10 @@
   const iaScale    = $derived(fitScale(iaOrbit.hw, iaOrbit.hh));
   const iaCardHW   = $derived((iaOrbit.hw * iaScale + CARD_PAD) * panelZoom);
   const iaCardHH   = $derived((iaOrbit.hh * iaScale + CARD_PAD) * panelZoom);
-  const iaCloseX   = $derived(Math.min(cx + iaCardHW, vb.x + vb.w - CLOSE_MARGIN_R));
-  const iaCloseY   = $derived(Math.max(cy - iaCardHH, vb.y + CLOSE_MARGIN));
+  const iaCloseX   = $derived(Math.max(vb.x + CLOSE_MARGIN, Math.min(cx + iaCardHW + panelPanX, vb.x + vb.w - CLOSE_MARGIN_R)));
+  const iaCloseY   = $derived(Math.max(vb.y + CLOSE_MARGIN, Math.min(cy - iaCardHH + panelPanY, vb.y + vb.h - CLOSE_MARGIN)));
   const iaPanelTransform = $derived(
-    `translate(${cx},${cy}) scale(${iaScale * panelZoom}) translate(${-iaNodePos.cx},${-iaNodePos.cy})`
+    `translate(${cx + panelPanX},${cy + panelPanY}) scale(${iaScale * panelZoom}) translate(${-iaNodePos.cx},${-iaNodePos.cy})`
   );
 
   // ── C: Zoom / Pan ─────────────────────────────────────────────────────────
@@ -338,7 +340,22 @@
 
   // Detail-view (panel) zoom, driven by the +/- buttons. Separate from the galaxy zoom.
   let panelZoom = $state(1);
+  // Detail-view pan: drag INSIDE the container moves the whole modal (card + content).
+  let panelPanX = $state(0);
+  let panelPanY = $state(0);
+  let panelDragging = false;
   const panelOpen = $derived(!!panelUnit || panelIA);
+
+  /** Content coords of a pointer event, and whether it lands inside the open card. */
+  function pointerInCard(clientX: number, clientY: number): boolean {
+    if (!svgEl) return false;
+    const rect = svgEl.getBoundingClientRect();
+    const mx = vb.x + (clientX - rect.left) / rect.width  * vb.w;
+    const my = vb.y + (clientY - rect.top)  / rect.height * vb.h;
+    const hw = panelUnit ? panelCardHW : iaCardHW;
+    const hh = panelUnit ? panelCardHH : iaCardHH;
+    return Math.abs(mx - (cx + panelPanX)) <= hw && Math.abs(my - (cy + panelPanY)) <= hh;
+  }
 
   const zoomTransform = $derived(`translate(${panX},${panY}) scale(${zoomScale})`);
 
@@ -358,22 +375,33 @@
 
   function onMouseDown(e: MouseEvent) {
     if (e.button !== 0) return;
-    if (panelOpen) return; // no dragging while the detail view is open
     // Ignore synthesized mouse events that Android fires after touchend
     if (Date.now() - lastTouchEndAt < 500) return;
+    if (panelOpen) {
+      // Detail view: drag inside the container moves the modal; background stays static.
+      if (pointerInCard(e.clientX, e.clientY)) { panelDragging = true; lastMX = e.clientX; lastMY = e.clientY; }
+      return;
+    }
     isDragging = true; lastMX = e.clientX; lastMY = e.clientY;
   }
 
   function onMouseMove(e: MouseEvent) {
-    if (panelOpen || !isDragging || !svgEl) return;
+    if (!svgEl) return;
     const rect = svgEl.getBoundingClientRect();
+    if (panelDragging) {
+      panelPanX += (e.clientX - lastMX) * vb.w / rect.width;
+      panelPanY += (e.clientY - lastMY) * vb.h / rect.height;
+      lastMX = e.clientX; lastMY = e.clientY;
+      return;
+    }
+    if (panelOpen || !isDragging) return;
     panX += (e.clientX - lastMX) * vb.w / rect.width;
     panY += (e.clientY - lastMY) * vb.h / rect.height;
     lastMX = e.clientX; lastMY = e.clientY;
   }
 
-  function onMouseUp()    { isDragging = false; }
-  function onMouseLeave() { isDragging = false; }
+  function onMouseUp()    { isDragging = false; panelDragging = false; }
+  function onMouseLeave() { isDragging = false; panelDragging = false; }
   function resetView() {
     zoomScale = 1; panX = 0; panY = 0;
   }
@@ -441,8 +469,14 @@
   }
 
   function onTouchStart(e: TouchEvent) {
-    if (panelOpen) return; // static background while the detail view is open
     if (svgEl) cachedRect = svgEl.getBoundingClientRect();
+    if (panelOpen) {
+      // Detail view: single-finger drag inside the container moves the modal.
+      if (e.touches.length === 1 && pointerInCard(e.touches[0].clientX, e.touches[0].clientY)) {
+        panelDragging = true; lastTX = e.touches[0].clientX; lastTY = e.touches[0].clientY;
+      }
+      return;
+    }
     if (e.touches.length === 1) {
       isDragging = true;
       lastTX = e.touches[0].clientX;
@@ -459,6 +493,12 @@
 
   function onTouchMove(e: TouchEvent) {
     e.preventDefault();
+    if (panelDragging && cachedRect) {
+      panelPanX += (e.touches[0].clientX - lastTX) * vb.w / cachedRect.width;
+      panelPanY += (e.touches[0].clientY - lastTY) * vb.h / cachedRect.height;
+      lastTX = e.touches[0].clientX; lastTY = e.touches[0].clientY;
+      return;
+    }
     if (panelOpen || !cachedRect) return;
 
     if (e.touches.length === 1 && isDragging) {
@@ -491,6 +531,7 @@
     if (e.touches.length < 2) lastTouchDist = 0;
     if (e.touches.length === 0) {
       isDragging = false;
+      panelDragging = false;
       lastTouchEndAt = Date.now();
       // Double-tap resets view — only for genuine single-finger taps.
       // Skip if the gesture involved 2 fingers: both pinch fingers lifting
@@ -553,13 +594,13 @@
     if (panelIA) panelIA = false;
     if ((unit.activities?.length ?? 0) === 0) { onUnitSelected(unit); return; }
     panelUnit = panelUnit?.id === unit.id ? null : unit;
-    panelZoom = 1; // reset detail zoom each time the panel opens/closes
+    panelZoom = 1; panelPanX = 0; panelPanY = 0; // reset detail zoom/pan on open/close
   }
 
   function handleIAClick() {
     if (panelUnit) panelUnit = null;
     panelIA = !panelIA;
-    panelZoom = 1;
+    panelZoom = 1; panelPanX = 0; panelPanY = 0;
   }
 
   onMount(() => {
@@ -592,6 +633,13 @@
       ondblclick={resetView}
     >
       <defs>
+        <!-- Detail-view dimmer: tinted with the background palette (deep sky-blue → muted
+             horizon grey) instead of near-black, so the backdrop stays soft, not heavy. -->
+        <linearGradient id="detail-dim" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stop-color="#1c2c50" stop-opacity="0.85" />
+          <stop offset="58%"  stop-color="#2c4a67" stop-opacity="0.76" />
+          <stop offset="100%" stop-color="#6a6a78" stop-opacity="0.72" />
+        </linearGradient>
         <!-- Learning-path gradient: intensifies outward (dim at the centre/start → bright at
              the leading edge) so the travelled route reads as "you are here → next step". -->
         <radialGradient id="learn-path-grad" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={telescopeR}>
@@ -698,7 +746,7 @@
       <!-- Dimming overlay — outside zoom group so it always covers the full viewBox -->
       {#if panelUnit || panelIA}
         <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h}
-              fill="rgba(2,6,20,0.93)" pointer-events="none" />
+              fill="url(#detail-dim)" pointer-events="none" />
       {/if}
 
       <!-- Pass 2: Selected node + activity orbit — centred on screen and scaled up 20% -->
@@ -708,8 +756,8 @@
         {@const nSize = Math.round(UNIT_SIZE * 1.35)}
         {@const vr    = UNIT_SIZE / 2 * (si === 0 ? 1.15 : 1.0) * 1.35}
         <!-- Modal card frame (thin border, rounded corners) — analogous to the badge modal -->
-        <rect x={cx - panelCardHW} y={cy - panelCardHH} width={panelCardHW * 2} height={panelCardHH * 2}
-              rx="20" fill="rgba(6,16,40,0.7)" stroke="rgba(70,150,255,0.35)" stroke-width="1.5" />
+        <rect x={cx - panelCardHW + panelPanX} y={cy - panelCardHH + panelPanY} width={panelCardHW * 2} height={panelCardHH * 2}
+              rx="20" fill="rgba(8,18,42,0.97)" stroke="rgba(70,150,255,0.4)" stroke-width="1.5" />
         <g transform={panelTransform}>
           {#if isIP}
             <circle cx={panelUnitPos.x} cy={panelUnitPos.y} r={vr + 38} fill="rgba(245,158,11,0.08)" />
@@ -761,8 +809,8 @@
       <!-- Pass 2: IA node + activity orbit — centred on screen and scaled up 20% -->
       {#if panelIA}
         <!-- Modal card frame (thin border, rounded corners) — analogous to the badge modal -->
-        <rect x={cx - iaCardHW} y={cy - iaCardHH} width={iaCardHW * 2} height={iaCardHH * 2}
-              rx="20" fill="rgba(6,16,40,0.7)" stroke="rgba(70,150,255,0.35)" stroke-width="1.5" />
+        <rect x={cx - iaCardHW + panelPanX} y={cy - iaCardHH + panelPanY} width={iaCardHW * 2} height={iaCardHH * 2}
+              rx="20" fill="rgba(8,18,42,0.97)" stroke="rgba(70,150,255,0.4)" stroke-width="1.5" />
         <g transform={iaPanelTransform}>
           <IANode cx={iaNodePos.cx} cy={iaNodePos.cy}
                   status={iaEffectiveStatus} progress={iaProgress}
