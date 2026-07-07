@@ -36,10 +36,8 @@
 
   const sw = 3.5;
   const isStart = $derived(index === 0);
-  // inProgress spheres are enlarged 15% to emphasise the active unit; the ring title font
-  // and band width scale by the same proportion (see titleFont / bandW).
-  const statusScale = $derived(unit.status === 'in-progress' ? 1.15 : 1);
-  const sz = $derived((isStart ? size * 1.15 : size) * statusScale);
+  // Sphere size never depends on status — only fill colour does (see `colors`).
+  const sz = $derived(isStart ? size * 1.15 : size);
   const r = $derived(sz / 2);
   const pr = $derived(r - sw / 2);
   const circ = $derived(2 * Math.PI * pr);
@@ -102,89 +100,19 @@
     return lines.slice(0, 2);
   }
 
-  // Saturn-style orbital ring: two curved, translucent bands make the ring itself the title
-  // container — no separate plaque. Both bands share the sphere's colour, so the title reads
-  // as etched on the ring.
-  const RING_RY = 10;                                    // orbital tilt: edge curvature
-  // Half the ring band height (holds the title). inProgress spheres get a taller band so the
-  // enlarged title keeps comfortable top/bottom padding instead of hugging the edges.
-  const BAND_HH = $derived(unit.status === 'in-progress' ? 18.5 : 14.3);
-  const titleFont = $derived(20 * statusScale * (unit.status === 'in-progress' ? 1.2 : 1)); // inProgress: +20%
-  const bandW   = $derived(Math.max(lblWords.length * 13 * statusScale + 24, sz * 0.85));
-  const ringRX  = $derived(Math.max(bandW / 2, r + 12));  // ring extends past the sphere sides
-
-  // Compact icon: base 20.8, doubled for inProgress spheres. Vertically centred in the gap
-  // between the ring band's top edge (y = −BAND_HH at centre) and the sphere's top (y = −r).
+  // Compact icon: base 20.8, same size for inProgress and completed. Centred in the sphere.
   const C_ICON_BASE = 20.8;
   const cIcon   = $derived(
-    unit.status === 'in-progress' ? C_ICON_BASE * 2
-    : unit.status === 'locked'    ? C_ICON_BASE * 1.2   // locked lock icon +20%
+    unit.status === 'locked' ? C_ICON_BASE * 1.2   // locked lock icon +20%
     : C_ICON_BASE
   );
   const cIconTX = $derived(-cIcon / 2);                   // top-left x so the icon centres on x=0
-  const cIconTY = $derived((-BAND_HH - r) / 2 - cIcon / 2);
+  const cIconTY = $derived(-cIcon / 2);                   // top-left y so the icon centres on y=0
 
-  // Shift the band up by RING_RY so the near band's centreline dips exactly onto y=0,
-  // where the title sits — otherwise the downward bow pushes the text to the top edge.
-  const BAND_YC = -RING_RY;
-
-  /** Mix a hex colour with white; w = weight of the colour (0..1), the rest white.
-   *  Used to give the band a faint tint of the sphere's status colour while staying
-   *  mostly white for text contrast. */
-  function tint(hex: string, w: number): string {
-    const n = parseInt(hex.replace('#', ''), 16);
-    const m = (c: number) => Math.round(c * w + 255 * (1 - w));
-    return `rgb(${m((n >> 16) & 255)} ${m((n >> 8) & 255)} ${m(n & 255)})`;
-  }
-
-  /** One curved band of the orbital ring — two parallel elliptical edges BAND_HH apart,
-   *  capped by short side edges. front=true → near band (bows down, crosses in front and
-   *  carries the title); false → far band (bows up, passes behind the sphere). */
-  function ringBand(front: boolean): string {
-    const f = (n: number) => n.toFixed(1);
-    const RX = ringRX, RY = RING_RY;
-    const yT = BAND_YC - BAND_HH;  // top edge centre
-    const yB = BAND_YC + BAND_HH;  // bottom edge centre
-    const sTop = front ? 0 : 1;   // top edge:    front bows down, back bows up
-    const sBot = front ? 1 : 0;   // bottom edge: traced back the other way
-    return `M ${f(-RX)} ${f(yT)} A ${f(RX)} ${RY} 0 0 ${sTop} ${f(RX)} ${f(yT)} `
-         + `L ${f(RX)} ${f(yB)} A ${f(RX)} ${RY} 0 0 ${sBot} ${f(-RX)} ${f(yB)} Z`;
-  }
-
-  /** Baseline for the curved title: the near band's midline arc (same ellipse as the ring
-   *  edge), so the title follows the exact curvature of the band. Left→right, bows down to
-   *  y=0 at centre; the title is centred on it via startOffset 50%. */
-  function titlePath(): string {
-    const f = (n: number) => n.toFixed(1);
-    return `M ${f(-ringRX)} ${f(BAND_YC)} A ${f(ringRX)} ${RING_RY} 0 0 0 ${f(ringRX)} ${f(BAND_YC)}`;
-  }
-
-  // HUD-style tick marks flanking the title — small gauge strokes that give the ring a
-  // galactic/tech instrument feel instead of a plain headband. Plain <line> primitives (NOT
-  // components), stroke-opacity (no compositing layers) — cheap on Mali-G52 tablets.
-  // FIXED count (2 per side) so status changes only update attributes, never add/remove DOM.
-  const TICKS_PER_SIDE = 2;
-  const TICK_GAP = 11;                                              // clear space kept from the text
-  const TICK_L   = 4;                                               // dash half-length (short, tech tick)
-  const titleHalfW = $derived(lblWords.length * titleFont * 0.31);  // approx half title width (generous)
-  const sideTicks  = $derived.by(() => {
-    // Innermost dash centre so its inner end stays TICK_GAP away from the text.
-    const startX = titleHalfW + TICK_GAP + TICK_L;
-    const endX   = Math.max(startX, ringRX - 4 - TICK_L);           // outermost near the band edge
-    const marks: { x1: number; y1: number; x2: number; y2: number }[] = [];
-    for (let i = 0; i < TICKS_PER_SIDE; i++) {
-      const x = startX + (endX - startX) * (i / (TICKS_PER_SIDE - 1));
-      const frac = Math.min(x / ringRX, 0.999);
-      const sinF = Math.sqrt(Math.max(0, 1 - frac * frac));
-      const y = BAND_YC + RING_RY * sinF;
-      // tangent to the band's midline ellipse → the ring's horizontal "flow" direction
-      let tx = -ringRX * sinF, ty = RING_RY * frac;
-      const tl = Math.hypot(tx, ty) || 1;
-      tx /= tl; ty /= tl;
-      marks.push({ x1: x - TICK_L * tx, y1: y - TICK_L * ty, x2: x + TICK_L * tx, y2: y + TICK_L * ty });
-    }
-    return marks;
-  });
+  // ID chip: a small tag straddling the sphere's bottom rim (half in, half out), like a
+  // nameplate hanging off a badge — reads as an identifier, not a plate sunk in the centre.
+  const CHIP_H = 17;
+  const chipW  = $derived(Math.max(unit.displayName.length * 9 + 14, 26));
 
   let selected = $state(false);
   function onSelect() {
@@ -211,7 +139,6 @@
       <stop offset="0%" stop-color={colors.g1} />
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
-    <path id="title-path-{index}" d={titlePath()} fill="none" />
     <filter id="glow-{index}" filterUnits="userSpaceOnUse"
             x={-r - 20} y={-r - 20} width={(r + 20) * 2} height={(r + 20) * 2}>
       <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
@@ -220,9 +147,11 @@
         <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
-    <filter id="pill-shadow-{index}" filterUnits="userSpaceOnUse"
+    <!-- Lifts the ID chip off the sphere's surface with a soft drop shadow, so it reads as a
+         badge affixed on top rather than a mark sunk into the sphere. -->
+    <filter id="chip-shadow-{index}" filterUnits="userSpaceOnUse"
             x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color={colors.ring} flood-opacity="0.5" />
+      <feDropShadow dx="0" dy="1.5" stdDeviation="1.6" flood-color="#000000" flood-opacity="0.4" />
     </filter>
   </defs>
 
@@ -245,12 +174,6 @@
       <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
     {/if}
 
-    <!-- Orbital ring: far band, behind the sphere (dim, peeks around the sides) -->
-    {#if compact}
-      <path d={ringBand(false)} fill={tint(colors.ring, 0.1)} fill-opacity="0.4"
-            stroke={colors.ring} stroke-opacity="0.8" stroke-width="1.5" />
-    {/if}
-
     <circle
       cx="0" cy="0" r={r}
       fill="url(#{gradId})"
@@ -258,7 +181,6 @@
     />
 
     {#if isActive}
-      <circle cx="0" cy="0" r={pr} fill="none" stroke={theme.progressRingBg} stroke-width={sw} />
       <circle
         cx="0" cy="0" r={pr}
         fill="none" stroke={colors.ring} stroke-width={sw}
@@ -268,40 +190,31 @@
       />
     {/if}
 
-  <!-- Orbital ring: near band crossing in front — this band IS the title container -->
-  {#if compact}
-    <path d={ringBand(true)} fill={tint(colors.ring, 0.1)} fill-opacity="0.92"
-          stroke={colors.ring} stroke-width="2"
-          stroke-linejoin="round" filter="url(#pill-shadow-{index})" />
-    {#each sideTicks as m}
-      <line x1={m.x1} y1={m.y1} x2={m.x2} y2={m.y2}
-            stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />
-      <line x1={-m.x1} y1={m.y1} x2={-m.x2} y2={m.y2}
-            stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />
-    {/each}
-  {/if}
-
   {#if !isActive}
-    <!-- Icon on the upper sphere, outside the ring; title inside the front band -->
+    <!-- Icon centred in the sphere -->
     <svg x={cIconTX} y={cIconTY} width={cIcon} height={cIcon} viewBox="0 0 24 24"
          fill="none" stroke="#4b5563" stroke-opacity="0.6" stroke-width="1.8"
          stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
       <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
-    <text text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside-pill" fill="#4b5563">
-      <textPath href="#title-path-{index}" startOffset="50%">{lblWords}</textPath>
-    </text>
+    <!-- ID chip: nameplate straddling the bottom rim -->
+    <rect class="id-chip" x={-chipW / 2} y={r - CHIP_H / 2} width={chipW} height={CHIP_H}
+          rx={CHIP_H / 2} fill="#00102A" fill-opacity="0.92"
+          stroke={colors.ring} stroke-width="1.3" filter="url(#chip-shadow-{index})" />
+    <text x="0" y={r + 0.5} text-anchor="middle" dominant-baseline="middle"
+          class="lbl-chip" fill="#e2e8f0">{unit.displayName}</text>
   {:else if compact}
-    <!-- Icon on the upper sphere, outside the band; title inside the front band -->
+    <!-- Icon centred in the sphere -->
     <g transform="translate({cIconTX},{cIconTY})">
       <UnitIcon icon={unit.icon} size={cIcon} color="#00102A" />
     </g>
-    <text text-anchor="middle" dominant-baseline="middle"
-          class="lbl-inside-pill" fill="#001f3f" style="font-size: {titleFont}px">
-      <textPath href="#title-path-{index}" startOffset="50%">{lblWords}</textPath>
-    </text>
+    <!-- ID chip: nameplate straddling the bottom rim -->
+    <rect class="id-chip" x={-chipW / 2} y={r - CHIP_H / 2} width={chipW} height={CHIP_H}
+          rx={CHIP_H / 2} fill="#00102A" fill-opacity="0.92"
+          stroke={colors.ring} stroke-width="1.3" filter="url(#chip-shadow-{index})" />
+    <text x="0" y={r + 0.5} text-anchor="middle" dominant-baseline="middle"
+          class="lbl-chip" fill="#ffffff">{unit.displayName}</text>
   {:else}
     <!-- Full mode (UnitDetailView center node, etc.) -->
     <g transform="translate({-iconOff}, {-iconOff - 5})">
@@ -436,5 +349,5 @@
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
   .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
-  .lbl-inside-pill { font: 700 20px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .lbl-chip        { font: 700 11.5px/1 'Rubik', system-ui, sans-serif; pointer-events: none; letter-spacing: 0.2px; }
 </style>

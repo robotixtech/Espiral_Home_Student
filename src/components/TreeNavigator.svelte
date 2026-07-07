@@ -79,42 +79,6 @@
     spiralProgressIdx >= 1 ? spiralPathD(0, Math.min(spiralProgressIdx, program.units.length - 1)) : ''
   );
 
-  // ── Learning route "beam of light" ────────────────────────────────────────
-  // The travelled route is a filled ribbon that starts as a thin stroke at the centre and
-  // widens toward the leading edge (the child's current position), like a beam of light —
-  // conveying the "next step" flow through thickness alone, no reading required.
-  const RIBBON_W_MIN = 1.5;   // width at the centre / start
-  const RIBBON_W_MAX = 13.2;  // width at the leading edge — +20% to emphasise the widening
-
-  function learnRibbonPath(toIdx: number): string {
-    const thetaTo = toIdx <= 0 ? THETA_ZERO : START_ANGLE + (toIdx - 1) * GOLDEN;
-    const steps = Math.max(Math.round(SPIRAL_SAMPLES * Math.abs(thetaTo - THETA_ZERO) / (2 * Math.PI)), 40);
-    const pts: { x: number; y: number }[] = [];
-    const hw: number[] = [];
-    for (let i = 0; i <= steps; i++) {
-      const f = i / steps;
-      const theta = THETA_ZERO + (thetaTo - THETA_ZERO) * f;
-      const r = Math.max(0, SPIRAL_A + SPIRAL_B * theta);
-      pts.push({ x: cx + r * Math.cos(theta), y: cy + r * Math.sin(theta) });
-      hw.push((RIBBON_W_MIN + f * (RIBBON_W_MAX - RIBBON_W_MIN)) / 2);
-    }
-    const left: string[] = [];
-    const right: string[] = [];
-    for (let i = 0; i <= steps; i++) {
-      const a = pts[Math.max(0, i - 1)], b = pts[Math.min(steps, i + 1)];
-      let tx = b.x - a.x, ty = b.y - a.y;
-      const len = Math.hypot(tx, ty) || 1;
-      const nx = -ty / len, ny = tx / len; // unit normal
-      left.push(`${i === 0 ? 'M' : 'L'} ${(pts[i].x + nx * hw[i]).toFixed(1)} ${(pts[i].y + ny * hw[i]).toFixed(1)}`);
-      right.push(`L ${(pts[i].x - nx * hw[i]).toFixed(1)} ${(pts[i].y - ny * hw[i]).toFixed(1)}`);
-    }
-    return left.join(' ') + ' ' + right.reverse().join(' ') + ' Z';
-  }
-
-  const learnRibbon = $derived(
-    spiralProgressIdx >= 1 ? learnRibbonPath(Math.min(spiralProgressIdx, program.units.length - 1)) : ''
-  );
-
   // Completed spiral segment: up to the last completed unit
   const lastCompletedIdx = $derived(
     effectiveStatuses.reduce((last, st, i) => st === 'completed' ? i : last, -1)
@@ -136,11 +100,10 @@
         : ('in-progress' as const);
     }),
   );
-  // Actual visual radius of node i, accounting for isStart (×1.15 inside UnitNode)
-  // and the in-progress scale-up (×1.35) applied via the size prop.
+  // Actual visual radius of node i, accounting for isStart (×1.15 inside UnitNode).
+  // Status never changes sphere size — only colour does.
   function nodeVisualR(i: number): number {
-    const isIP = effectiveStatuses[i] === 'in-progress';
-    return UNIT_SIZE / 2 * (i === 0 ? 1.15 : 1.0) * (isIP ? 1.35 : 1.0);
+    return UNIT_SIZE / 2 * (i === 0 ? 1.15 : 1.0);
   }
 
   // Unit 0 sits at the center (telescope focal point); remaining units spiral outward.
@@ -664,10 +627,11 @@
         <path d={spiralFullPath} fill="none"
               stroke="rgba(0,180,255,0.12)" stroke-width="1.5"
               stroke-dasharray="6 10" stroke-linecap="round" />
-        <!-- Learning route — travelled so far: a "beam of light" ribbon, thin at the start
-             and widening toward the leading edge (current position → next step). -->
-        {#if learnRibbon}
-          <path d={learnRibbon} fill="url(#learn-path-grad)" stroke="none" />
+        <!-- Learning route — travelled so far: uniform-width dashed stroke (current position → next step). -->
+        {#if spiralProgressPath}
+          <path d={spiralProgressPath} fill="none"
+                stroke="url(#learn-path-grad)" stroke-width="5"
+                stroke-dasharray="14 8" stroke-linecap="round" />
         {/if}
 
         <!-- Distant galaxies -->
@@ -716,7 +680,7 @@
           {#if panelUnit?.id !== unit.id}
             {@const uPos  = unitPositions[i]}
             {@const isIP  = effectiveStatuses[i] === 'in-progress'}
-            {@const nSize = isIP ? Math.round(UNIT_SIZE * 1.35) : UNIT_SIZE}
+            {@const nSize = UNIT_SIZE}
             {#if isIP}
               {@const vr = nodeVisualR(i)}
               <circle cx={uPos.x} cy={uPos.y} r={vr + 38} fill="rgba(245,158,11,0.05)" />
