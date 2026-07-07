@@ -136,6 +136,11 @@
   // colour varies by status (amber/green/grey/purple), so a fixed dark edge guarantees the
   // text stays legible against any of them instead of relying on fill colour contrast alone.
   const numberStroke = $derived(numberFont * 0.05);
+  // 3D depth for the active-state number: a solid navy "extrusion" edge (0-blur offset
+  // duplicate text, no SVG filter involved) plus a light-from-above gradient fill. The
+  // reference design's soft blurred drop-shadow was dropped — CSS filter/drop-shadow on SVG
+  // lowers to feGaussianBlur, the confirmed Mali-G52 GPU-artifact trigger (project memory).
+  const numberEdgeOffset = $derived(numberFont * 0.06);
 
   // Icon + number read as a single centred block (icon above, number below, small gap)
   // instead of being pinned to opposite poles with a dead zone between them.
@@ -171,6 +176,13 @@
       <stop offset="0%" stop-color={colors.g1} />
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
+    <!-- Unit-number fill: light-from-above gradient, chalk-white family (neutral — not
+         status-tinted, matches the "blanco tiza" text colour decision). -->
+    <linearGradient id="num-grad-{index}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"   stop-color="#FFFFFF" />
+      <stop offset="70%"  stop-color="#F4F2EC" />
+      <stop offset="100%" stop-color="#E6E1D2" />
+    </linearGradient>
     <filter id="glow-{index}" filterUnits="userSpaceOnUse"
             x={-r - 20} y={-r - 20} width={(r + 20) * 2} height={(r + 20) * 2}>
       <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
@@ -246,9 +258,14 @@
     <g transform="translate({cIconTX},{cIconTY})">
       <UnitIcon icon={unit.icon} size={cIcon} color="#00102A" />
     </g>
-    <!-- Unit number: engraved directly on the sphere surface -->
+    <!-- Unit number: solid navy "extrusion" edge behind (0-blur offset duplicate, gives
+         the letters thickness) + the real gradient-filled, navy-outlined text on top. -->
+    <text x="0" y={numberY + numberEdgeOffset} text-anchor="middle" dominant-baseline="middle"
+          class="planet-number-edge" style="font-size: {numberFont}px">
+      {unit.displayName}
+    </text>
     <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
-          class="planet-number" fill="#F4F2EC" style="font-size: {numberFont}px; stroke-width: {numberStroke}px">
+          class="planet-number" fill="url(#num-grad-{index})" style="font-size: {numberFont}px; stroke-width: {numberStroke}px">
       {unit.displayName}
     </text>
   {:else}
@@ -389,10 +406,17 @@
      the stroke eating into the letterforms) — readability fix: the sphere's own colour
      varies by status, so a fixed dark edge keeps the glyphs legible against any of them. */
   .planet-number {
-    font: 700 1em/1 'Rubik', system-ui, sans-serif;
+    font: 800 1em/1 'Rubik', system-ui, sans-serif;
     pointer-events: none;
     stroke: #001f3f;
     paint-order: stroke fill;
+  }
+  /* Solid navy duplicate sat behind .planet-number, offset down — same font metrics so it
+     lines up exactly under the real glyphs, giving them a flat "extruded" edge with no blur. */
+  .planet-number-edge {
+    font: 800 1em/1 'Rubik', system-ui, sans-serif;
+    pointer-events: none;
+    fill: #001f3f;
   }
   /* Disabled (locked) look: flat, dimmed like the locked activity chips — stroke dims with
      the fill so the outline doesn't end up reading darker/heavier than the glyph itself. */
