@@ -100,26 +100,25 @@
     return lines.slice(0, 2);
   }
 
-  // Compact icon: base 20.8, +20% overall, same size for inProgress and completed.
-  // Sat in the upper part of the sphere (not centred), clear of the number text below.
-  const C_ICON_BASE = 20.8 * 1.2;
+  // Compact icon: base 20.8, +20% then -15% (2026-07-07 feedback: the icon shouldn't compete
+  // with the unit number/code — that's what orients the child on the map, not the glyph).
+  const C_ICON_BASE = 20.8 * 1.2 * 0.85;
   const cIcon   = $derived(
-    unit.status === 'locked' ? C_ICON_BASE * 1.2   // locked lock icon +20% on top of the base bump
+    unit.status === 'locked' ? C_ICON_BASE * 1.2   // locked lock icon +20% on top of the base, for stroke visibility
     : C_ICON_BASE
   );
-  const iconCY  = $derived(-r * 0.45);                    // icon centre y — upper part of the sphere
-  const cIconTX = $derived(-cIcon / 2);                   // top-left x so the icon centres on x=0
-  const cIconTY = $derived(iconCY - cIcon / 2);            // top-left y so the icon centres on iconCY
 
   // Craters — position/size as fractions of the sphere radius r (adapted from a reference
   // .crater CSS design). Tinted to each sphere's own gradient colour (colors.g2) rather than
   // a fixed hue, so it reads correctly on amber/green/grey/purple spheres alike. Plain rgba()
   // fill only — no opacity/filter attrs — the confirmed-safe pattern for Mali-G52 (see
-  // project memory on the Samsung Tab A8 GPU artifact).
+  // project memory on the Samsung Tab A8 GPU artifact). Per-crater `alpha` so any one of them
+  // can be made subtler without affecting the others (2026-07-07: crater-a was fighting the
+  // unit number for attention — moved off the number's zone and toned down, no inner shadow).
   const CRATERS = [
-    { cx: -0.59, cy:  0.41, r: 0.16, shadow: true  }, // large, lower-left
-    { cx:  0.59, cy: -0.41, r: 0.10, shadow: true  }, // medium, upper-right
-    { cx:  0.73, cy:  0.19, r: 0.07, shadow: false }, // small, flat (older crater)
+    { cx: -0.66, cy:  0.68, r: 0.11, shadow: false, alpha: 0.14 }, // small, lower-left corner, subtle
+    { cx:  0.59, cy: -0.41, r: 0.10, shadow: true,  alpha: 0.25 }, // medium, upper-right
+    { cx:  0.73, cy:  0.19, r: 0.07, shadow: false, alpha: 0.22 }, // small, flat (older crater)
   ];
   function craterTone(hex: string, factor: number, alpha: number): string {
     const n = parseInt(hex.replace('#', ''), 16);
@@ -128,14 +127,20 @@
     const b8 = Math.round((n & 255) * factor);
     return `rgba(${r8},${g8},${b8},${alpha})`;
   }
-  const craterBase   = $derived(craterTone(colors.g2, 1, 0.25));
   const craterShadow = $derived(craterTone(colors.g2, 0.6, 0.4));
 
-  // Unit number: large engraved text inside the sphere (replaces the old ID pill). Scaled
-  // to the sphere radius and sat below the icon, well inside the rim. Base ratio 0.7,
-  // reduced three times by 20% per user feedback (0.8^3 ≈ 0.512 of the base ratio).
-  const numberFont = $derived(r * 0.7 * 0.8 * 0.8 * 0.8);
-  const numberY    = $derived(r * 0.42);
+  // Unit number: the dominant element inside the sphere — it's the code that orients the
+  // child on the map, not the icon (2026-07-07 feedback). ~1/3 of the sphere's diameter.
+  const numberFont = $derived((2 * r) / 3);
+
+  // Icon + number read as a single centred block (icon above, number below, small gap)
+  // instead of being pinned to opposite poles with a dead zone between them.
+  const BLOCK_GAP = 7;
+  const blockH  = $derived(cIcon + BLOCK_GAP + numberFont);
+  const iconCY  = $derived(-blockH / 2 + cIcon / 2);
+  const cIconTX = $derived(-cIcon / 2);
+  const cIconTY = $derived(iconCY - cIcon / 2);
+  const numberY = $derived(blockH / 2 - numberFont / 2);
 
   let selected = $state(false);
   function onSelect() {
@@ -188,7 +193,8 @@
        so the continuous sphere+pill outline moves as a single object. -->
   <g class="beat" class:heartbeat={isInProgress}>
     {#if isActive}
-      <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
+      <!-- Toned down (2026-07-07 feedback): was brighter than the sphere's own surface -->
+      <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.15" />
     {/if}
 
     <circle
@@ -200,7 +206,7 @@
     <!-- Craters -->
     <g transform="rotate({(index * 47) % 360})">
       {#each CRATERS as c}
-        <circle cx={c.cx * r} cy={c.cy * r} r={c.r * r} fill={craterBase} />
+        <circle cx={c.cx * r} cy={c.cy * r} r={c.r * r} fill={craterTone(colors.g2, 1, c.alpha)} />
         {#if c.shadow}
           <circle cx={(c.cx + c.r * 0.3) * r} cy={(c.cy + c.r * 0.35) * r}
                   r={c.r * r * 0.55} fill={craterShadow} />
@@ -375,15 +381,12 @@
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
   .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
-  /* "Engraved" look: bright glint below (light catching the lower edge of the groove) +
-     dark blurred shadow above (the groove's own shadow) — see feedback_samsung_css_review
-     memory: verify text-shadow blur doesn't reintroduce the Mali-G52 artifact. */
+  /* Single crisp lower edge, no blur (2026-07-07 feedback: the previous dark blurred shadow
+     above the glyph read as a halo wrapping the whole letterform, including the top). */
   .planet-number {
     font: 700 1em/1 'Rubik', system-ui, sans-serif;
     pointer-events: none;
-    text-shadow:
-      0 2px 0 rgba(255, 255, 255, 0.28),
-      0 -1px 2px rgba(10, 40, 32, 0.5);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
   }
   /* Disabled (locked) look: flat, no engraved depth, dimmed like the locked activity chips */
   .planet-number-disabled {

@@ -26,6 +26,13 @@
     return t.unit.locked;
   }
 
+  /** Mix a hex colour toward white by `weight` (0..1 = how much of the status colour shows). */
+  function mixWithWhite(hex: string, weight: number): string {
+    const n = parseInt(hex.replace('#', ''), 16);
+    const m = (c: number) => Math.round(c * weight + 255 * (1 - weight));
+    return `rgb(${m((n >> 16) & 255)} ${m((n >> 8) & 255)} ${m(n & 255)})`;
+  }
+
   function handleCard(e: Event, act: Activity) {
     e.stopPropagation();
     if (act.status === 'locked') return;
@@ -61,6 +68,7 @@
         {@const pr       = cr - sw / 2}
         {@const circ     = 2 * Math.PI * pr}
         {@const dashOff  = circ - (act.progress / 100) * circ}
+        {@const gradId   = `chip-grad-${act.id}`}
 
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
         <g
@@ -75,12 +83,21 @@
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCard(e, act); }
           }}
         >
-          <!-- Thin outer halo + chalk-white disc + thicker inset progress ring — same
+          <defs>
+            <!-- 3D sphere look, same recipe as the unit sphere: highlight offset to 35%/35%,
+                 fading to the base tone. Base/highlight are the status colour mixed toward
+                 white — base at 10% intensity, highlight lighter still for the glossy pop. -->
+            <radialGradient id={gradId} cx="35%" cy="35%" r="65%">
+              <stop offset="0%" stop-color={mixWithWhite(colors.ring, 0.04)} />
+              <stop offset="100%" stop-color={mixWithWhite(colors.ring, 0.10)} />
+            </radialGradient>
+          </defs>
+          <!-- Thin outer halo + 3D-shaded disc + thicker inset progress ring — same
                two-tier border treatment as the unit sphere, scaled down. -->
           {#if isActive}
             <circle r={cr + 2} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
           {/if}
-          <circle class="chip-bg" r={cr} fill="#F4F2EC" />
+          <circle class="chip-bg" r={cr} fill="url(#{gradId})" />
           {#if isActive}
             <circle r={pr} fill="none" stroke={colors.ring} stroke-width={sw}
                     stroke-dasharray={circ} stroke-dashoffset={dashOff}
