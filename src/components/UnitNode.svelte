@@ -100,19 +100,42 @@
     return lines.slice(0, 2);
   }
 
-  // Compact icon: base 20.8, same size for inProgress and completed. Centred in the sphere.
-  const C_ICON_BASE = 20.8;
+  // Compact icon: base 20.8, +20% overall, same size for inProgress and completed.
+  // Sat in the upper part of the sphere (not centred), clear of the number text below.
+  const C_ICON_BASE = 20.8 * 1.2;
   const cIcon   = $derived(
-    unit.status === 'locked' ? C_ICON_BASE * 1.2   // locked lock icon +20%
+    unit.status === 'locked' ? C_ICON_BASE * 1.2   // locked lock icon +20% on top of the base bump
     : C_ICON_BASE
   );
+  const iconCY  = $derived(-r * 0.45);                    // icon centre y — upper part of the sphere
   const cIconTX = $derived(-cIcon / 2);                   // top-left x so the icon centres on x=0
-  const cIconTY = $derived(-cIcon / 2);                   // top-left y so the icon centres on y=0
+  const cIconTY = $derived(iconCY - cIcon / 2);            // top-left y so the icon centres on iconCY
 
-  // ID chip: a small tag straddling the sphere's bottom rim (half in, half out), like a
-  // nameplate hanging off a badge — reads as an identifier, not a plate sunk in the centre.
-  const CHIP_H = 17;
-  const chipW  = $derived(Math.max(unit.displayName.length * 9 + 14, 26));
+  // Craters — position/size as fractions of the sphere radius r (adapted from a reference
+  // .crater CSS design). Tinted to each sphere's own gradient colour (colors.g2) rather than
+  // a fixed hue, so it reads correctly on amber/green/grey/purple spheres alike. Plain rgba()
+  // fill only — no opacity/filter attrs — the confirmed-safe pattern for Mali-G52 (see
+  // project memory on the Samsung Tab A8 GPU artifact).
+  const CRATERS = [
+    { cx: -0.59, cy:  0.41, r: 0.16, shadow: true  }, // large, lower-left
+    { cx:  0.59, cy: -0.41, r: 0.10, shadow: true  }, // medium, upper-right
+    { cx:  0.73, cy:  0.19, r: 0.07, shadow: false }, // small, flat (older crater)
+  ];
+  function craterTone(hex: string, factor: number, alpha: number): string {
+    const n = parseInt(hex.replace('#', ''), 16);
+    const r8 = Math.round(((n >> 16) & 255) * factor);
+    const g8 = Math.round(((n >> 8) & 255) * factor);
+    const b8 = Math.round((n & 255) * factor);
+    return `rgba(${r8},${g8},${b8},${alpha})`;
+  }
+  const craterBase   = $derived(craterTone(colors.g2, 1, 0.25));
+  const craterShadow = $derived(craterTone(colors.g2, 0.6, 0.4));
+
+  // Unit number: large engraved text inside the sphere (replaces the old ID pill). Scaled
+  // to the sphere radius and sat below the icon, well inside the rim. Base ratio 0.7,
+  // reduced three times by 20% per user feedback (0.8^3 ≈ 0.512 of the base ratio).
+  const numberFont = $derived(r * 0.7 * 0.8 * 0.8 * 0.8);
+  const numberY    = $derived(r * 0.42);
 
   let selected = $state(false);
   function onSelect() {
@@ -147,12 +170,6 @@
         <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
-    <!-- Lifts the ID chip off the sphere's surface with a soft drop shadow, so it reads as a
-         badge affixed on top rather than a mark sunk into the sphere. -->
-    <filter id="chip-shadow-{index}" filterUnits="userSpaceOnUse"
-            x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="1.5" stdDeviation="1.6" flood-color="#000000" flood-opacity="0.4" />
-    </filter>
   </defs>
 
   {#if isActive}
@@ -180,6 +197,17 @@
       filter={unit.status === 'completed' ? `url(#glow-${index})` : undefined}
     />
 
+    <!-- Craters -->
+    <g transform="rotate({(index * 47) % 360})">
+      {#each CRATERS as c}
+        <circle cx={c.cx * r} cy={c.cy * r} r={c.r * r} fill={craterBase} />
+        {#if c.shadow}
+          <circle cx={(c.cx + c.r * 0.3) * r} cy={(c.cy + c.r * 0.35) * r}
+                  r={c.r * r * 0.55} fill={craterShadow} />
+        {/if}
+      {/each}
+    </g>
+
     {#if isActive}
       <circle
         cx="0" cy="0" r={pr}
@@ -191,30 +219,28 @@
     {/if}
 
   {#if !isActive}
-    <!-- Icon centred in the sphere -->
+    <!-- Icon in the upper sphere -->
     <svg x={cIconTX} y={cIconTY} width={cIcon} height={cIcon} viewBox="0 0 24 24"
          fill="none" stroke="#4b5563" stroke-opacity="0.6" stroke-width="1.8"
          stroke-linecap="round" stroke-linejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
       <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
     </svg>
-    <!-- ID chip: nameplate straddling the bottom rim -->
-    <rect class="id-chip" x={-chipW / 2} y={r - CHIP_H / 2} width={chipW} height={CHIP_H}
-          rx={CHIP_H / 2} fill="#00102A" fill-opacity="0.92"
-          stroke={colors.ring} stroke-width="1.3" filter="url(#chip-shadow-{index})" />
-    <text x="0" y={r + 0.5} text-anchor="middle" dominant-baseline="middle"
-          class="lbl-chip" fill="#e2e8f0">{unit.displayName}</text>
+    <!-- Unit number: locked → flat, disabled look (no engraved shadow, dimmed fill) -->
+    <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
+          class="planet-number planet-number-disabled" fill="#0F3A4E" style="font-size: {numberFont}px">
+      {unit.displayName}
+    </text>
   {:else if compact}
-    <!-- Icon centred in the sphere -->
+    <!-- Icon in the upper sphere -->
     <g transform="translate({cIconTX},{cIconTY})">
       <UnitIcon icon={unit.icon} size={cIcon} color="#00102A" />
     </g>
-    <!-- ID chip: nameplate straddling the bottom rim -->
-    <rect class="id-chip" x={-chipW / 2} y={r - CHIP_H / 2} width={chipW} height={CHIP_H}
-          rx={CHIP_H / 2} fill="#00102A" fill-opacity="0.92"
-          stroke={colors.ring} stroke-width="1.3" filter="url(#chip-shadow-{index})" />
-    <text x="0" y={r + 0.5} text-anchor="middle" dominant-baseline="middle"
-          class="lbl-chip" fill="#ffffff">{unit.displayName}</text>
+    <!-- Unit number: engraved directly on the sphere surface -->
+    <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
+          class="planet-number" fill="#0F3A4E" style="font-size: {numberFont}px">
+      {unit.displayName}
+    </text>
   {:else}
     <!-- Full mode (UnitDetailView center node, etc.) -->
     <g transform="translate({-iconOff}, {-iconOff - 5})">
@@ -349,5 +375,19 @@
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
   .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
-  .lbl-chip        { font: 700 11.5px/1 'Rubik', system-ui, sans-serif; pointer-events: none; letter-spacing: 0.2px; }
+  /* "Engraved" look: bright glint below (light catching the lower edge of the groove) +
+     dark blurred shadow above (the groove's own shadow) — see feedback_samsung_css_review
+     memory: verify text-shadow blur doesn't reintroduce the Mali-G52 artifact. */
+  .planet-number {
+    font: 700 1em/1 'Rubik', system-ui, sans-serif;
+    pointer-events: none;
+    text-shadow:
+      0 2px 0 rgba(255, 255, 255, 0.28),
+      0 -1px 2px rgba(10, 40, 32, 0.5);
+  }
+  /* Disabled (locked) look: flat, no engraved depth, dimmed like the locked activity chips */
+  .planet-number-disabled {
+    fill-opacity: 0.45;
+    text-shadow: none;
+  }
 </style>

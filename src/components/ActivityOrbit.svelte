@@ -8,18 +8,17 @@
     cx: number;
     cy: number;
     unitR: number;
-    outwardAngle: number;
     onActivitySelected: (activity: Activity) => void;
     /** The unit's title font size — activity pills render 20% smaller than this. */
     titleFontSize?: number;
   }
 
-  let { activities, cx, cy, unitR, outwardAngle, onActivitySelected, titleFontSize = 20 }: Props = $props();
+  let { activities, cx, cy, unitR, onActivitySelected, titleFontSize = 20 }: Props = $props();
 
   const t = $derived(getTheme());
 
-  // Shared layout — the same math drives the container sizing in TreeNavigator.
-  const layout = $derived(activityOrbitLayout(activities, unitR, outwardAngle, titleFontSize));
+  // Shared layout — fixed clock-face positions, same for every sphere.
+  const layout = $derived(activityOrbitLayout(activities, unitR, titleFontSize));
 
   function statusColors(s: Activity['status']) {
     if (s === 'completed')   return t.unit.completed;
@@ -57,6 +56,11 @@
         {@const d        = layout.chips[j]}
         {@const colors   = statusColors(act.status)}
         {@const isActive = act.status !== 'locked'}
+        {@const cr       = d.d / 2}
+        {@const sw       = 2}
+        {@const pr       = cr - sw / 2}
+        {@const circ     = 2 * Math.PI * pr}
+        {@const dashOff  = circ - (act.progress / 100) * circ}
 
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
         <g
@@ -71,12 +75,22 @@
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCard(e, act); }
           }}
         >
-          <!-- White pill with a status-coloured border; text in the unit-title colour -->
-          <rect x={-d.cw / 2} y={-layout.pillH / 2} width={d.cw} height={layout.pillH} rx={layout.pillH / 2}
-                fill="#ffffff" stroke={colors.ring} stroke-width="1.5" />
+          <!-- Thin outer halo + chalk-white disc + thicker inset progress ring — same
+               two-tier border treatment as the unit sphere, scaled down. -->
+          {#if isActive}
+            <circle r={cr + 2} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
+          {/if}
+          <circle class="chip-bg" r={cr} fill="#F4F2EC" />
+          {#if isActive}
+            <circle r={pr} fill="none" stroke={colors.ring} stroke-width={sw}
+                    stroke-dasharray={circ} stroke-dashoffset={dashOff}
+                    stroke-linecap="round" transform="rotate(-90)" />
+          {:else}
+            <circle r={cr} fill="none" stroke={colors.ring} stroke-width="1.5" />
+          {/if}
           <text x="0" y="0" text-anchor="middle" dominant-baseline="central"
                 class="chip-lbl" fill="#001f3f" style="font-size: {layout.pillFont}px">
-            {act.label}
+            {d.label}
           </text>
         </g>
       {/if}
@@ -100,7 +114,7 @@
   .chip-locked { fill-opacity: 0.45; stroke-opacity: 0.45; }
 
   @media (hover: hover) {
-    .chip-active:hover rect { fill: #eef4ff; }
+    .chip-active:hover .chip-bg { fill: #eef4ff; }
   }
 
   .chip-lbl { font-family: 'Rubik', system-ui, sans-serif; font-weight: 600; pointer-events: none; }
