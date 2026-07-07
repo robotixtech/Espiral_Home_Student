@@ -132,6 +132,10 @@
   // Unit number: the dominant element inside the sphere — it's the code that orients the
   // child on the map, not the icon (2026-07-07 feedback). ~1/3 of the sphere's diameter.
   const numberFont = $derived((2 * r) / 3);
+  // Thin navy outline on the white glyphs: readability/accessibility fix — the sphere's fill
+  // colour varies by status (amber/green/grey/purple), so a fixed dark edge guarantees the
+  // text stays legible against any of them instead of relying on fill colour contrast alone.
+  const numberStroke = $derived(numberFont * 0.05);
 
   // Icon + number read as a single centred block (icon above, number below, small gap)
   // instead of being pinned to opposite poles with a dead zone between them.
@@ -234,7 +238,7 @@
     </svg>
     <!-- Unit number: locked → flat, disabled look (no engraved shadow, dimmed fill) -->
     <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
-          class="planet-number planet-number-disabled" fill="#0F3A4E" style="font-size: {numberFont}px">
+          class="planet-number planet-number-disabled" fill="#F4F2EC" style="font-size: {numberFont}px; stroke-width: {numberStroke}px">
       {unit.displayName}
     </text>
   {:else if compact}
@@ -244,7 +248,7 @@
     </g>
     <!-- Unit number: engraved directly on the sphere surface -->
     <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
-          class="planet-number" fill="#0F3A4E" style="font-size: {numberFont}px">
+          class="planet-number" fill="#F4F2EC" style="font-size: {numberFont}px; stroke-width: {numberStroke}px">
       {unit.displayName}
     </text>
   {:else}
@@ -381,16 +385,19 @@
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
   .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
-  /* Single crisp lower edge, no blur (2026-07-07 feedback: the previous dark blurred shadow
-     above the glyph read as a halo wrapping the whole letterform, including the top). */
+  /* Navy outline behind the white fill (paint-order keeps the fill crisp on top instead of
+     the stroke eating into the letterforms) — readability fix: the sphere's own colour
+     varies by status, so a fixed dark edge keeps the glyphs legible against any of them. */
   .planet-number {
     font: 700 1em/1 'Rubik', system-ui, sans-serif;
     pointer-events: none;
-    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.18);
+    stroke: #001f3f;
+    paint-order: stroke fill;
   }
-  /* Disabled (locked) look: flat, no engraved depth, dimmed like the locked activity chips */
+  /* Disabled (locked) look: flat, dimmed like the locked activity chips — stroke dims with
+     the fill so the outline doesn't end up reading darker/heavier than the glyph itself. */
   .planet-number-disabled {
     fill-opacity: 0.45;
-    text-shadow: none;
+    stroke-opacity: 0.45;
   }
 </style>

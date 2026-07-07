@@ -43,10 +43,11 @@
 
 <g transform="translate({cx},{cy})">
   <!-- Orbit ring: dotted circle through every lesson chip's centre — all chips already share
-       the same radius (layout.orbitR), so this is just that circle traced as dots. -->
+       the same radius (layout.orbitR), so this is just that circle traced as dots. Opacity
+       raised (2026-07-07 feedback) to read more clearly. -->
   {#if layout.orbitR > 0}
     <circle cx="0" cy="0" r={layout.orbitR} fill="none"
-            stroke="rgba(0,180,255,0.35)" stroke-width="1"
+            stroke="rgba(0,180,255,0.65)" stroke-width="1"
             stroke-dasharray="1.5 5" stroke-linecap="round" />
   {/if}
 
