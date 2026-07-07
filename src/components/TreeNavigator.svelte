@@ -224,6 +224,9 @@
   );
 
   let panelIA = $state(false);
+  // Any unit/IA currently showing its lesson satellites — dims the background spiral so the
+  // connector lines to the satellites read more clearly against it.
+  const anyPanelOpen = $derived(!!panelUnit || panelIA);
 
   // IA: centered between left viewport edge and radar left edge
   const iaNodePos           = $derived({
@@ -512,15 +515,18 @@
           </foreignObject>
         {/if}
 
-        <!-- Learning route — path ahead (not yet reached): faint, thin, dashed -->
+        <!-- Learning route — path ahead (not yet reached): faint, thin, dashed. Dimmed further
+             while a unit's lesson satellites are open, so their connector lines stand out. -->
         <path d={spiralFullPath} fill="none"
               stroke="rgba(0,180,255,0.12)" stroke-width="1"
-              stroke-dasharray="6 10" stroke-linecap="round" />
+              stroke-dasharray="6 10" stroke-linecap="round"
+              stroke-opacity={anyPanelOpen ? 0.35 : 1} />
         <!-- Learning route — travelled so far: uniform-width dashed stroke (current position → next step). -->
         {#if spiralProgressPath}
           <path d={spiralProgressPath} fill="none"
                 stroke="url(#learn-path-grad)" stroke-width="2.5"
-                stroke-dasharray="14 8" stroke-linecap="round" />
+                stroke-dasharray="14 8" stroke-linecap="round"
+                stroke-opacity={anyPanelOpen ? 0.35 : 1} />
         {/if}
 
         <!-- Distant galaxies -->

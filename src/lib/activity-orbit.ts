@@ -35,6 +35,7 @@ function clockAngle(hour24: number): number {
 export interface OrbitLayout {
   chips: OrbitChip[];
   chipD: number;    // shared chip diameter
+  orbitR: number;   // shared radius all chip centres sit on (0 when there are no chips)
   pillFont: number;
   hw: number;  // bounding half-width  (unit + chips)
   hh: number;  // bounding half-height (unit + chips)
@@ -49,7 +50,7 @@ export function activityOrbitLayout(
   titleFontSize: number,
 ): OrbitLayout {
   const pillFont = titleFontSize * 0.8;
-  const chipD    = Math.max(pillFont * 1.9, 34); // comfortably fits the 2-char "DD" code
+  const chipD    = Math.max(pillFont * 1.9, 34) * 1.3; // +30% size (2026-07-07 feedback)
   const gap      = 10;
   const n        = activities.length;
 
@@ -57,7 +58,7 @@ export function activityOrbitLayout(
   let hw = unitR + 42;
   let hh = unitR + 42;
 
-  if (n === 0) return { chips: [], chipD, pillFont, hw, hh };
+  if (n === 0) return { chips: [], chipD, orbitR: 0, pillFont, hw, hh };
 
   const labels = shortLabels(activities);
   const angles = labels.map(l => clockAngle(CLOCK_HOUR[l] ?? 12));
@@ -93,5 +94,5 @@ export function activityOrbitLayout(
     hh = Math.max(hh, Math.abs(c.y) + c.d / 2);
   }
 
-  return { chips, chipD, pillFont, hw, hh };
+  return { chips, chipD, orbitR: uniformR, pillFont, hw, hh };
 }

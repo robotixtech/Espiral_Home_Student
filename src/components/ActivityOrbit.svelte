@@ -42,8 +42,18 @@
 </script>
 
 <g transform="translate({cx},{cy})">
-  <!-- Connector lines — stroke-opacity at group level: inherited per-stroke, no compositing layer -->
-  <g stroke-opacity="0.42">
+  <!-- Orbit ring: dotted circle through every lesson chip's centre — all chips already share
+       the same radius (layout.orbitR), so this is just that circle traced as dots. -->
+  {#if layout.orbitR > 0}
+    <circle cx="0" cy="0" r={layout.orbitR} fill="none"
+            stroke="rgba(0,180,255,0.35)" stroke-width="1"
+            stroke-dasharray="1.5 5" stroke-linecap="round" />
+  {/if}
+
+  <!-- Connector lines — stroke-opacity at group level: inherited per-stroke, no compositing
+       layer. Raised (2026-07-07 feedback) now that the background spiral dims while this is
+       open, so the connectors read clearly against it. -->
+  <g stroke-opacity="0.85">
     {#each activities as act, j (act.id)}
       {#if layout.chips[j]}
         {@const d      = layout.chips[j]}
@@ -86,10 +96,10 @@
           <defs>
             <!-- 3D sphere look, same recipe as the unit sphere: highlight offset to 35%/35%,
                  fading to the base tone. Base/highlight are the status colour mixed toward
-                 white — base at 10% intensity, highlight lighter still for the glossy pop. -->
+                 white — strengthened 2026-07-07 (was 10%/4%, read as near-white). -->
             <radialGradient id={gradId} cx="35%" cy="35%" r="65%">
-              <stop offset="0%" stop-color={mixWithWhite(colors.ring, 0.04)} />
-              <stop offset="100%" stop-color={mixWithWhite(colors.ring, 0.10)} />
+              <stop offset="0%" stop-color={mixWithWhite(colors.ring, 0.15)} />
+              <stop offset="100%" stop-color={mixWithWhite(colors.ring, 0.35)} />
             </radialGradient>
           </defs>
           <!-- Thin outer halo + 3D-shaded disc + thicker inset progress ring — same
