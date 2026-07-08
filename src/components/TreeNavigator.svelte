@@ -136,6 +136,15 @@
     const count = raw.length;
     const per   = 100 / count;
     return raw.map((act, i) => {
+      // "Continuar" unlocks as soon as the first regular activity finishes (2026-07-08
+      // feedback) — it doesn't wait for its own sequential slot, which would otherwise
+      // require DemoDay to finish first. It's an optional early-access step, so it's just
+      // on/off (no partial progress).
+      if (act.label === 'Continuar') {
+        return unit.progress >= per
+          ? { ...act, status: 'in-progress' as const, progress: 100 }
+          : { ...act, status: 'locked' as const, progress: 0 };
+      }
       const s = i * per, e = (i + 1) * per;
       if (unit.progress >= e) return { ...act, status: 'completed'   as const, progress: 100 };
       if (unit.progress >= s) return { ...act, status: 'in-progress' as const, progress: Math.min(((unit.progress - s) / per) * 100, 100) };
