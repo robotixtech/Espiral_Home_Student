@@ -49,8 +49,8 @@ export function activityOrbitLayout(
   unitR: number,
   titleFontSize: number,
 ): OrbitLayout {
-  const pillFont = titleFontSize * 0.8;
-  const chipD    = Math.max(pillFont * 1.9, 34) * 1.3; // +30% size (2026-07-07 feedback)
+  const pillFont = titleFontSize * 0.8 * 1.5; // +50% (2026-07-08: too small on Chromebook)
+  const chipD    = Math.max(pillFont * 1.9, 34) * 1.3 * 1.5; // +30%, then +50% more (2026-07-08: too small on Chromebook)
   const gap      = 10;
   const n        = activities.length;
 
