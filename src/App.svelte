@@ -5,7 +5,7 @@
   import { loadProgramFromMoodle } from './lib/program-loader';
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
-  import { getEmulatedProgram, toggleEmulator, isEmulatorActive } from './lib/emulator.svelte';
+  import { getEmulatedProgram, toggleEmulator, isEmulatorActive, getIAProgress } from './lib/emulator.svelte';
   import { getConfigByShortname } from './lib/program-config';
   import TreeNavigator from './components/TreeNavigator.svelte';
   import UnitDetailView from './components/UnitDetailView.svelte';
@@ -32,6 +32,7 @@
   });
 
   const homeProgram = $derived(allCompleted ? (getEmulatedProgram() ?? allCompleted) : null);
+  const iaProgress   = $derived(getIAProgress());
 
   const bgImage = $derived(
     appState.kind === 'ready'
@@ -139,6 +140,7 @@
     {#if currentView === 'home' && homeProgram}
       <TreeNavigator
         program={homeProgram}
+        {iaProgress}
         onUnitSelected={(unit) => { selectedUnit = unit; currentView = 'unit-detail'; }}
         onActivitySelected={(activity) => {
           selectedActivity = activity;

@@ -36,17 +36,18 @@
 
 <g transform="translate({cx},{cy})">
   <!-- Orbit ring: dotted circle through every lesson chip's centre — all chips already share
-       the same radius (layout.orbitR), so this is just that circle traced as dots. Opacity
-       raised (2026-07-07, 2026-07-08 feedback) to read more clearly. -->
+       the same radius (layout.orbitR), so this is just that circle traced as dots. Opacity/
+       weight raised repeatedly (2026-07-07, 2026-07-08 feedback ×2) to read more clearly —
+       now fully opaque, thicker stroke, tighter dash gap so it reads as a solid circumference. -->
   {#if layout.orbitR > 0}
     <circle cx="0" cy="0" r={layout.orbitR} fill="none"
-            stroke="rgba(0,180,255,0.9)" stroke-width="1"
-            stroke-dasharray="1.5 5" stroke-linecap="round" />
+            stroke="rgba(0,180,255,1)" stroke-width="2"
+            stroke-dasharray="2.5 4" stroke-linecap="round" />
   {/if}
 
   <!-- Connector lines — stroke-opacity at group level: inherited per-stroke, no compositing
-       layer. Raised (2026-07-07, 2026-07-08 feedback) now that the background spiral dims while
-       this is open, so the connectors read clearly against it. -->
+       layer. Weight/opacity raised repeatedly (2026-07-07, 2026-07-08 feedback ×2) — now
+       matches the orbit ring's boldness (thicker stroke, tighter dash gap) for consistency. -->
   <g stroke-opacity="1">
     {#each activities as act, j (act.id)}
       {#if layout.chips[j]}
@@ -55,7 +56,7 @@
         <line
           x1={unitR * Math.cos(d.a)} y1={unitR * Math.sin(d.a)}
           x2={d.x} y2={d.y}
-          stroke={colors.ring} stroke-width="0.8" stroke-dasharray="3 4"
+          stroke={colors.ring} stroke-width="2" stroke-dasharray="2.5 4"
         />
       {/if}
     {/each}

@@ -17,12 +17,20 @@ let unitIndex = 0;
 let currentProgress = 0;
 let nextUnlocked = false; // true once mandatory threshold crossed — next unit is in-progress
 
+// IA node — off-radar, never locked, has no "next unit" to unlock — so it cycles on its own,
+// continuous 0→100→0 loop in lockstep with the main tick, independent of unitIndex/currentProgress.
+let iaProgress = $state(0);
+
 export function isEmulatorActive(): boolean {
   return active;
 }
 
 export function getEmulatedProgram(): ProgramData | null {
   return snapshot;
+}
+
+export function getIAProgress(): number {
+  return active ? iaProgress : 0;
 }
 
 export function toggleEmulator(baseProgram: ProgramData): void {
@@ -38,6 +46,7 @@ function startEmulator(baseProgram: ProgramData): void {
   unitIndex = 1;
   currentProgress = 0;
   nextUnlocked = false;
+  iaProgress = 0;
 
   // Misión Control (unit 0) starts already completed
   snapshot = buildSnapshot(baseProgram, 1, 0, false);
@@ -47,6 +56,7 @@ function startEmulator(baseProgram: ProgramData): void {
 function stopEmulator(): void {
   active = false;
   snapshot = null;
+  iaProgress = 0;
   if (timer) {
     clearTimeout(timer);
     timer = null;
@@ -71,6 +81,11 @@ function mandatoryThreshold(unit: ProgramUnit): number {
 
 function tick(baseProgram: ProgramData): void {
   if (!active) return;
+
+  // IA node advances every tick, independent of the main unit cycle — it has no "next unit"
+  // to unlock, so it just loops 0→100→0 continuously.
+  iaProgress += EMULATOR_CONFIG.progressStep;
+  if (iaProgress > 100) iaProgress = 0;
 
   const totalUnits = baseProgram.units.length;
   currentProgress += EMULATOR_CONFIG.progressStep;

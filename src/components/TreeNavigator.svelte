@@ -13,11 +13,13 @@
 
   interface Props {
     program: ProgramData;
+    /** IA node progress (0-100), driven by the emulator — see App.svelte. */
+    iaProgress?: number;
     onUnitSelected: (unit: ProgramUnit) => void;
     onActivitySelected: (activity: Activity) => void;
   }
 
-  let { program, onUnitSelected, onActivitySelected }: Props = $props();
+  let { program, iaProgress = 0, onUnitSelected, onActivitySelected }: Props = $props();
 
 
   // ── Layout constants — all values live in src/lib/master-config.ts ────────
@@ -206,7 +208,7 @@
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
 
   // ── IA Unit (off-radar, never locked) ─────────────────────────────────────
-  let iaProgress = $state(0);
+  // iaProgress comes in as a prop, driven by the emulator (App.svelte / emulator.svelte.ts).
 
   const iaUnit = $derived.by(() => ({
     id: 9999,
@@ -576,6 +578,14 @@
           <stop offset="55%"  stop-color="#34d399" stop-opacity="0.85" />
           <stop offset="100%" stop-color="#c6fff0" stop-opacity="1" />
         </radialGradient>
+        <!-- Circular clip for the radar glass panel: CSS border-radius alone doesn't reliably
+             clip a backdrop-filter blur once the element is GPU-layer-promoted (translateZ(0),
+             needed for the Mali-G52 fix) — Chromium can let the blur bleed past the rounded
+             corners into a square. Clipping at the SVG level guarantees it never pokes outside
+             the radar's curved edge (2026-07-08 feedback). -->
+        <clipPath id="radar-clip" clipPathUnits="userSpaceOnUse">
+          <circle cx={cx} cy={cy} r={telescopeR + 4} />
+        </clipPath>
       </defs>
 
       <!-- ── Zoomable content ───────────────────────────────────────── -->
@@ -584,7 +594,8 @@
         <!-- Radar glass background -->
         {#if true}
           {@const radarR = telescopeR + 4}
-          <foreignObject x={cx - radarR} y={cy - radarR} width={radarR * 2} height={radarR * 2}>
+          <foreignObject x={cx - radarR} y={cy - radarR} width={radarR * 2} height={radarR * 2}
+                         clip-path="url(#radar-clip)">
             <div class="radar-glass"></div>
           </foreignObject>
         {/if}
