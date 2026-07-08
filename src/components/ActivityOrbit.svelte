@@ -38,10 +38,11 @@
   <!-- Orbit ring: dotted circle through every lesson chip's centre — all chips already share
        the same radius (layout.orbitR), so this is just that circle traced as dots. Opacity/
        weight raised repeatedly (2026-07-07, 2026-07-08 feedback ×2) to read more clearly —
-       now fully opaque, thicker stroke, tighter dash gap so it reads as a solid circumference. -->
+       fully opaque, thicker stroke, tighter dash gap so it reads as a solid circumference.
+       Colour matches the chip background's "chalk white" (#F4F2EC), same as .chip-bg. -->
   {#if layout.orbitR > 0}
     <circle cx="0" cy="0" r={layout.orbitR} fill="none"
-            stroke="rgba(0,180,255,1)" stroke-width="2"
+            stroke="#F4F2EC" stroke-width="2"
             stroke-dasharray="2.5 4" stroke-linecap="round" />
   {/if}
 

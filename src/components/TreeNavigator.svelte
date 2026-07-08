@@ -46,10 +46,23 @@
    *  θ₀ is the angle where r=0: θ₀ = -SPIRAL_A / SPIRAL_B. */
   const THETA_ZERO = -SPIRAL_A / SPIRAL_B; // angle where spiral radius = 0 (origin)
 
+  /** Theta for a unit index, preferring its ACTUAL (possibly manually re-positioned) angle
+   *  over the plain per-index formula — otherwise the drawn curve falls short of / overshoots
+   *  a sphere that's been nudged off its formula slot (2026-07-08 feedback: U7 moved and the
+   *  line stopped short of it). Only applies to exact integer indices — fractional indices
+   *  (in-progress partial completion) still interpolate via the plain formula. */
+  function unitThetaFor(idx: number): number {
+    if (Number.isInteger(idx) && idx > 0 && idx < unitPositions.length) {
+      const theta = unitPositions[idx].theta;
+      if (theta !== undefined) return theta;
+    }
+    return START_ANGLE + (idx - 1) * GOLDEN;
+  }
+
   function spiralPathD(from: number, to: number): string {
     // Map unit indices to spiral angles (unit 0 = center = THETA_ZERO, unit i≥1 shifted)
-    const thetaFrom = from === 0 ? THETA_ZERO : START_ANGLE + (from - 1) * GOLDEN;
-    const thetaTo   = to   === 0 ? THETA_ZERO : START_ANGLE + (to   - 1) * GOLDEN;
+    const thetaFrom = from === 0 ? THETA_ZERO : unitThetaFor(from);
+    const thetaTo   = to   === 0 ? THETA_ZERO : unitThetaFor(to);
     const steps     = Math.max(Math.round(SPIRAL_SAMPLES * Math.abs(thetaTo - thetaFrom) / (2 * Math.PI)), 80);
     const parts: string[] = [];
     for (let i = 0; i <= steps; i++) {
@@ -108,15 +121,81 @@
     return UNIT_SIZE / 2 * (i === 0 ? 1.15 : 1.0);
   }
 
+  /** Numerically solve for the spiral parameter θ (radians) where x(θ) = targetX, via Newton's
+   *  method starting from thetaGuess — snaps a manually re-positioned unit exactly onto the
+   *  spiral curve (r = SPIRAL_A + SPIRAL_B·θ) instead of picking an arbitrary Y (2026-07-08
+   *  feedback). thetaGuess should be the unit's own formula angle, so it converges on the
+   *  nearby point on the curve rather than some unrelated loop further out. */
+  function spiralPointAtX(targetX: number, thetaGuess: number): { x: number; y: number; theta: number } {
+    let theta = thetaGuess;
+    for (let iter = 0; iter < 60; iter++) {
+      const r    = SPIRAL_A + SPIRAL_B * theta;
+      const x    = cx + r * Math.cos(theta);
+      const dxdt = SPIRAL_B * Math.cos(theta) - r * Math.sin(theta);
+      if (Math.abs(dxdt) < 1e-9) break;
+      const step = (x - targetX) / dxdt;
+      theta -= step;
+      if (Math.abs(step) < 1e-9) break;
+    }
+    const r = SPIRAL_A + SPIRAL_B * theta;
+    return { x: cx + r * Math.cos(theta), y: cy + r * Math.sin(theta), theta };
+  }
+
+  /** Same as spiralPointAtX but solving for a target Y instead — used when the desired
+   *  landing spot is described vertically (e.g. "between two other units' Y") rather than
+   *  by a fixed X (2026-07-08 feedback). */
+  function spiralPointAtY(targetY: number, thetaGuess: number): { x: number; y: number; theta: number } {
+    let theta = thetaGuess;
+    for (let iter = 0; iter < 60; iter++) {
+      const r    = SPIRAL_A + SPIRAL_B * theta;
+      const y    = cy + r * Math.sin(theta);
+      const dydt = SPIRAL_B * Math.sin(theta) + r * Math.cos(theta);
+      if (Math.abs(dydt) < 1e-9) break;
+      const step = (y - targetY) / dydt;
+      theta -= step;
+      if (Math.abs(step) < 1e-9) break;
+    }
+    const r = SPIRAL_A + SPIRAL_B * theta;
+    return { x: cx + r * Math.cos(theta), y: cy + r * Math.sin(theta), theta };
+  }
+
+  function formulaPos(i: number): { x: number; y: number; theta: number } {
+    const theta = START_ANGLE + (i - 1) * GOLDEN;
+    const r     = ORBIT_START + (i - 1) * ORBIT_STEP;
+    return { x: cx + r * Math.cos(theta), y: cy + r * Math.sin(theta), theta };
+  }
+
+  const U4_TARGET_X = 375;
+  const U5_TARGET_X = 320;
+
   // Unit 0 sits at the center (telescope focal point); remaining units spiral outward.
-  const unitPositions = $derived(
-    program.units.map((_, i) => {
-      if (i === 0) return { x: cx, y: cy };
-      const a = START_ANGLE + (i - 1) * GOLDEN;
-      const r = ORBIT_START + (i - 1) * ORBIT_STEP;
-      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
-    }),
-  );
+  // Every entry carries its actual `theta` too — spiralPathD (below) uses it so the drawn
+  // curve reaches all the way to re-positioned spheres instead of stopping at their old
+  // formula angle.
+  const unitPositions = $derived.by(() => {
+    // Manual nudges (2026-07-08 feedback): units pinned to a fixed X or Y, with the other
+    // coordinate solved so the point still sits exactly on the spiral curve — not an
+    // arbitrary position.
+    const idxU2 = program.units.findIndex(x => x.displayName === 'U2');
+    const idxU4 = program.units.findIndex(x => x.displayName === 'U4');
+
+    return program.units.map((u, i) => {
+      if (i === 0) return { x: cx, y: cy, theta: THETA_ZERO };
+      const thetaGuess = START_ANGLE + (i - 1) * GOLDEN;
+
+      if (u.displayName === 'U4') return spiralPointAtX(U4_TARGET_X, thetaGuess);
+      if (u.displayName === 'U5') return spiralPointAtX(U5_TARGET_X, thetaGuess);
+      if (u.displayName === 'U7') {
+        // Between U2 and U4 (Y-wise) — U4 may itself be re-positioned above, so re-derive it
+        // the same way rather than reading back out of this same in-progress array.
+        const u2Y = idxU2 >= 0 ? formulaPos(idxU2).y : cy;
+        const u4Y = idxU4 >= 0 ? spiralPointAtX(U4_TARGET_X, START_ANGLE + (idxU4 - 1) * GOLDEN).y : cy;
+        return spiralPointAtY((u2Y + u4Y) / 2, thetaGuess);
+      }
+
+      return formulaPos(i);
+    });
+  });
 
   // Dynamic telescope radius: max distance from center to any unit edge (incl. in-progress scale)
   const telescopeR = $derived.by(() => {
@@ -199,10 +278,17 @@
   const dgPrev   = $derived({ cx: cx + 1.3 * (vb.x - 725),        cy: 66 });
   const dgNext   = $derived({ cx: cx,                               cy: cy + 1.3 * (vb.y - 980) });
   const dgFuture = $derived({ cx: cx + 1.3 * (vb.x + vb.w - 475), cy: 66 });
-  // nanoQUANTA: upper-left area, visible on load
+  // nanoQUANTA: upper-left area, visible on load. Y aligned with U5 (2026-07-08 feedback) —
+  // the IA node below is shifted down by the same ΔY so the two move together.
+  const quantaOldCy = $derived(vb.y + 130);
+  const u5Pos = $derived.by(() => {
+    const idx = program.units.findIndex(u => u.displayName === 'U5');
+    return idx >= 0 ? unitPositions[idx] : { x: cx, y: cy };
+  });
+  const dgQuantaDeltaY = $derived(u5Pos.y - quantaOldCy);
   const dgQuanta = $derived({
     cx: vb.x + 130,
-    cy: vb.y + 130,
+    cy: u5Pos.y,
   });
   // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
@@ -240,10 +326,11 @@
   // connector lines to the satellites read more clearly against it.
   const anyPanelOpen = $derived(!!panelUnit || panelIA);
 
-  // IA: centered between left viewport edge and radar left edge
+  // IA: centered between left viewport edge and radar left edge. Shifted down by the same ΔY
+  // as nanoQuanta (2026-07-08 feedback) so both move together.
   const iaNodePos           = $derived({
     cx: (vb.x + (cx - (orbitRadii[orbitRadii.length - 1] + 100))) / 2,
-    cy: cy,
+    cy: cy + dgQuantaDeltaY,
   });
   const iaUnitR             = $derived(SPIRAL.unitSize / 2);
   const iaDisplayActivities = $derived(displayActivities(iaUnit as ProgramUnit));
