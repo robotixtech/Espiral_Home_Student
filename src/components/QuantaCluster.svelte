@@ -31,10 +31,19 @@
   const cs = r / 50;           // 1.0 for r=50
   const firstWord = $derived(label.split(' ')[0]);
 
+  // Icon sized to exactly match the compact radar UnitNode icon (same formula as UnitNode's
+  // C_ICON_BASE), divided by cs since this icon lives inside a scale(cs) group — so the
+  // on-screen size comes out identical to the radar spheres' icon (2026-07-08 feedback).
+  // Locked variant follows UnitNode's own +20% (stroke visibility) on top of that.
+  const RADAR_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3;
+  const iconSize     = $derived(RADAR_ICON_BASE / cs);
+  const lockIconSize = $derived(RADAR_ICON_BASE * 1.2 / cs);
+  const ICON_CY      = -25; // vertical centre of the icon, in cs-scaled local space
+
   // Saturn-style orbital ring band — the ring itself is the title container (matches UnitNode).
   const RING_RY = 13;                          // orbital tilt: edge curvature
   const BAND_HH = 14;                          // half the ring band height (holds the title)
-  const BAND_YC = -RING_RY;                    // shift up so the near band centres the title on y=0
+  const BAND_YC = 0;                           // ring + title centred on the sphere's true middle (2026-07-08 feedback)
   const bandW   = $derived(Math.max(firstWord.length * 11 * cs + 38, size * 0.85)); // title is drawn inside scale(cs)
   const ringRX  = $derived(Math.max(bandW / 2, r + 12)); // ring extends past the sphere sides
 
@@ -154,8 +163,8 @@
             stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />
     {/each}
     <g transform="scale({cs})">
-      <g transform="translate(-7,-32)">
-        <UnitIcon icon="rocket" size={14} color="#00102A" />
+      <g transform="translate({-iconSize / 2},{ICON_CY - iconSize / 2})">
+        <UnitIcon icon="rocket" size={iconSize} color="#00102A" />
       </g>
       <text text-anchor="middle" dominant-baseline="middle"
             class="lbl-inside-pill" fill="#001f3f">
@@ -174,8 +183,8 @@
             stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />
     {/each}
     <g transform="scale({cs})">
-      <g transform="translate(-8.4,-33.4)">
-        <svg x="0" y="0" width="16.8" height="16.8" viewBox="0 0 24 24"
+      <g transform="translate({-lockIconSize / 2},{ICON_CY - lockIconSize / 2})">
+        <svg x="0" y="0" width={lockIconSize} height={lockIconSize} viewBox="0 0 24 24"
              fill="none" stroke="#4b5563" stroke-opacity="0.6" stroke-width="2.5"
              stroke-linecap="round" stroke-linejoin="round">
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>

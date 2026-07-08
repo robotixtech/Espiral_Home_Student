@@ -26,10 +26,17 @@
   const cs    = r / 50;          // 1.0
   const firstWord = IA_UNIT_CONFIG.label;
 
+  // Icon sized to exactly match the compact radar UnitNode icon (same formula as UnitNode's
+  // C_ICON_BASE), divided by cs since this icon lives inside a scale(cs) group — so the
+  // on-screen size comes out identical to the radar spheres' icon (2026-07-08 feedback).
+  const RADAR_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3;
+  const iconSize   = $derived(RADAR_ICON_BASE / cs);
+  const ICON_CY    = -25; // vertical centre of the icon, in cs-scaled local space
+
   // Saturn-style orbital ring band — the ring itself is the title container (matches UnitNode).
   const RING_RY = 13;                          // orbital tilt: edge curvature
   const BAND_HH = 14;                          // half the ring band height (holds the title)
-  const BAND_YC = -RING_RY;                    // shift up so the near band centres the title on y=0
+  const BAND_YC = 0;                           // ring + title centred on the sphere's true middle (2026-07-08 feedback)
   const bandW   = Math.max(firstWord.length * 11 * cs + 38, size * 0.85); // title is drawn inside scale(cs)
   const ringRX  = Math.max(bandW / 2, r + 12); // ring extends past the sphere sides
 
@@ -151,8 +158,8 @@
           stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />
   {/each}
   <g transform="scale({cs})">
-    <g transform="translate(-7,-32)">
-      <UnitIcon icon="signal" size={14} color="#00102A" />
+    <g transform="translate({-iconSize / 2},{ICON_CY - iconSize / 2})">
+      <UnitIcon icon="signal" size={iconSize} color="#00102A" />
     </g>
     <text text-anchor="middle" dominant-baseline="middle"
           class="lbl-inside-pill" fill="#001f3f">

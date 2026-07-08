@@ -100,9 +100,9 @@
     return lines.slice(0, 2);
   }
 
-  // Compact icon: base 20.8, +20% then -15% (2026-07-07 feedback: the icon shouldn't compete
-  // with the unit number/code — that's what orients the child on the map, not the glyph).
-  const C_ICON_BASE = 20.8 * 1.2 * 0.85;
+  // Compact icon: base 20.8, +20% then -15%, then +30% (2026-07-08 feedback) — the icon shouldn't
+  // compete with the unit number/code, but still needs to read clearly at radar scale.
+  const C_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3;
   const cIcon   = $derived(
     unit.status === 'locked' ? C_ICON_BASE * 1.2   // locked lock icon +20% on top of the base, for stroke visibility
     : C_ICON_BASE

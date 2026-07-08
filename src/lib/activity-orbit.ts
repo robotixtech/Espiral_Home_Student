@@ -22,8 +22,14 @@ function shortLabels(activities: { label: string }[]): string[] {
 }
 
 // Fixed clock-face position for each slot — same for every sphere, regardless of where it
-// sits in the spiral (no longer derived from the unit's outward direction).
-const CLOCK_HOUR: Record<string, number> = { '1': 10, '2': 12, '3': 14, 'DD': 17, 'C': 19 };
+// sits in the spiral (no longer derived from the unit's outward direction). C and DD moved
+// closer to 1 and 3 respectively (2026-07-08 feedback): C→8h (near 1's 10h), DD→4h (near 3's 14h).
+// '4'/'5' cover activity sets with no DemoDay/Continuar (e.g. the IA node's 5 plain lessons) —
+// without an entry here they all fell back to the same default hour, landing on the exact same
+// angle, which the overlap-avoidance loop below can never resolve by growing the radius (two
+// chips at an identical angle never separate) — that's what caused the IA satellites to blow
+// out to an absurd distance (2026-07-08 feedback).
+const CLOCK_HOUR: Record<string, number> = { '1': 10, '2': 12, '3': 14, '4': 5, '5': 7, 'DD': 4, 'C': 8 };
 
 /** Angle for a 24h clock hour in this (y-down) coordinate system: 3 o'clock = 0°, and
  *  increasing angle rotates clockwise — matching real clock hands. */
@@ -50,7 +56,7 @@ export function activityOrbitLayout(
   titleFontSize: number,
 ): OrbitLayout {
   const pillFont = titleFontSize * 0.8 * 1.5; // +50% (2026-07-08: too small on Chromebook)
-  const chipD    = Math.max(pillFont * 1.9, 34) * 1.3 * 1.5; // +30%, then +50% more (2026-07-08: too small on Chromebook)
+  const chipD    = Math.max(pillFont * 1.9, 34) * 1.3 * 1.5 * 0.8; // +30%, +50%, then -20% (2026-07-08)
   const gap      = 10;
   const n        = activities.length;
 

@@ -37,17 +37,17 @@
 <g transform="translate({cx},{cy})">
   <!-- Orbit ring: dotted circle through every lesson chip's centre — all chips already share
        the same radius (layout.orbitR), so this is just that circle traced as dots. Opacity
-       raised (2026-07-07 feedback) to read more clearly. -->
+       raised (2026-07-07, 2026-07-08 feedback) to read more clearly. -->
   {#if layout.orbitR > 0}
     <circle cx="0" cy="0" r={layout.orbitR} fill="none"
-            stroke="rgba(0,180,255,0.65)" stroke-width="1"
+            stroke="rgba(0,180,255,0.9)" stroke-width="1"
             stroke-dasharray="1.5 5" stroke-linecap="round" />
   {/if}
 
   <!-- Connector lines — stroke-opacity at group level: inherited per-stroke, no compositing
-       layer. Raised (2026-07-07 feedback) now that the background spiral dims while this is
-       open, so the connectors read clearly against it. -->
-  <g stroke-opacity="0.85">
+       layer. Raised (2026-07-07, 2026-07-08 feedback) now that the background spiral dims while
+       this is open, so the connectors read clearly against it. -->
+  <g stroke-opacity="1">
     {#each activities as act, j (act.id)}
       {#if layout.chips[j]}
         {@const d      = layout.chips[j]}
@@ -67,21 +67,20 @@
         {@const d        = layout.chips[j]}
         {@const colors   = statusColors(act.status)}
         {@const isActive = act.status !== 'locked'}
+        {@const isInProgress = act.status === 'in-progress'}
         {@const cr       = d.d / 2}
         {@const sw       = 3.5}
         {@const pr       = cr - sw / 2}
         {@const circ     = 2 * Math.PI * pr}
         {@const dashOff  = circ - (act.progress / 100) * circ}
-        {@const gradId   = `chip-grad-${act.id}`}
-        {@const numGradId    = `chip-num-grad-${act.id}`}
-        {@const numStroke    = layout.pillFont * 0.05}
-        {@const numEdgeOffset = layout.pillFont * 0.06}
+        {@const bgR      = cr * 0.8}
 
         <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
         <g
           class="chip"
           class:chip-active={isActive}
           class:chip-locked={!isActive}
+          class:chip-inprogress={isInProgress}
           transform="translate({d.x},{d.y})"
           tabindex={isActive ? 0 : -1}
           role={isActive ? 'button' : undefined}
@@ -90,30 +89,6 @@
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleCard(e, act); }
           }}
         >
-          <defs>
-            <!-- Background: identical recipe to the unit sphere — full-saturation status
-                 colour gradient (colors.g1 → colors.g2), not a pale tint. -->
-            <radialGradient id={gradId} cx="35%" cy="35%" r="65%">
-              <stop offset="0%" stop-color={colors.g1} />
-              <stop offset="100%" stop-color={colors.g2} />
-            </radialGradient>
-            <!-- Label fill: identical recipe to the unit sphere's number text -->
-            <linearGradient id={numGradId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%"   stop-color="#FFFFFF" />
-              <stop offset="70%"  stop-color="#F4F2EC" />
-              <stop offset="100%" stop-color="#E6E1D2" />
-            </linearGradient>
-            {#if act.status === 'completed'}
-              <filter id="chip-glow-{act.id}" filterUnits="userSpaceOnUse"
-                      x={-cr - 20} y={-cr - 20} width={(cr + 20) * 2} height={(cr + 20) * 2}>
-                <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            {/if}
-          </defs>
           {#if isActive}
             <!-- Hover glow border — same as the unit sphere: invisible at rest, pulses on hover -->
             <circle class="halo-ring" r={cr + 5} fill="none" stroke={colors.glow} stroke-width="0.8" />
@@ -126,34 +101,39 @@
             {#if isActive}
               <circle r={cr + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.15" />
             {/if}
-            <circle class="chip-bg" r={cr} fill="url(#{gradId})"
-                    filter={act.status === 'completed' ? `url(#chip-glow-${act.id})` : undefined} />
+            <!-- Background disc: flat chalk-white, no gradient/shading/craters. Always fully
+                 opaque (fill-opacity 1, overriding .chip-locked's dimming) so it stays a solid
+                 shield over whatever's behind it (e.g. the spiral trace) — never see-through,
+                 regardless of status. -->
+            <circle class="chip-bg" r={bgR} fill="#F4F2EC" fill-opacity="1" />
             {#if isActive}
               <circle r={pr} fill="none" stroke={colors.ring} stroke-width={sw}
                       stroke-dasharray={circ} stroke-dashoffset={dashOff}
                       stroke-linecap="round" transform="rotate(-90)" />
+            {:else}
+              <!-- Locked: solid grey disabled border. stroke-opacity forced above .chip-locked's
+                   0.45 dimming (2026-07-08 feedback: border wasn't visible enough) — only the
+                   label/fill stay dimmed, the border itself reads clearly as "disabled". -->
+              <circle r={cr} fill="none" stroke={colors.ring} stroke-width="2" stroke-opacity="0.9" />
             {/if}
             {#if isActive}
-              <!-- Same treatment as the unit-sphere number: solid navy "extrusion" edge behind
-                   (0-blur offset duplicate), gradient-filled + navy-outlined text on top. -->
-              <text x="0" y={numEdgeOffset} text-anchor="middle" dominant-baseline="central"
-                    class="chip-lbl chip-num-edge" style="font-size: {layout.pillFont}px">
-                {d.label}
-              </text>
+              <!-- Label — matches the reference .luna-numero spec: navy fill, single crisp
+                   engraved edge (text-shadow, no blur). -->
               <text x="0" y="0" text-anchor="middle" dominant-baseline="central"
-                    class="chip-lbl chip-num" fill="url(#{numGradId})"
-                    style="font-size: {layout.pillFont}px; stroke-width: {numStroke}px">
+                    class="chip-lbl chip-num" fill="#0F3A4E"
+                    style="font-size: {layout.pillFont}px">
                 {d.label}
               </text>
             {:else}
-              <!-- Locked: flat, disabled look — same as the unit sphere's locked number. Dimming
-                   comes from .chip-locked on the parent group (fill/stroke-opacity), same as the
-                   rest of this chip, so no separate "disabled" class is needed here. -->
-              <text x="0" y="0" text-anchor="middle" dominant-baseline="central"
-                    class="chip-lbl chip-num" fill="#F4F2EC"
-                    style="font-size: {layout.pillFont}px; stroke-width: {numStroke}px">
-                {d.label}
-              </text>
+              <!-- Locked: same padlock icon used on the big UNIT spheres (UnitNode.svelte),
+                   same viewBox/colors — instead of the number (2026-07-08 feedback). -->
+              {@const lockSize = layout.pillFont * 1.3}
+              <svg x={-lockSize / 2} y={-lockSize / 2} width={lockSize} height={lockSize} viewBox="0 0 24 24"
+                   fill="none" stroke="#4b5563" stroke-opacity="0.6" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
             {/if}
           </g>
         </g>
@@ -185,6 +165,13 @@
     transition: stroke-opacity 0.3s ease, stroke-width 0.3s ease;
     pointer-events: none;
   }
+  /* In-progress: the orange outer border shows from the start (2026-07-08 feedback) — it's
+     the "this chip is active" indicator, always on; the inner ring (above) tracks % done.
+     Hover still intensifies it further via the rule below. */
+  .chip-inprogress .halo-ring {
+    stroke-opacity: 0.7;
+    stroke-width: 2;
+  }
   @media (hover: hover) {
     .chip-active:hover .halo-ring {
       stroke-opacity: 0.85;
@@ -196,32 +183,15 @@
     0%, 100% { stroke-opacity: 0.5; stroke-width: 1.5; }
     50%       { stroke-opacity: 1.0; stroke-width: 3; }
   }
-  .beat { transform-origin: 0 0; }
   @media (hover: hover) {
-    .chip-active:hover .beat { animation: heartbeat 2s ease-in-out infinite; }
-    .chip-active:hover .chip-bg { fill: #eef4ff; }
-  }
-  @keyframes heartbeat {
-    0%   { transform: scale(1); }
-    10%  { transform: scale(1.06); }
-    20%  { transform: scale(1); }
-    30%  { transform: scale(1.04); }
-    40%  { transform: scale(1); }
-    100% { transform: scale(1); }
+    .chip-active:hover .chip-bg { fill: #ffffff; }
   }
 
   .chip-lbl { font-family: 'Rubik', system-ui, sans-serif; font-weight: 600; pointer-events: none; }
 
-  /* Navy outline behind the white fill — identical recipe to the unit sphere's number text. */
+  /* Matches the reference .luna-numero spec: bold, single crisp engraved edge (no blur). */
   .chip-num {
-    font-weight: 800;
-    stroke: #001f3f;
-    paint-order: stroke fill;
-  }
-  /* Solid navy duplicate sat behind .chip-num, offset down — same font metrics so it lines
-     up exactly under the real glyphs, giving them a flat "extruded" edge with no blur. */
-  .chip-num-edge {
-    font-weight: 800;
-    fill: #001f3f;
+    font-weight: 700;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.35);
   }
 </style>

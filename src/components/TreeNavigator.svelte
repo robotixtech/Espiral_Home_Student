@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, untrack } from 'svelte';
   import type { ProgramData, ProgramUnit, Activity, UnitStatus, UnitIcon } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
   import { getDistantConfigs } from '../lib/program-config';
@@ -8,6 +8,7 @@
   import ActivityOrbit from './ActivityOrbit.svelte';
   import QuantaCluster from './QuantaCluster.svelte';
   import IANode from './IANode.svelte';
+  import { activityOrbitLayout } from '../lib/activity-orbit';
   import { CANVAS, SPIRAL, ZOOM, IA_UNIT_CONFIG } from '../lib/master-config';
 
   interface Props {
@@ -313,6 +314,70 @@
     panY = cy - (cy - panY) * (ns / zoomScale);
     zoomScale = ns;
   }
+
+  // ── Auto-fit satellites on open ──────────────────────────────────────────
+  // When a unit/IA panel opens, its lesson satellites must always be fully visible
+  // without the user having to zoom out manually — but WITHOUT re-centring the
+  // view on the clicked sphere (2026-07-08 feedback: the "jump to centre" read as
+  // jarring). Instead, zoom out only as much as needed, anchored on the CURRENT
+  // viewport centre (same pivot math as the scroll-wheel zoom), so the camera
+  // never jumps — it just pulls back in place until the cluster fits.
+  // The view the user had before opening is restored once the panel closes.
+
+  function fitViewToBox(centerX: number, centerY: number, halfW: number, halfH: number, pad = 24) {
+    const bw = halfW + pad, bh = halfH + pad;
+    const vx = vb.x + vb.w / 2, vy = vb.y + vb.h / 2;
+
+    // How far (in current screen space) the box's farthest corners already sit
+    // from the viewport centre — zooming out shrinks these offsets proportionally,
+    // so solve for the scale factor that pulls them back inside the viewBox.
+    let offX = 0, offY = 0;
+    for (const wx of [centerX - bw, centerX + bw]) offX = Math.max(offX, Math.abs(panX + zoomScale * wx - vx));
+    for (const wy of [centerY - bh, centerY + bh]) offY = Math.max(offY, Math.abs(panY + zoomScale * wy - vy));
+
+    const k  = Math.min(1, (vb.w / 2) / (offX || 1), (vb.h / 2) / (offY || 1));
+    const ns = Math.max(ZOOM.min, zoomScale * k);
+    if (ns === zoomScale) return;
+
+    panX = vx - (vx - panX) * (ns / zoomScale);
+    panY = vy - (vy - panY) * (ns / zoomScale);
+    zoomScale = ns;
+  }
+
+  let savedView: { zoomScale: number; panX: number; panY: number } | null = null;
+
+  $effect(() => {
+    // Tracked deps: only the panel identity + viewport size (so a resize/rotation
+    // while a panel is open re-fits it). Everything else is read untracked below
+    // so manual zoom/pan while a panel is open isn't fought on every re-render.
+    const key = panelUnit ? `unit:${panelUnit.id}` : panelIA ? 'ia' : null;
+    void cW; void cH;
+
+    untrack(() => {
+      if (key === null) {
+        if (savedView) {
+          zoomScale = savedView.zoomScale;
+          panX = savedView.panX;
+          panY = savedView.panY;
+          savedView = null;
+        }
+        return;
+      }
+      if (!savedView) savedView = { zoomScale, panX, panY };
+
+      let centerX: number, centerY: number, layout: ReturnType<typeof activityOrbitLayout>;
+      if (panelUnit && panelUnitPos) {
+        layout  = activityOrbitLayout(panelActivities, panelUnitR, 20);
+        centerX = panelUnitPos.x;
+        centerY = panelUnitPos.y;
+      } else {
+        layout  = activityOrbitLayout(iaDisplayActivities, iaUnitR, IA_TITLE_FONT);
+        centerX = iaNodePos.cx;
+        centerY = iaNodePos.cy;
+      }
+      fitViewToBox(centerX, centerY, layout.hw, layout.hh);
+    });
+  });
 
   // ── Touch support (tablet / mobile) ──────────────────────────────────────
   let lastTouchDist = 0;
