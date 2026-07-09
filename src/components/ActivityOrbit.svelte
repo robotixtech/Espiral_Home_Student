@@ -20,6 +20,34 @@
   // Shared layout — fixed clock-face positions, same for every sphere.
   const layout = $derived(activityOrbitLayout(activities, unitR, titleFontSize));
 
+  /** Short dashed arc between two chip angles (the "short way" around, clockwise — matches
+   *  activity-orbit.ts's clockAngle convention where increasing angle = clockwise). */
+  function arcPath(r: number, a1: number, a2: number): string {
+    const x1 = r * Math.cos(a1), y1 = r * Math.sin(a1);
+    const x2 = r * Math.cos(a2), y2 = r * Math.sin(a2);
+    let delta = a2 - a1;
+    while (delta < 0) delta += 2 * Math.PI;
+    const largeArc = delta > Math.PI ? 1 : 0;
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+  }
+
+  // Orbit ring as individual arcs between consecutive chips (by angle) rather than one full
+  // circle — "Continuar" (C) skips both its neighbouring arcs (2026-07-08 feedback: C should
+  // only connect to the big sphere via its straight connector line, not to "DD"/"1" via the
+  // ring). Sets without a "C" chip (e.g. the IA node's 5 plain lessons) get every arc, i.e.
+  // a full circle, same as before.
+  const orbitArcs = $derived.by(() => {
+    if (layout.chips.length < 2) return [];
+    const sorted = [...layout.chips].sort((p, q) => p.a - q.a);
+    const arcs: string[] = [];
+    for (let i = 0; i < sorted.length; i++) {
+      const p = sorted[i], q = sorted[(i + 1) % sorted.length];
+      if (p.label === 'C' || q.label === 'C') continue;
+      arcs.push(arcPath(layout.orbitR, p.a, q.a));
+    }
+    return arcs;
+  });
+
   function statusColors(s: Activity['status']) {
     if (s === 'completed')   return t.unit.completed;
     if (s === 'in-progress') return t.unit.inProgress;
@@ -35,15 +63,18 @@
 </script>
 
 <g transform="translate({cx},{cy})">
-  <!-- Orbit ring: dotted circle through every lesson chip's centre — all chips already share
-       the same radius (layout.orbitR), so this is just that circle traced as dots. Opacity/
-       weight raised repeatedly (2026-07-07, 2026-07-08 feedback ×2) to read more clearly —
-       fully opaque, thicker stroke, tighter dash gap so it reads as a solid circumference.
-       Colour matches the chip background's "chalk white" (#F4F2EC), same as .chip-bg. -->
+  <!-- Orbit ring: dotted arcs between consecutive lesson chips — all chips already share the
+       same radius (layout.orbitR). Opacity/weight raised repeatedly (2026-07-07, 2026-07-08
+       feedback ×2) to read more clearly — fully opaque, thicker stroke, tighter dash gap so
+       it reads as a solid circumference. Colour matches the chip background's "chalk white"
+       (#F4F2EC), same as .chip-bg. Drawn as separate arcs (not one <circle>) so "C" can skip
+       its two neighbouring segments — see orbitArcs above. -->
   {#if layout.orbitR > 0}
-    <circle cx="0" cy="0" r={layout.orbitR} fill="none"
+    {#each orbitArcs as d}
+      <path {d} fill="none"
             stroke="#F4F2EC" stroke-width="2"
             stroke-dasharray="2.5 4" stroke-linecap="round" />
+    {/each}
   {/if}
 
   <!-- Connector lines — stroke-opacity at group level: inherited per-stroke, no compositing
