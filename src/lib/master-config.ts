@@ -122,18 +122,10 @@ export const C450_CONFIG: ProgramConfig = {
 
   units: [
 
-    // ── Misión Control — acceso externo directo, sin activities ──────────
-    {
-      label:       'Misión Control',
-      displayName: 'MC',
-      fullname:    'C450 – Misión control',
-      icon:        'gear',
-      href:        'https://www.robotix.com',
-      status:      'in-progress',  // ⚡ Moodle
-      progress:    0,              // ⚡ Moodle
-    },
+    // ── U0 — sus activities aún no tienen slides. Ahora la primera unidad de la
+    //    espiral (2026-07-09: se eliminó "Misión Control") — ver emulator.svelte.ts,
+    //    que ya no trata el índice 0 como una unidad pre-completada aparte. ────────
 
-    // ── U0 — sus activities aún no tienen slides ─────────────────────────
     {
       label:       'Plataforma de lanzamiento',  // ← 2. NOMBRE DE LA UNIDAD
       displayName: 'U0',
@@ -285,25 +277,7 @@ export const C450_CONFIG: ProgramConfig = {
       ],
     },
 
-    // ── U7 ───────────────────────────────────────────────────────────────
-    {
-      label:       'Exploración final',  // ← 2. NOMBRE DE LA UNIDAD
-      displayName: 'U7',
-      fullname:    'C450 – Unidad 7. Exploración final',
-      icon:        'binoculars',
-      href:        null,
-      status:      'locked',
-      progress:    0,
-      activities: [
-        // lessons
-        { label: 'Revisión de misión',   icon: 'search', href: null, status: 'locked', progress: 0 },
-        { label: 'Informe de hallazgos', icon: 'gear',   href: null, status: 'locked', progress: 0 },
-        { label: 'Presentación final',   icon: 'flag',   href: null, status: 'locked', progress: 0 },
-        // sistema — NO editar el label
-        { label: 'DemoDay',   icon: 'trophy',     href: null, status: 'locked', progress: 0 },
-        { label: 'Continuar', icon: 'binoculars', href: null, status: 'locked', progress: 0 },
-      ],
-    },
+    // U7 removed (2026-07-09) — U6 is now the last unit in the spiral.
 
   ],
 };

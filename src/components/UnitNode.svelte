@@ -100,9 +100,10 @@
     return lines.slice(0, 2);
   }
 
-  // Compact icon: base 20.8, +20% then -15%, then +30% (2026-07-08 feedback) — the icon shouldn't
-  // compete with the unit number/code, but still needs to read clearly at radar scale.
-  const C_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3;
+  // Compact icon: base 20.8, +20% then -15%, then +30%, then +30% again (2026-07-08, 2026-07-09
+  // feedback) — the icon shouldn't compete with the unit number/code, but still needs to read
+  // clearly at radar scale.
+  const C_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3 * 1.3;
   const cIcon   = $derived(
     unit.status === 'locked' ? C_ICON_BASE * 1.2   // locked lock icon +20% on top of the base, for stroke visibility
     : C_ICON_BASE
@@ -130,8 +131,9 @@
   const craterShadow = $derived(craterTone(colors.g2, 0.6, 0.4));
 
   // Unit number: the dominant element inside the sphere — it's the code that orients the
-  // child on the map, not the icon (2026-07-07 feedback). ~1/3 of the sphere's diameter.
-  const numberFont = $derived((2 * r) / 3);
+  // child on the map, not the icon (2026-07-07 feedback). ~1/3 of the sphere's diameter,
+  // reduced 30% (2026-07-09 feedback) as the icon grows to take more of the visual weight.
+  const numberFont = $derived((2 * r) / 3 * 0.7);
   // Thin navy outline on the white glyphs: readability/accessibility fix — the sphere's fill
   // colour varies by status (amber/green/grey/purple), so a fixed dark edge guarantees the
   // text stays legible against any of them instead of relying on fill colour contrast alone.

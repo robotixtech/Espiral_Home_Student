@@ -43,13 +43,14 @@ export function toggleEmulator(baseProgram: ProgramData): void {
 
 function startEmulator(baseProgram: ProgramData): void {
   active = true;
-  unitIndex = 1;
+  unitIndex = 0;
   currentProgress = 0;
   nextUnlocked = false;
   iaProgress = 0;
 
-  // Misión Control (unit 0) starts already completed
-  snapshot = buildSnapshot(baseProgram, 1, 0, false);
+  // Unit 0 (U0, the first unit in the spiral — Misión Control was removed 2026-07-09) starts
+  // in-progress at 0%, same as every other unit reaching its turn.
+  snapshot = buildSnapshot(baseProgram, 0, 0, false);
   scheduleTick(baseProgram);
 }
 
@@ -107,10 +108,10 @@ function tick(baseProgram: ProgramData): void {
       snapshot = buildSnapshot(baseProgram, totalUnits, 100, false);
       timer = setTimeout(() => {
         if (!active) return;
-        unitIndex = 1;
+        unitIndex = 0;
         currentProgress = 0;
         nextUnlocked = false;
-        snapshot = buildSnapshot(baseProgram, 1, 0, false);
+        snapshot = buildSnapshot(baseProgram, 0, 0, false);
         scheduleTick(baseProgram);
       }, EMULATOR_CONFIG.pauseBeforeRestartMs);
       return;

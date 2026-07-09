@@ -76,7 +76,10 @@ Do NOT reintroduce a global navigation store.
 - Both auto-start on mount. Config in `emulator-config.ts` (150ms tick, 5% step).
 
 ## Important Rules
-- **Misión Control (Onboarding) is the FIRST unit**, not a final project. No activities — opens href.
+- **C450 has no "Misión Control" unit** (removed 2026-07-09) — **U0 is the first unit** in the
+  spiral (occupies the center position). `emulator.svelte.ts` starts/restarts at `unitIndex = 0`
+  accordingly. C550/C650/C350 (distant galaxies) still have their own "Misión Control"/"Onboarding"
+  first unit, untouched.
 - **Never commit or push automatically.** Wait for explicit user instruction.
 - **When reverting**, use targeted edits, not `git checkout -- file` (risks losing unrelated changes).
 - All links open in `_blank` (new tab).
