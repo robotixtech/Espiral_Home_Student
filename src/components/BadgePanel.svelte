@@ -129,18 +129,20 @@
     transform: translateY(-50%);
     z-index: 60;
     pointer-events: none;
-    /* The whole 6-badge column should fill 90% of the viewport height (2026-07-10 feedback:
-       80% → 90%). Column height = 6×badge-size + 5×14px grid gaps = 90vh, so badge-size =
-       (90vh − 70px) / 6. Loose upper clamp (240px) so it actually scales up on large screens
-       instead of capping out. */
-    --badge-size: clamp(40px, calc((90vh - 70px) / 6), 240px);
+    /* The whole 6-badge column should fill 90% of the viewport height. Column height =
+       6×badge-size + 5×8px grid gaps = 90vh, so badge-size = (90vh − 40px) / 6. Gap tightened
+       from 14px to 8px (2026-07-10 feedback: make badges a bit bigger without exceeding the
+       90% column limit — shrinking the gaps reallocates that space to the badges themselves,
+       total column height unchanged). Loose upper clamp (250px) so it keeps scaling up on
+       large screens instead of capping out. */
+    --badge-size: clamp(40px, calc((90vh - 40px) / 6), 250px);
   }
 
   /* ── Visual viewport sync (Chrome iOS, Safari iOS) ────────────────────
      --vvh is set by App.svelte's visualViewport listener. */
   @supports (height: 100dvh) {
     .badge-float {
-      --badge-size: clamp(40px, calc((var(--vvh, 100dvh) * 0.9 - 70px) / 6), 240px);
+      --badge-size: clamp(40px, calc((var(--vvh, 100dvh) * 0.9 - 40px) / 6), 250px);
     }
   }
 
@@ -148,7 +150,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 14px;
+    gap: 8px;
   }
 
   .badge-cell {
@@ -292,17 +294,17 @@
   @media (max-height: 500px) and (orientation: landscape) {
     .badge-float {
       right: 8px;
-      /* Same 90%-of-viewport column target as the main rule, tighter gaps (5×8px = 40px). */
-      --badge-size: clamp(28px, calc((90vh - 40px) / 6), 140px);
+      /* Same 90%-of-viewport column target as the main rule, tighter gaps (5×6px = 30px). */
+      --badge-size: clamp(28px, calc((90vh - 30px) / 6), 140px);
     }
-    .badge-grid { gap: 8px; }
+    .badge-grid { gap: 6px; }
     .lock-icon { width: 22px; height: 22px; }
   }
 
   @supports (height: 100dvh) {
     @media (max-height: 500px) and (orientation: landscape) {
       .badge-float {
-        --badge-size: clamp(28px, calc((var(--vvh, 100dvh) * 0.9 - 40px) / 6), 140px);
+        --badge-size: clamp(28px, calc((var(--vvh, 100dvh) * 0.9 - 30px) / 6), 140px);
       }
     }
   }

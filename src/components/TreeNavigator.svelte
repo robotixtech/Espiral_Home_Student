@@ -217,7 +217,7 @@
   // moved it). vb.x/vb.y already guarantee it's inside the visible viewBox on any screen size
   // (10"-27"), regardless of how many units are shown inside the radar.
   const dgQuanta = $derived({
-    cx: vb.x + 100,
+    cx: vb.x + 140, // nudged right off the screen edge (2026-07-10 feedback)
     cy: vb.y + 145, // +30px, then +15px more (2026-07-09, 2026-07-10 feedback)
   });
   // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
