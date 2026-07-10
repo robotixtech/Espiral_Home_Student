@@ -201,11 +201,15 @@
     transform: none !important;
     -webkit-transform: none !important;
   }
-  /* BadgePanel: badge-shimmer animates CSS filter+opacity on <img> → each img
-     becomes an independent GPU compositing layer. On Mali-G52 multiple
-     simultaneous compositing layers produce the erratic coloured-line artifact. */
+  /* BadgePanel: badge-shimmer animates opacity on the silhouette div → an independent GPU
+     compositing layer per locked badge. On Mali-G52 multiple simultaneous compositing layers
+     produce the erratic coloured-line artifact. Also disable .badge-silhouette's OWN filter
+     (drop-shadow) — filter:none on the parent .badge-slot does NOT cascade to override a
+     child's separately-set filter, so it needed its own rule (2026-07-10 feedback: audit after
+     the badge redesign introduced mask-image + a new drop-shadow on this element). */
   :global(.android .badge-silhouette) {
     animation: none !important;
+    filter: none !important;
   }
   :global(.android .badge-slot) {
     filter: none !important;
