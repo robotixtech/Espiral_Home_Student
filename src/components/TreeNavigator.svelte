@@ -38,6 +38,11 @@
   // Radar padding — kept as its own constant since it's referenced in a few places.
   const RADAR_PAD = 15;
 
+  // Units + spiral shift down 40px total (2026-07-10 feedback: +20, +40, -20) — the radar
+  // boundary itself (HUD ring, glass, telescopeR) stays centred on the original (cx,cy), so U0
+  // ends up off-centre within it. Intentional, per the request.
+  const CONTENT_CY = cy + 40;
+
   const t = $derived(getTheme());
 
   // ── Galaxy spiral path ──────────────────────────────────────────────────
@@ -61,7 +66,7 @@
       const theta = thetaFrom + (thetaTo - thetaFrom) * (i / steps);
       const r     = Math.max(0, SPIRAL_A + SPIRAL_B * theta);
       const px    = cx + r * Math.cos(theta);
-      const py    = cy + r * Math.sin(theta);
+      const py    = CONTENT_CY + r * Math.sin(theta);
       parts.push(i === 0 ? `M ${px.toFixed(1)} ${py.toFixed(1)}` : `L ${px.toFixed(1)} ${py.toFixed(1)}`);
     }
     return parts.join(' ');
@@ -113,14 +118,14 @@
     return UNIT_SIZE / 2 * (i === 0 ? 1.15 : 1.0);
   }
 
-  // Unit 0 sits at the center (telescope focal point); remaining units spiral outward at even
-  // 60° steps — every unit at its plain formula position, no per-unit overrides.
+  // Unit 0 sits at the content centre (20px below the radar's true centre — see CONTENT_CY);
+  // remaining units spiral outward at even 60° steps, every unit at its plain formula position.
   const unitPositions = $derived(
     program.units.map((_, i) => {
-      if (i === 0) return { x: cx, y: cy };
+      if (i === 0) return { x: cx, y: CONTENT_CY };
       const a = START_ANGLE + (i - 1) * ANGLE_STEP;
       const r = ORBIT_START + (i - 1) * ORBIT_STEP;
-      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
+      return { x: cx + r * Math.cos(a), y: CONTENT_CY + r * Math.sin(a) };
     }),
   );
 
