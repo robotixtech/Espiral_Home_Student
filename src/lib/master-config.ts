@@ -21,19 +21,17 @@ export const SPIRAL = {
   unitSize:       118,      // diámetro de los nodos planeta (px)
   actOrbit:        78,      // distancia del centro del planeta al centro de su luna (px)
   labelGap:        85,      // distancia del borde del planeta al borde de la etiqueta (px)
-  orbitStep:       20,      // separación entre órbitas consecutivas (px)
+  orbitStep:       15,      // separación entre órbitas consecutivas (px)
   sunRadius:        9,      // radio del sol central (px)
-  orbitStart:     208,      // radio de la órbita más interior (px). El radar es un CÍRCULO
+  orbitStart:     215,      // radio de la órbita más interior (px). El radar es un CÍRCULO
                              // perfecto en cualquier tamaño de pantalla (2026-07-10 feedback:
                              // una versión elíptica anterior se veía "ovalada" en Chromebook)
                              // — el radio está acotado por igual en todas direcciones (425px).
-                             // Reducido de 250 (2026-07-10 feedback ×2): con el desplazamiento
-                             // vertical del contenido (ver CONTENT_CY en TreeNavigator.svelte),
-                             // U5/U2/U3 quedaban tan cerca del borde que desplegar sus esferas
-                             // pequeñas disparaba el zoom-out automático. Este valor (buscado
-                             // numéricamente junto con startAngleDeg) elimina esa necesidad de
-                             // zoom-out en las 7 esferas, a cambio de una separación mínima
-                             // algo menor entre esferas vecinas (208px en vez de 250px).
+                             // Valor (junto con orbitStep/startAngleDeg, buscado numéricamente)
+                             // que evita que cualquier esfera dispare el zoom-out automático al
+                             // desplegar sus esferas pequeñas, con U0 centrada en el radar
+                             // (2026-07-10 feedback: se quitó el desplazamiento vertical del
+                             // contenido — ver CONTENT_CY en TreeNavigator.svelte).
   labelLineH:      19,      // separación entre líneas de la etiqueta (px)
   labelPadX:       10,      // padding horizontal dentro de la píldora de etiqueta (px)
   labelPadY:        5,      // padding vertical dentro de la píldora de etiqueta (px)
@@ -43,7 +41,7 @@ export const SPIRAL = {
   // 2+ vueltas completas, lo que terminaba apilando las unidades de radio más grande cerca
   // del borde superior/inferior. Con 60° fijos, la espiral da una sola vuelta limpia.
   angleStepDeg:    60,       // separación angular entre unidades consecutivas (°)
-  startAngleDeg:   59,       // ángulo de la primera unidad — offset elegido junto con orbitStart/
+  startAngleDeg: 59.5,       // ángulo de la primera unidad — offset elegido junto con orbitStart/
                              // orbitStep (búsqueda numérica) para maximizar la distancia mínima
                              // entre esferas sin que ninguna dispare el zoom-out (°)
 } as const;

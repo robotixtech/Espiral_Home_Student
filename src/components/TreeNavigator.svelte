@@ -38,10 +38,10 @@
   // Radar padding — kept as its own constant since it's referenced in a few places.
   const RADAR_PAD = 15;
 
-  // Units + spiral shift down 40px total (2026-07-10 feedback: +20, +40, -20) — the radar
-  // boundary itself (HUD ring, glass, telescopeR) stays centred on the original (cx,cy), so U0
-  // ends up off-centre within it. Intentional, per the request.
-  const CONTENT_CY = cy + 40;
+  // Units + spiral vertical centre — kept as its own constant (rather than using cy directly)
+  // since it's been shifted relative to the radar's own centre before (2026-07-10 feedback);
+  // currently back to 0 offset, i.e. U0 sits exactly at the radar's true centre.
+  const CONTENT_CY = cy;
 
   const t = $derived(getTheme());
 
@@ -118,7 +118,7 @@
     return UNIT_SIZE / 2 * (i === 0 ? 1.15 : 1.0);
   }
 
-  // Unit 0 sits at the content centre (20px below the radar's true centre — see CONTENT_CY);
+  // Unit 0 sits at the content centre (currently the radar's true centre — see CONTENT_CY);
   // remaining units spiral outward at even 60° steps, every unit at its plain formula position.
   const unitPositions = $derived(
     program.units.map((_, i) => {
@@ -138,7 +138,8 @@
       const dist = Math.hypot(unitPositions[i].x - cx, unitPositions[i].y - cy);
       maxR = Math.max(maxR, dist + nodeVisualR(i));
     }
-    return maxR + RADAR_PAD;
+    return (maxR + RADAR_PAD) * 1.1; // +10% diameter (2026-07-10 feedback) — the boundary/HUD
+    // ring/glass grows; unit spheres stay put, just with more breathing room inside it.
   });
 
   // ── Activity moons ───────────────────────────────────────────────────────
@@ -217,7 +218,7 @@
   // (10"-27"), regardless of how many units are shown inside the radar.
   const dgQuanta = $derived({
     cx: vb.x + 100,
-    cy: vb.y + 130, // +30px (2026-07-09 feedback)
+    cy: vb.y + 145, // +30px, then +15px more (2026-07-09, 2026-07-10 feedback)
   });
   // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
@@ -255,20 +256,13 @@
   // connector lines to the satellites read more clearly against it.
   const anyPanelOpen = $derived(!!panelUnit || panelIA);
 
-  // IA: X horizontally centred between the zoom +/- buttons and the radar's left edge
-  // (2026-07-09 feedback); Y level with U3. ZOOM_BTN_RIGHT_EDGE_PX = .zoom-controls' `left`
-  // + .zoom-btn's `width` (both in CSS px, see the .zoom-controls/.zoom-btn styles below),
-  // converted into canvas units via the viewBox's px-to-canvas scale (vb.w / cW).
-  const ZOOM_BTN_RIGHT_EDGE_PX = 14 + 72;
-  const iaNodePos = $derived.by(() => {
-    const zoomEdgeX  = vb.x + ZOOM_BTN_RIGHT_EDGE_PX * (vb.w / cW);
-    const radarEdgeX = cx - telescopeR;
-    const idxU3 = program.units.findIndex(u => u.displayName === 'U3');
-    const u3Y   = idxU3 >= 0 ? unitPositions[idxU3].y : cy;
-    return {
-      cx: (zoomEdgeX + radarEdgeX) / 2,
-      cy: u3Y,
-    };
+  // IA: fixed position relative to the viewport — NOT derived from any radar unit's position
+  // or from telescopeR (2026-07-10 feedback: it used to track U3's Y and the radar's edge, so
+  // any radar layout change silently moved it too). vb.x/vb.y already guarantee it's inside
+  // the visible viewBox on any screen size (10"-27").
+  const iaNodePos = $derived({
+    cx: vb.x + 270, // 2026-07-10 feedback ×4
+    cy: vb.y + 400,
   });
   const iaUnitR             = $derived(SPIRAL.unitSize / 2);
   const iaDisplayActivities = $derived(displayActivities(iaUnit as ProgramUnit));
