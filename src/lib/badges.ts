@@ -2,7 +2,7 @@ import type { ProgramUnit } from './types';
 import { BADGES } from './master-config';
 
 // Values are defined in src/lib/master-config.ts → BADGES section.
-const { minGrade: MIN_GRADE, completionActivity: COMPLETION_ACTIVITY, unitPattern: BADGE_UNIT_PATTERN } = BADGES;
+const { minGrade: MIN_GRADE, unitPattern: BADGE_UNIT_PATTERN } = BADGES;
 
 function resolveBadgeUrl(programShortname: string, unitDisplayName: string): string {
   return `${import.meta.env.BASE_URL}badges/${programShortname}_${unitDisplayName}.png`;
@@ -22,26 +22,9 @@ export function badgeUrl(programShortname: string, unitDisplayName: string): str
   return resolveBadgeUrl(programShortname, unitDisplayName);
 }
 
-/** Devuelve true si el alumno ha ganado el badge de la unidad. */
+/** Devuelve true si el alumno ha ganado el badge de la unidad — la unidad de referencia debe
+ *  estar en status "completed" (2026-07-10 feedback: antes se otorgaba antes de tiempo, en
+ *  cuanto el progreso cruzaba el umbral de DemoDay aunque el status siguiera "in-progress"). */
 export function isBadgeEarned(unit: ProgramUnit): boolean {
-  return effectivelyCompleted(unit) && (unit.grade ?? 0) >= MIN_GRADE;
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-//  LÓGICA INTERNA
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function effectivelyCompleted(unit: ProgramUnit): boolean {
-  if (unit.status === 'completed') return true;
-  if (unit.status === 'locked')    return false;
-
-  const activities = unit.activities ?? [];
-  if (activities.length === 0) return false;
-
-  const milestoneIdx = activities.findIndex(a => a.label === COMPLETION_ACTIVITY);
-  const threshold = milestoneIdx >= 0
-    ? ((milestoneIdx + 1) / activities.length) * 100
-    : 100;
-
-  return unit.progress >= threshold;
+  return unit.status === 'completed' && (unit.grade ?? 0) >= MIN_GRADE;
 }

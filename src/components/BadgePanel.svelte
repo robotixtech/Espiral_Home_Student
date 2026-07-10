@@ -4,7 +4,6 @@
   import { getEmulatedProgram } from '../lib/emulator.svelte';
   import { t } from '../lib/i18n';
   import { getConfigByShortname } from '../lib/program-config';
-  import { BADGE_PANEL } from '../lib/master-config';
 
   interface Props {
     program: ProgramData;
@@ -19,22 +18,15 @@
     const sorted = prog.units
       .filter(u => hasBadge(u.displayName))
       .sort((a, b) => parseInt(a.displayName.slice(1)) - parseInt(b.displayName.slice(1)));
-    return sorted.map(u => {
-      // Badge 'UN' is earned when the PREVIOUS unit (the one before UN in the
-      // spiral) completes its DemoDay — one step behind the badge label.
-      const idx = prog.units.findIndex(u2 => u2.id === u.id);
-      const prevUnit = idx > 0 ? prog.units[idx - 1] : null;
-      return {
-        unit: u,
-        earned: prevUnit ? isBadgeEarned(prevUnit) : false,
-        src: badgeUrl(prog.shortname, u.displayName),
-      };
-    });
+    return sorted.map(u => ({
+      // Badge 'UN' is earned when unit UN itself is completed (2026-07-10 feedback) — used to
+      // be tied to the PREVIOUS unit, one step behind the badge label, which unlocked the
+      // badge while the unit it's named after was still in-progress.
+      unit: u,
+      earned: isBadgeEarned(u),
+      src: badgeUrl(prog.shortname, u.displayName),
+    }));
   });
-
-  const earnedCount = $derived(badgeUnits.filter(b => b.earned).length);
-
-  let collapsed = $state(BADGE_PANEL.startCollapsed);
 
   type BadgeItem = (typeof badgeUnits)[number];
   let selectedBadge = $state<BadgeItem | null>(null);
@@ -42,62 +34,44 @@
 
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') selectedBadge = null; }} />
 
-<div class="badge-panel" class:collapsed aria-label={t('badgesPanelAriaLabel')}>
-
-  <!-- Handle: organic left edge of the panel, always peeking out -->
-  <button
-    class="panel-handle"
-    onclick={() => collapsed = !collapsed}
-    aria-expanded={!collapsed}
-    aria-label={t('badgesPanelAriaLabel')}
-  >
-    <svg class="handle-chevron" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <polyline points="6,4 10,8 6,12" stroke="rgba(120,180,255,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <span class="handle-title">{t('badgesPanelTitle')}</span>
-  </button>
-
-  <!-- Content: the badge showcase -->
-  <div class="panel-content">
-
-    <!-- Corner bracket accents -->
-    <span class="bracket tl"></span>
-    <span class="bracket tr"></span>
-    <span class="bracket bl"></span>
-    <span class="bracket br"></span>
-
-    <!-- Scan line sweep -->
-    <div class="scanline" aria-hidden="true"></div>
-
-    <!-- Badge grid -->
-    <div class="badge-grid">
-      {#each badgeUnits as item (item.unit.id)}
-        <div class="badge-cell" title={item.earned ? `${item.unit.label} — ${t('badgeEarnedSuffix')}` : `${item.unit.label} — ${t('badgeLockedSuffix')}`}>
-          {#if item.earned}
-            <button
-              class="badge-slot earned"
-              onclick={() => selectedBadge = item}
-              aria-label="{item.unit.label} — {t('badgeEarnedSuffix')}"
-            >
-              <img src={item.src} alt="{t('badgesPanelLabel')} {item.unit.displayName}" class="badge-img" />
-            </button>
-          {:else}
-            <div class="badge-slot">
-              <img src={item.src} alt="" class="badge-img badge-silhouette" aria-hidden="true" />
-              <div class="badge-lock">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="lock-icon"
-                   stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-              </div>
+<!-- Badges float directly over the background, no panel/container (2026-07-10 feedback). -->
+<div class="badge-float" aria-label={t('badgesPanelAriaLabel')}>
+  <div class="badge-grid">
+    {#each badgeUnits as item (item.unit.id)}
+      <div class="badge-cell" title={item.earned ? `${item.unit.label} — ${t('badgeEarnedSuffix')}` : `${item.unit.label} — ${t('badgeLockedSuffix')}`}>
+        {#if item.earned}
+          <button
+            class="badge-slot earned"
+            onclick={() => selectedBadge = item}
+            aria-label="{item.unit.label} — {t('badgeEarnedSuffix')}"
+          >
+            <img src={item.src} alt="{t('badgesPanelLabel')} {item.unit.displayName}" class="badge-img" />
+            <span class="unit-chip">{item.unit.displayName}</span>
+          </button>
+        {:else}
+          <div class="badge-slot">
+            <!-- Flat grey silhouette (2026-07-10 feedback: no trace of the original artwork
+                 should show, just a solid colour) — a plain <img> + CSS filter can only
+                 desaturate/dim, it can't flatten away the artwork's own shading/gradients.
+                 A masked div (background-color clipped to the PNG's own alpha shape) gives a
+                 true single-tone silhouette instead. -->
+            <div
+              class="badge-img badge-silhouette"
+              style="mask-image: url('{item.src}'); -webkit-mask-image: url('{item.src}');"
+              aria-hidden="true"
+            ></div>
+            <div class="badge-lock">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="lock-icon"
+                 stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
             </div>
-          {/if}
-          <span class="unit-label">{item.unit.displayName}</span>
-        </div>
-      {/each}
-    </div>
-
+            <span class="unit-chip">{item.unit.displayName}</span>
+          </div>
+        {/if}
+      </div>
+    {/each}
   </div>
 </div>
 
@@ -105,7 +79,7 @@
 {#if selectedBadge}
   <div
     class="modal-backdrop"
-    style:background-image={`linear-gradient(rgba(11,14,26,0.8), rgba(11,14,26,0.8)), url('${import.meta.env.BASE_URL}${bgImage}')`}
+    style:background-image={`url('${import.meta.env.BASE_URL}${bgImage}')`}
     role="button"
     tabindex="-1"
     aria-label="Cerrar"
@@ -146,162 +120,35 @@
 {/if}
 
 <style>
-  /* ── Panel: the whole unit slides as one piece ─── */
-  .badge-panel {
+  /* ── Floating badge stack — no background, no border, no box: just the badges (each
+       already carries its own glow via drop-shadow) floating over the page background. ── */
+  .badge-float {
     position: fixed;
-    right: 0;
-    top: 0;
-    /* --vvh is set by App.svelte via visualViewport API (same fix used for app-root).
-       Conservative 240px overhead (190 + 50px) guards against pre-JS render. */
-    height: 100vh;
-    --badge-size: clamp(55px, calc((100vh - 240px) / 6), 110px);
-    /* flex row: [handle | content] */
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-
-    /* Expanded: fully visible */
-    transform: translateX(0);
-    transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
-
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
     z-index: 60;
     pointer-events: none;
-
-    background: linear-gradient(160deg, rgba(0,12,34,0.97) 0%, rgba(0,22,56,0.94) 100%);
-    border: 1px solid rgba(70,150,255,0.28);
-    border-right: none;
-    border-radius: 12px 0 0 12px;
-
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.05),
-      inset 0 -1px 0 rgba(0,0,0,0.4),
-      0 8px 40px rgba(0,0,0,0.7),
-      0 0 28px rgba(40,100,220,0.12);
-
-    overflow: hidden;
+    /* The whole 6-badge column should fill 90% of the viewport height (2026-07-10 feedback:
+       80% → 90%). Column height = 6×badge-size + 5×14px grid gaps = 90vh, so badge-size =
+       (90vh − 70px) / 6. Loose upper clamp (240px) so it actually scales up on large screens
+       instead of capping out. */
+    --badge-size: clamp(40px, calc((90vh - 70px) / 6), 240px);
   }
 
-  /* Collapsed: only the handle (38px) remains visible at screen edge.
-     Content width = --badge-size + 10px left + 14px right padding = badge + 24px */
-  .badge-panel.collapsed {
-    transform: translateX(calc(var(--badge-size) + 24px));
-  }
-
-  /* ── Handle: the organic "ear" of the panel ──── */
-  .panel-handle {
-    width: 38px;
-    flex-shrink: 0;
-    align-self: stretch;
-
-    /* Landscape: chevron on top, title below (both centered in the narrow strip) */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-
-    background: transparent;
-    border: none;
-    border-right: 1px solid rgba(70,140,255,0.15);
-    border-radius: 0; /* inherits from parent panel */
-    cursor: pointer;
-    pointer-events: auto;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-
-    transition: background 0.2s ease;
-  }
-
-  @media (hover: hover) {
-    .panel-handle:hover {
-      background: rgba(80,140,255,0.07);
+  /* ── Visual viewport sync (Chrome iOS, Safari iOS) ────────────────────
+     --vvh is set by App.svelte's visualViewport listener. */
+  @supports (height: 100dvh) {
+    .badge-float {
+      --badge-size: clamp(40px, calc((var(--vvh, 100dvh) * 0.9 - 70px) / 6), 240px);
     }
   }
 
-  .handle-chevron {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    /* Default: > (right-pointing) — panel is open, click to close */
-    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Collapsed: rotate 180° → < (left-pointing, click to open) */
-  .badge-panel.collapsed .handle-chevron {
-    transform: rotate(180deg);
-  }
-
-  /* Landscape: title rotated vertically, reads upward */
-  .handle-title {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    color: rgba(110,180,255,0.75);
-    text-shadow: 0 0 8px rgba(80,160,255,0.4);
-    user-select: none;
-    white-space: nowrap;
-  }
-
-  /* ── Panel content ────────────────────────────── */
-  .panel-content {
-    flex: 1;
-    min-width: 0;
-    position: relative;
-    padding: 14px 14px 14px 10px;
-    overflow: hidden;
-    pointer-events: none;
+  .badge-grid {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-  }
-
-  /* ── Corner brackets ──────────────────────────── */
-  .bracket {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    border-color: rgba(80,160,255,0.45);
-    border-style: solid;
-    pointer-events: none;
-  }
-  .bracket.tl { top: 5px; left: 5px;  border-width: 1.5px 0 0 1.5px; border-radius: 2px 0 0 0; }
-  .bracket.tr { top: 5px; right: 5px; border-width: 1.5px 1.5px 0 0; border-radius: 0 2px 0 0; }
-  .bracket.bl { bottom: 5px; left: 5px;  border-width: 0 0 1.5px 1.5px; border-radius: 0 0 0 2px; }
-  .bracket.br { bottom: 5px; right: 5px; border-width: 0 1.5px 1.5px 0; border-radius: 0 0 2px 0; }
-
-  /* ── Scan line ────────────────────────────────── */
-  .scanline {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(80,160,255,0.04) 45%,
-      rgba(80,160,255,0.07) 50%,
-      rgba(80,160,255,0.04) 55%,
-      transparent 100%
-    );
-    background-size: 100% 200%;
-    animation: scanline-sweep 6s linear infinite;
-    z-index: 1;
-  }
-
-  @keyframes scanline-sweep {
-    0%   { background-position: 0% -100%; }
-    100% { background-position: 0% 200%; }
-  }
-
-  /* ── Badge grid ───────────────────────────────── */
-  .badge-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-    position: relative;
-    z-index: 2;
+    align-items: center;
+    gap: 14px;
   }
 
   .badge-cell {
@@ -320,10 +167,17 @@
     justify-content: center;
   }
 
+  /* Locked: no glow/halo at all (2026-07-10 feedback ×3: the earlier blue drop-shadows, meant
+     to echo the earned badge's shadow, bled outward onto the unit-chip pill too, since
+     `filter` applies to the whole element including its children) — just a crisp white
+     outline (same white as the lock icon's stroke). Two stacked near-zero-blur layers (rather
+     than one) so the outline reads as solid/defined instead of a soft fade.
+     drop-shadow (not border/box-shadow) since the badge PNGs are irregular shapes with
+     transparent backgrounds — border/box-shadow would draw a rectangle instead of hugging the
+     silhouette. */
   .badge-slot:not(.earned) {
-    filter: drop-shadow(0 0 1.5px rgba(80,150,255,0.75))
-            drop-shadow(0 0 5px rgba(60,110,255,0.28))
-            drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
+    filter: drop-shadow(0 0 1px rgba(255,255,255,0.95))
+            drop-shadow(0 0 2px rgba(255,255,255,0.85));
   }
 
   .badge-slot.earned {
@@ -361,32 +215,63 @@
     z-index: 1;
   }
 
+  /* Flat grey silhouette (2026-07-10 feedback ×2: no trace of the original artwork should
+     show at all, just a solid colour — a CSS filter on the <img> can only desaturate/dim, it
+     can't flatten away the badge's own shading/gradients). This is now a plain <div> with a
+     solid background-color, CLIPPED to the badge PNG's own alpha shape via mask-image — the
+     mask-image URL is set inline (per-badge src) in the markup above. Same grey as the radar's
+     locked spheres (theme.unit.locked ring: #708090). */
   .badge-silhouette {
-    filter: grayscale(100%) sepia(1) hue-rotate(195deg) saturate(2.5) brightness(0.38) contrast(0.2);
-    opacity: 0.7;
+    background-color: #708090;
+    mask-repeat: no-repeat;
+    mask-position: center;
+    mask-size: contain;
+    -webkit-mask-repeat: no-repeat;
+    -webkit-mask-position: center;
+    -webkit-mask-size: contain;
+    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45));
+    opacity: 0.85;
     animation: badge-shimmer 4s ease-in-out infinite;
   }
 
   @keyframes badge-shimmer {
-    0%,  100% { opacity: 0.7; filter: grayscale(100%) sepia(1) hue-rotate(195deg) saturate(2.5) brightness(0.38) contrast(0.2); }
-    50%        { opacity: 0.55; filter: grayscale(100%) sepia(1) hue-rotate(210deg) saturate(2) brightness(0.30) contrast(0.2); }
+    0%,  100% { opacity: 0.85; }
+    50%        { opacity: 0.65; }
   }
 
-  .unit-label {
+  /* Small white pill with the unit code, overlapping the badge's lower-right edge — replaces
+     the text label that used to sit below the image (2026-07-10 feedback ×2: same X as
+     before, now dropped down to the image's bottom edge instead of vertically centred), same
+     for earned and locked badges. Sized proportionally to --badge-size (2026-07-10 feedback
+     ×3: scale with the badge instead of a fixed px size per breakpoint) — ratios match the
+     original hand-tuned values at the old 100px reference size. */
+  .unit-chip {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    z-index: 3;
+    min-width: calc(var(--badge-size) * 0.2);
+    height: calc(var(--badge-size) * 0.2);
+    padding: 0 calc(var(--badge-size) * 0.06);
+    border-radius: 999px;
+    background: #F4F2EC;
+    color: #0F3A4E;
     font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 9px;
+    font-size: calc(var(--badge-size) * 0.1);
     font-weight: 700;
-    letter-spacing: 0.18em;
-    color: rgba(100,155,230,0.6);
-    text-align: center;
-    line-height: 1;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.45);
+    pointer-events: none;
     user-select: none;
   }
 
-  .badge-slot.earned + .unit-label,
-  .badge-cell:has(.earned) .unit-label {
-    color: rgba(130,220,110,0.75);
-    text-shadow: 0 0 6px rgba(57,255,20,0.3);
+  /* Locked: grey pill, white text (2026-07-10 feedback) — earned keeps the chalk-white/navy above. */
+  .badge-slot:not(.earned) .unit-chip {
+    background: #708090;
+    color: #ffffff;
   }
 
   .badge-lock {
@@ -405,111 +290,52 @@
 
   /* ── Landscape phones ─────────────────────────── */
   @media (max-height: 500px) and (orientation: landscape) {
-    .badge-panel {
-      /* Phone: 18px padding + 5×8px gaps + 6×16px label area = 154px overhead */
-      --badge-size: clamp(38px, calc((100vh - 200px) / 6), 78px);
+    .badge-float {
+      right: 8px;
+      /* Same 90%-of-viewport column target as the main rule, tighter gaps (5×8px = 40px). */
+      --badge-size: clamp(28px, calc((90vh - 40px) / 6), 140px);
     }
-    /* Content width = --badge-size + 8px left + 9px right padding = badge + 17px */
-    .badge-panel.collapsed { transform: translateX(calc(var(--badge-size) + 17px)); }
-    .panel-content { padding: 9px 9px 9px 8px; }
     .badge-grid { gap: 8px; }
     .lock-icon { width: 22px; height: 22px; }
-    .unit-label { font-size: 8px; }
   }
 
-  /* ── Visual viewport sync (Chrome iOS, Safari iOS) ────────────────────
-     --vvh is set by App.svelte's visualViewport listener. When available,
-     it reflects the true visible height regardless of browser chrome.
-     The @supports guard ensures the dvh fallback is only used where valid. */
   @supports (height: 100dvh) {
-    .badge-panel {
-      height: var(--vvh, 100dvh);
-      --badge-size: clamp(55px, calc((var(--vvh, 100dvh) - 190px) / 6), 110px);
-    }
     @media (max-height: 500px) and (orientation: landscape) {
-      .badge-panel {
-        --badge-size: clamp(38px, calc((var(--vvh, 100dvh) - 154px) / 6), 78px);
+      .badge-float {
+        --badge-size: clamp(28px, calc((var(--vvh, 100dvh) * 0.9 - 40px) / 6), 140px);
       }
     }
   }
 
-  /* ── Portrait (phones + tablets): panel slides up from bottom center ── */
+  /* ── Portrait (phones + tablets): badges float in a row above the bottom edge ── */
   @media (orientation: portrait) {
-    .badge-panel {
+    .badge-float {
       right: auto;
       top: auto;
-      bottom: 0;
+      bottom: 14px;
       left: 50%;
-      /* height: auto so panel sizes to content — avoids 100vh overflow on iOS
-         where 100vh > visible area due to the browser chrome */
-      height: auto;
-      /* Expanded: centered horizontally, flush with bottom */
-      transform: translateX(-50%) translateY(0);
-      /* Vertical stacking: handle on top, content below */
-      flex-direction: column;
-      border-radius: 12px 12px 0 0;
-      border-right: 1px solid rgba(70,150,255,0.28);
-      border-bottom: none;
+      transform: translateX(-50%);
+      max-width: calc(100vw - 24px);
     }
-
-    /* Collapsed: slide down until only the 36px handle peeks at the bottom */
-    .badge-panel.collapsed {
-      transform: translateX(-50%) translateY(calc(100% - 36px));
-    }
-
-    /* Handle becomes a horizontal bar at the top of the panel */
-    .panel-handle {
-      width: 100%;
-      height: 36px;
-      align-self: stretch;
-      /* Portrait: chevron left, title right */
+    .badge-grid {
       flex-direction: row;
-      gap: 10px;
-      border-right: none;
-      border-bottom: 1px solid rgba(70,140,255,0.15);
-    }
-
-    /* Expanded: chevron ↓ = "click to collapse downward" */
-    .handle-chevron {
-      transform: rotate(90deg);
-    }
-
-    /* Collapsed: chevron ↑ = "click to expand upward" */
-    .badge-panel.collapsed .handle-chevron {
-      transform: rotate(-90deg);
-    }
-
-    /* Portrait: title reads horizontally */
-    .handle-title {
-      writing-mode: horizontal-tb;
-      transform: none;
-      font-size: 16px;
-      letter-spacing: 0.15em;
+      flex-wrap: wrap;
+      justify-content: center;
     }
   }
 
   /* ── Portrait phones ──────────────────────────── */
   @media (max-width: 600px) and (orientation: portrait) {
-    .badge-panel { width: 220px; }
-    .panel-content { padding: 10px; }
-    .badge-slot, .badge-img { width: 88px; height: 88px; }
+    /* Set via the shared --badge-size var (not a direct width/height override) so .unit-chip's
+       proportional sizing stays correct here too (2026-07-10 feedback ×3). */
+    .badge-float { --badge-size: 60px; }
     .badge-grid { gap: 10px; }
   }
 
   /* ── Portrait tablets (iPad, Android) ────────── */
   @media (min-width: 601px) and (orientation: portrait) {
-    .badge-panel { width: auto; max-width: calc(100vw - 32px); }
-    .panel-content { padding: 8px 14px 10px; }
-    /* Badges in a single horizontal row */
-    .badge-grid {
-      grid-template-columns: unset;
-      grid-auto-flow: column;
-      grid-auto-columns: auto;
-      gap: 10px;
-    }
-    .badge-slot, .badge-img { width: 72px; height: 72px; }
+    .badge-float { --badge-size: 72px; }
     .lock-icon { width: 22px; height: 22px; }
-    .unit-label { font-size: 8px; }
   }
 
   /* ── Badge modal ──────────────────────────────── */
@@ -609,13 +435,22 @@
   }
 
   /* Unit code badge (e.g. "U1") */
+  /* Same pill style as .unit-chip (the badge overlay) — chalk-white background, navy text
+     (2026-07-10 feedback). */
   .modal-unit-code {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
-    letter-spacing: 0.25em;
-    color: rgba(90,150,255,0.7);
+    letter-spacing: 0.15em;
+    color: #0F3A4E;
+    background: #F4F2EC;
     text-transform: uppercase;
+    padding: 6px 18px;
+    border-radius: 999px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.45);
     margin-top: 16px;
   }
 

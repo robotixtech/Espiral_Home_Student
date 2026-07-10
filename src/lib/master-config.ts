@@ -76,16 +76,9 @@ export const EMULATOR = {
 // Criterios de evaluación y reconocimiento de badges.
 export const BADGES = {
   minGrade:           6,             // nota mínima (sobre 10) para recibir el badge
-  completionActivity: 'DemoDay',     // actividad que marca la unidad como "completada"
   unitPattern:        /^U[1-9]\d*$/, // qué unidades reciben badge: U1 a U6 (6 en total, 2026-07-10
                                       // feedback) — excluye solo U0. Antes excluía U1 también,
                                       // de cuando "Misión Control" existía como unidad aparte.
-} as const;
-
-// ── BADGE_PANEL ───────────────────────────────────────────────────────────
-// Estado inicial y comportamiento del panel lateral de badges.
-export const BADGE_PANEL = {
-  startCollapsed: true,  // true → el panel arranca plegado; false → expandido
 } as const;
 
 // ── QUANTA ────────────────────────────────────────────────────────────────
