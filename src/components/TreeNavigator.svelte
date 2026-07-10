@@ -35,15 +35,8 @@
   const ANGLE_STEP  = SPIRAL.angleStepDeg * Math.PI / 180;
   const START_ANGLE = SPIRAL.startAngleDeg * Math.PI / 180;
 
-  // The radar is an ELLIPSE, not a circle (2026-07-10 feedback) — the canvas's guaranteed-
-  // visible area is wider than tall (1150×850), and a circular radar was bounded by the
-  // smaller (vertical) half, wasting horizontal room and forcing units too close together.
-  // ASPECT stretches every X coordinate so the radar fills both axes right up to their own
-  // budget; Y is untouched (it's already the limiting dimension).
-  const ELLIPSE_PAD = 15;
-  const RY_BUDGET = H / 2 - UNIT_SIZE / 2 - ELLIPSE_PAD;
-  const RX_BUDGET = (W - 20) / 2 - UNIT_SIZE / 2 - ELLIPSE_PAD;
-  const ASPECT = RX_BUDGET / RY_BUDGET;
+  // Radar padding — kept as its own constant since it's referenced in a few places.
+  const RADAR_PAD = 15;
 
   const t = $derived(getTheme());
 
@@ -67,7 +60,7 @@
     for (let i = 0; i <= steps; i++) {
       const theta = thetaFrom + (thetaTo - thetaFrom) * (i / steps);
       const r     = Math.max(0, SPIRAL_A + SPIRAL_B * theta);
-      const px    = cx + r * Math.cos(theta) * ASPECT;
+      const px    = cx + r * Math.cos(theta);
       const py    = cy + r * Math.sin(theta);
       parts.push(i === 0 ? `M ${px.toFixed(1)} ${py.toFixed(1)}` : `L ${px.toFixed(1)} ${py.toFixed(1)}`);
     }
@@ -121,31 +114,26 @@
   }
 
   // Unit 0 sits at the center (telescope focal point); remaining units spiral outward at even
-  // 60° steps — every unit at its plain formula position (stretched by ASPECT), no per-unit
-  // overrides.
+  // 60° steps — every unit at its plain formula position, no per-unit overrides.
   const unitPositions = $derived(
     program.units.map((_, i) => {
       if (i === 0) return { x: cx, y: cy };
       const a = START_ANGLE + (i - 1) * ANGLE_STEP;
       const r = ORBIT_START + (i - 1) * ORBIT_STEP;
-      return { x: cx + r * Math.cos(a) * ASPECT, y: cy + r * Math.sin(a) };
+      return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
     }),
   );
 
-  // Telescope radii — separate X/Y since the radar is an ellipse (ASPECT above), not a circle.
-  const telescopeRX = $derived.by(() => {
+  // Dynamic telescope radius: max distance from center to any unit edge (incl. in-progress
+  // scale). A perfect circle in every direction — 2026-07-10 feedback: an earlier elliptical
+  // radar looked visibly "ovalado" (not a proper circle) on a 10" Chromebook.
+  const telescopeR = $derived.by(() => {
     let maxR = 0;
     for (let i = 0; i < unitPositions.length; i++) {
-      maxR = Math.max(maxR, Math.abs(unitPositions[i].x - cx) + nodeVisualR(i));
+      const dist = Math.hypot(unitPositions[i].x - cx, unitPositions[i].y - cy);
+      maxR = Math.max(maxR, dist + nodeVisualR(i));
     }
-    return maxR + ELLIPSE_PAD;
-  });
-  const telescopeRY = $derived.by(() => {
-    let maxR = 0;
-    for (let i = 0; i < unitPositions.length; i++) {
-      maxR = Math.max(maxR, Math.abs(unitPositions[i].y - cy) + nodeVisualR(i));
-    }
-    return maxR + ELLIPSE_PAD;
+    return maxR + RADAR_PAD;
   });
 
   // ── Activity moons ───────────────────────────────────────────────────────
@@ -269,7 +257,7 @@
   const ZOOM_BTN_RIGHT_EDGE_PX = 14 + 72;
   const iaNodePos = $derived.by(() => {
     const zoomEdgeX  = vb.x + ZOOM_BTN_RIGHT_EDGE_PX * (vb.w / cW);
-    const radarEdgeX = cx - telescopeRX;
+    const radarEdgeX = cx - telescopeR;
     const idxU3 = program.units.findIndex(u => u.displayName === 'U3');
     const u3Y   = idxU3 >= 0 ? unitPositions[idxU3].y : cy;
     return {
@@ -604,21 +592,19 @@
     >
       <defs>
         <!-- Learning-path gradient: intensifies outward (dim at the centre/start → bright at
-             the leading edge) so the travelled route reads as "you are here → next step".
-             Circular (not stretched to the ellipse) — it's a colour gradient, not a hard
-             boundary, so the approximation is imperceptible. -->
-        <radialGradient id="learn-path-grad" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={Math.max(telescopeRX, telescopeRY)}>
+             the leading edge) so the travelled route reads as "you are here → next step". -->
+        <radialGradient id="learn-path-grad" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={telescopeR}>
           <stop offset="0%"   stop-color="#34d399" stop-opacity="0.3" />
           <stop offset="55%"  stop-color="#34d399" stop-opacity="0.85" />
           <stop offset="100%" stop-color="#c6fff0" stop-opacity="1" />
         </radialGradient>
-        <!-- Elliptical clip for the radar glass panel: CSS border-radius alone doesn't reliably
+        <!-- Circular clip for the radar glass panel: CSS border-radius alone doesn't reliably
              clip a backdrop-filter blur once the element is GPU-layer-promoted (translateZ(0),
              needed for the Mali-G52 fix) — Chromium can let the blur bleed past the rounded
-             corners into a rectangle. Clipping at the SVG level guarantees it never pokes
-             outside the radar's curved edge (2026-07-08 feedback). -->
+             corners into a square. Clipping at the SVG level guarantees it never pokes outside
+             the radar's curved edge (2026-07-08 feedback). -->
         <clipPath id="radar-clip" clipPathUnits="userSpaceOnUse">
-          <ellipse cx={cx} cy={cy} rx={telescopeRX + 4} ry={telescopeRY + 4} />
+          <circle cx={cx} cy={cy} r={telescopeR + 4} />
         </clipPath>
       </defs>
 
@@ -627,9 +613,8 @@
 
         <!-- Radar glass background -->
         {#if true}
-          {@const radarRX = telescopeRX + 4}
-          {@const radarRY = telescopeRY + 4}
-          <foreignObject x={cx - radarRX} y={cy - radarRY} width={radarRX * 2} height={radarRY * 2}
+          {@const radarR = telescopeR + 4}
+          <foreignObject x={cx - radarR} y={cy - radarR} width={radarR * 2} height={radarR * 2}
                          clip-path="url(#radar-clip)">
             <div class="radar-glass"></div>
           </foreignObject>
@@ -662,20 +647,19 @@
                 status={iaEffectiveStatus} progress={iaProgress}
                 onSelect={handleIAClick} />
 
-        <!-- HUD ring — elliptical (2026-07-10), 0 compositing ops: all opacity baked into rgba
-             stroke colors. Tick marks use the same per-axis radius as the ellipse itself, so
-             they're not perfectly perpendicular to the curve at every point — an imperceptible
-             trade-off at this aspect ratio (~1.4:1), and far simpler than true ellipse normals. -->
+        <!-- HUD ring — perfect circle on any screen size (2026-07-10 feedback) — 0 compositing
+             ops: all opacity baked into rgba stroke colors. -->
         {#if true}
+          {@const outerR = telescopeR}
           {@const ticks  = 72}
-          <ellipse cx={cx} cy={cy} rx={telescopeRX + 4}  ry={telescopeRY + 4}  fill="none" stroke="rgba(0,180,255,0.85)" stroke-width="1"   />
-          <ellipse cx={cx} cy={cy} rx={telescopeRX - 14} ry={telescopeRY - 14} fill="none" stroke="rgba(0,180,255,0.64)" stroke-width="0.7" />
+          <circle cx={cx} cy={cy} r={outerR + 4}  fill="none" stroke="rgba(0,180,255,0.85)" stroke-width="1"   />
+          <circle cx={cx} cy={cy} r={outerR - 14} fill="none" stroke="rgba(0,180,255,0.64)" stroke-width="0.7" />
           <g stroke="rgba(0,180,255,0.85)" stroke-width="2.5" stroke-linecap="square">
             {#each Array.from({length: ticks}, (_, k) => k).filter(k => k % 6 === 0) as k}
               {@const ang = (k / ticks) * 2 * Math.PI - Math.PI / 2}
               <line
-                x1={cx + (telescopeRX + 4)  * Math.cos(ang)} y1={cy + (telescopeRY + 4)  * Math.sin(ang)}
-                x2={cx + (telescopeRX - 10) * Math.cos(ang)} y2={cy + (telescopeRY - 10) * Math.sin(ang)}
+                x1={cx + (outerR + 4)  * Math.cos(ang)} y1={cy + (outerR + 4)  * Math.sin(ang)}
+                x2={cx + (outerR - 10) * Math.cos(ang)} y2={cy + (outerR - 10) * Math.sin(ang)}
               />
             {/each}
           </g>
@@ -683,8 +667,8 @@
             {#each Array.from({length: ticks}, (_, k) => k).filter(k => k % 6 !== 0) as k}
               {@const ang = (k / ticks) * 2 * Math.PI - Math.PI / 2}
               <line
-                x1={cx + (telescopeRX + 4) * Math.cos(ang)} y1={cy + (telescopeRY + 4) * Math.sin(ang)}
-                x2={cx + (telescopeRX - 4) * Math.cos(ang)} y2={cy + (telescopeRY - 4) * Math.sin(ang)}
+                x1={cx + (outerR + 4) * Math.cos(ang)} y1={cy + (outerR + 4) * Math.sin(ang)}
+                x2={cx + (outerR - 4) * Math.cos(ang)} y2={cy + (outerR - 4) * Math.sin(ang)}
               />
             {/each}
           </g>

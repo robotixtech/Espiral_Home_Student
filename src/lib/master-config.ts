@@ -21,12 +21,13 @@ export const SPIRAL = {
   unitSize:       118,      // diámetro de los nodos planeta (px)
   actOrbit:        78,      // distancia del centro del planeta al centro de su luna (px)
   labelGap:        85,      // distancia del borde del planeta al borde de la etiqueta (px)
-  orbitStep:       25,      // separación entre órbitas consecutivas (px)
+  orbitStep:       20,      // separación entre órbitas consecutivas (px)
   sunRadius:        9,      // radio del sol central (px)
-  orbitStart:     225,      // radio de la órbita más interior (px). 2026-07-10: el radar pasó
-                             // de círculo a elipse (ver TreeNavigator.svelte, ASPECT) para
-                             // aprovechar el ancho del canvas, no solo el alto — esto liberó
-                             // espacio para separar mucho más las órbitas entre sí, evitando
+  orbitStart:     250,      // radio de la órbita más interior (px). El radar es un CÍRCULO
+                             // perfecto en cualquier tamaño de pantalla (2026-07-10 feedback:
+                             // una versión elíptica anterior se veía "ovalada" en Chromebook)
+                             // — el radio está acotado por igual en todas direcciones (425px),
+                             // así que este valor es el máximo que separa bien las órbitas sin
                              // que las esferas pequeñas (al desplegarse) se solapen con otras
                              // esferas grandes vecinas.
   labelLineH:      19,      // separación entre líneas de la etiqueta (px)
@@ -38,9 +39,9 @@ export const SPIRAL = {
   // 2+ vueltas completas, lo que terminaba apilando las unidades de radio más grande cerca
   // del borde superior/inferior. Con 60° fijos, la espiral da una sola vuelta limpia.
   angleStepDeg:    60,       // separación angular entre unidades consecutivas (°)
-  startAngleDeg:    5,       // ángulo de la primera unidad — offset elegido junto con orbitStart/
+  startAngleDeg:   15,       // ángulo de la primera unidad — offset elegido junto con orbitStart/
                              // orbitStep (búsqueda numérica) para maximizar la distancia mínima
-                             // entre cualquier par de esferas, dado el radar elíptico (°)
+                             // entre cualquier par de esferas (°)
 } as const;
 
 // ── ZOOM ──────────────────────────────────────────────────────────────────
