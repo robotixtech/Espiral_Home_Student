@@ -133,7 +133,7 @@
   // Unit number: the dominant element inside the sphere — it's the code that orients the
   // child on the map, not the icon (2026-07-07 feedback). ~1/3 of the sphere's diameter,
   // reduced 30% (2026-07-09 feedback) as the icon grows to take more of the visual weight.
-  const numberFont = $derived((2 * r) / 3 * 0.7);
+  const numberFont = $derived((2 * r) / 3 * 0.84);
   // Thin navy outline on the white glyphs: readability/accessibility fix — the sphere's fill
   // colour varies by status (amber/green/grey/purple), so a fixed dark edge guarantees the
   // text stays legible against any of them instead of relying on fill colour contrast alone.
