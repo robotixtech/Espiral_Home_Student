@@ -7,6 +7,7 @@
   import { getTheme } from './lib/theme.svelte';
   import { getEmulatedProgram, toggleEmulator, isEmulatorActive, getIAProgress } from './lib/emulator.svelte';
   import { getConfigByShortname } from './lib/program-config';
+  import { isIOSDevice } from './lib/device';
   import TreeNavigator from './components/TreeNavigator.svelte';
   import UnitDetailView from './components/UnitDetailView.svelte';
   import ActivitySlideView from './components/ActivitySlideView.svelte';
@@ -62,8 +63,7 @@
     // rewrites both the UA string and userAgentData to look like a desktop.
     // maxTouchPoints > 0 is hardware-reported and cannot be spoofed.
     // Excludes: iOS (Apple vendor), ChromeOS (CrOS in UA), true desktops (no touch).
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (/Apple/.test(navigator.vendor) && navigator.maxTouchPoints > 1);
+    const isIOS = isIOSDevice();
     const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
     const uaPlatform = (uaData?.platform ?? '').toLowerCase();
     const isAndroidDevice = !isIOS && (
@@ -235,21 +235,6 @@
      — keeps a paint-heavy element in mid-transition at all times */
   :global(.android .progress-ring) {
     transition: none !important;
-  }
-
-  /* ── iPadOS/iOS Safari radar-glass fix ────────────────────────────────────
-     Root cause: the translateZ(0)/will-change GPU-layer promotion added for
-     the Android Mali-G52 fix backfires in WebKit — a <foreignObject> child
-     promoted to its own compositing layer stops tracking the ancestor SVG
-     <g>'s CSS transform (the pan/zoom matrix), so the blur glass no longer
-     rescales with zoom, and its own layer composites above sibling SVG
-     content instead of respecting DOM paint order (the reported z-index
-     bug). iOS doesn't have the Android artifact, so just drop the promotion. */
-  :global(.ios .radar-glass) {
-    transform: none !important;
-    will-change: auto !important;
-    -webkit-backface-visibility: visible !important;
-    backface-visibility: visible !important;
   }
 
   :global(html) {

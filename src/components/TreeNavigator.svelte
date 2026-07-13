@@ -10,6 +10,7 @@
   import IANode from './IANode.svelte';
   import { activityOrbitLayout } from '../lib/activity-orbit';
   import { CANVAS, SPIRAL, ZOOM, IA_UNIT_CONFIG } from '../lib/master-config';
+  import { isIOSDevice } from '../lib/device';
 
   interface Props {
     program: ProgramData;
@@ -197,15 +198,18 @@
 
   const CONTENT = { w: W - 20, h: H };
 
+  // Always landscape (2026-07-13 feedback: simplify — a single horizontal view, no portrait
+  // layout at all). Clamping the effective aspect ratio to at least the design ratio (ctar)
+  // means a portrait container (car < ctar, e.g. an iPad held upright) never grows vb.h past
+  // CONTENT.h — it gets a landscape-shaped viewBox letterboxed by the <svg>'s
+  // preserveAspectRatio="xMidYMid meet" instead. This also removes the previous portrait-only
+  // bug where vb.h ballooned and threw off the IA/nanoQuanta fixed-offset-from-vb.y positions.
   const vb = $derived.by(() => {
-    const car = cW / cH, ctar = CONTENT.w / CONTENT.h;
-    let vbW: number, vbH: number;
-    if (car >= ctar) { vbH = CONTENT.h; vbW = vbH * car; }
-    else             { vbW = CONTENT.w; vbH = vbW / car; }
+    const ctar = CONTENT.w / CONTENT.h;
+    const car  = Math.max(cW / cH, ctar);
+    const vbH  = CONTENT.h, vbW = vbH * car;
     return { x: cx - vbW / 2, y: cy - vbH / 2, w: vbW, h: vbH };
   });
-
-  const isPortrait = $derived(cW / cH < 1.0);
 
   // Distant galaxies sit OUTSIDE the initial viewport on all sides.
   // Each position is the old position vector from the radar center (cx,cy) scaled by 1.3
@@ -260,9 +264,13 @@
   // IA: fixed position relative to the viewport — NOT derived from any radar unit's position
   // or from telescopeR (2026-07-10 feedback: it used to track U3's Y and the radar's edge, so
   // any radar layout change silently moved it too). vb.x/vb.y already guarantee it's inside
-  // the visible viewBox on any screen size (10"-27").
+  // the visible viewBox on any screen size (10"-27"). Now that vb is always landscape (see
+  // above), vb.h is always exactly CONTENT.h, so "+400" behaves identically on every device.
+  // On iPad specifically, cx is pinned to nanoQuanta's own (already correct) X instead of the
+  // separate "+270" offset — one less independently-tuned position to get wrong (2026-07-13
+  // feedback: still landed wrong on-device even with the landscape-lock above).
   const iaNodePos = $derived({
-    cx: vb.x + 270, // 2026-07-10 feedback ×4
+    cx: isIOSDevice() ? dgQuanta.cx : vb.x + 270, // 2026-07-10 feedback ×4
     cy: vb.y + 400,
   });
   const iaUnitR             = $derived(SPIRAL.unitSize / 2);
@@ -609,17 +617,28 @@
         </clipPath>
       </defs>
 
+      <!-- Radar glass background. Two renderings, CSS-switched via the .ios class (same
+           convention as the .android GPU-fix overrides in App.svelte):
+           1. <foreignObject>/backdrop-filter "frosted glass" — used everywhere except iOS.
+           2. A plain native <circle>, no blur — iOS/iPadOS Safari has never rendered the
+              foreignObject version reliably here: the embedded HTML content's backdrop-filter
+              layer doesn't consistently rescale with pinch-zoom and can stack above sibling
+              SVG content regardless of where the transform is applied (tried moving it out of
+              the zoomable <g> with its own transform attribute — still broken on-device). A
+              native SVG shape has none of those foreignObject-specific bugs, so it's the
+              reliable fallback, at the cost of losing the blur. Both siblings carry their own
+              transform={zoomTransform} so paint order/scaling stay correct either way. -->
+      {#if true}
+        {@const radarR = telescopeR + 4}
+        <foreignObject class="radar-glass-wrap" transform={zoomTransform} x={cx - radarR} y={cy - radarR} width={radarR * 2} height={radarR * 2}
+                       clip-path="url(#radar-clip)">
+          <div class="radar-glass"></div>
+        </foreignObject>
+        <circle class="radar-glass-native" transform={zoomTransform} cx={cx} cy={cy} r={radarR} />
+      {/if}
+
       <!-- ── Zoomable content ───────────────────────────────────────── -->
       <g transform={zoomTransform}>
-
-        <!-- Radar glass background -->
-        {#if true}
-          {@const radarR = telescopeR + 4}
-          <foreignObject x={cx - radarR} y={cy - radarR} width={radarR * 2} height={radarR * 2}
-                         clip-path="url(#radar-clip)">
-            <div class="radar-glass"></div>
-          </foreignObject>
-        {/if}
 
         <!-- Learning route — path ahead (not yet reached): faint, thin, dashed. Dimmed further
              while a unit's lesson satellites are open, so their connector lines stand out. -->
@@ -767,6 +786,24 @@
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     pointer-events: none;
+  }
+
+  /* iOS fallback (no blur, but immune to the foreignObject bugs above) — hidden everywhere
+     else; shown instead of .radar-glass-wrap only under :global(.ios) below. */
+  .radar-glass-native {
+    display: none;
+    fill: rgba(31, 51, 71, 0.42);
+    stroke: rgba(255, 255, 255, 0.15);
+    stroke-width: 1;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.2));
+    pointer-events: none;
+  }
+
+  :global(.ios) .radar-glass-wrap {
+    display: none;
+  }
+  :global(.ios) .radar-glass-native {
+    display: block;
   }
 
   .galaxy-container {
