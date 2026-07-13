@@ -83,15 +83,15 @@
   <!-- Trophy with star and sparkles -->
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} stroke="none">
     <!-- Cup body -->
-    <path d="M7 3h10v8c0 2.8-2.2 5-5 5s-5-2.2-5-5V3z" opacity="0.9"/>
+    <path d="M7 3h10v8c0 2.8-2.2 5-5 5s-5-2.2-5-5V3z" fill-opacity="0.9"/>
     <!-- Left handle -->
     <path d="M7 5H5.5C4.1 5 3 6.3 3 8s1.1 3 2.5 3H7" fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round"/>
     <!-- Right handle -->
     <path d="M17 5h1.5C19.9 5 21 6.3 21 8s-1.1 3-2.5 3H17" fill="none" stroke={color} stroke-width="1.8" stroke-linecap="round"/>
     <!-- Stem -->
-    <path d="M10 16h4v2H10z" opacity="0.8"/>
+    <path d="M10 16h4v2H10z" fill-opacity="0.8"/>
     <!-- Base -->
-    <rect x="8" y="18" width="8" height="2.5" rx="1" opacity="0.7"/>
+    <rect x="8" y="18" width="8" height="2.5" rx="1" fill-opacity="0.7"/>
     <!-- Star -->
     <path d="M12 6l1.1 2.2 2.4.3-1.7 1.7.4 2.4L12 11.4l-2.2 1.2.4-2.4-1.7-1.7 2.4-.3z" fill="rgba(255,255,255,0.85)" stroke="none"/>
     <!-- Sparkles -->

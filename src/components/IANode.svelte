@@ -115,10 +115,6 @@
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
     <path id="ia-title-path" d={titlePath()} fill="none" />
-    <filter id="ia-shadow" filterUnits="userSpaceOnUse"
-            x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color={colors.ring} flood-opacity="0.5" />
-    </filter>
   </defs>
 
   <!-- Ambient halos -->
@@ -157,7 +153,7 @@
   <!-- Orbital ring: near band crossing in front — this band IS the title container -->
   <path d={ringBand(true)} fill={tint(colors.ring, 0.1)} fill-opacity="0.92"
         stroke={colors.ring} stroke-width="2"
-        stroke-linejoin="round" filter="url(#ia-shadow)" />
+        stroke-linejoin="round" />
   {#each sideTicks as m}
     <line x1={m.x1} y1={m.y1} x2={m.x2} y2={m.y2}
           stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />

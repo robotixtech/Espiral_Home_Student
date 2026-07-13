@@ -37,8 +37,8 @@
 
   const bgImage = $derived(
     appState.kind === 'ready'
-      ? (getConfigByShortname(appState.data.shortname)?.bgImage ?? 'background_lola.svg')
-      : 'background_lola.svg'
+      ? (getConfigByShortname(appState.data.shortname)?.bgImage ?? 'background_lola.png')
+      : 'background_lola.png'
   );
 
   // Reactively update body background when theme changes
@@ -203,11 +203,9 @@
     filter: none;
   }
   /* ── Samsung Tab A8 (SM-X200, Mali-G52 / Unisoc T618) — comprehensive GPU fix
-     Galaxy wrapper: remove translateZ(0) GPU promotion */
-  :global(.android .galaxy-wrapper) {
-    transform: none !important;
-    -webkit-transform: none !important;
-  }
+     .galaxy-wrapper's translateZ(0) is now removed at the source (TreeNavigator.svelte) for
+     every platform, not just Android — this override is redundant, kept removed rather than
+     left as dead no-op CSS. */
   /* BadgePanel: blocked badges now show a plain <img> (badgeBlocked.webp) instead of the old
      mask-image silhouette, so there's no longer a shimmer animation or per-element drop-shadow
      filter on that child to neutralise here. .badge-slot.earned still gets a blue glow filter +
@@ -218,6 +216,15 @@
   }
   /* Scanline: continuous background-position animation inside a compositing layer */
   :global(.android .scanline) {
+    animation: none !important;
+  }
+  /* ActivityOrbit: scale-in entry animation on the whole satellite group, fired the instant a
+     unit sphere opens — same transient-scale-animation GPU-layer-promotion cost as badge-pop/
+     card-in below, isolated as the actual trigger for the background-image corruption on
+     Samsung Tab A8 (2026-07-13 incremental test: broke specifically at "unit opens, satellites
+     appear", not on plain page load — this animation is the one thing in that flow the earlier
+     Mali-G52 pass had missed). */
+  :global(.android .list-inner) {
     animation: none !important;
   }
   /* Badge modal: opacity-based entry animations → GPU compositing layer during animation */
@@ -231,8 +238,7 @@
   :global(.android .modal-badge-wrap) {
     filter: none !important;
   }
-  /* Progress ring: stroke-dashoffset transition runs continuously (emulator 440ms < 1s transition)
-     — keeps a paint-heavy element in mid-transition at all times */
+  /* Progress ring: stroke-dashoffset transition → GPU compositing layer on Mali-G52 */
   :global(.android .progress-ring) {
     transition: none !important;
   }

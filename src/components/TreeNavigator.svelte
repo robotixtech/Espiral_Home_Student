@@ -601,11 +601,14 @@
     >
       <defs>
         <!-- Learning-path gradient: intensifies outward (dim at the centre/start → bright at
-             the leading edge) so the travelled route reads as "you are here → next step". -->
+             the leading edge) so the travelled route reads as "you are here → next step".
+             stop-opacity avoided (rgba baked into stop-color instead) — a never-tested suspect
+             from the Mali-G52 investigation, and this gradient renders unconditionally whenever
+             any unit has progress > 0 (2026-07-13). -->
         <radialGradient id="learn-path-grad" gradientUnits="userSpaceOnUse" cx={cx} cy={cy} r={telescopeR}>
-          <stop offset="0%"   stop-color="#34d399" stop-opacity="0.3" />
-          <stop offset="55%"  stop-color="#34d399" stop-opacity="0.85" />
-          <stop offset="100%" stop-color="#c6fff0" stop-opacity="1" />
+          <stop offset="0%"   stop-color="rgba(52,211,153,0.3)" />
+          <stop offset="55%"  stop-color="rgba(52,211,153,0.85)" />
+          <stop offset="100%" stop-color="#c6fff0" />
         </radialGradient>
         <!-- Circular clip for the radar glass panel: CSS border-radius alone doesn't reliably
              clip a backdrop-filter blur once the element is GPU-layer-promoted (translateZ(0),
@@ -789,7 +792,10 @@
   }
 
   /* iOS fallback (no blur, but immune to the foreignObject bugs above) — hidden everywhere
-     else; shown instead of .radar-glass-wrap only under :global(.ios) below. */
+     else; shown instead of .radar-glass-wrap only under :global(.ios) below. Does NOT extend
+     to Android: tried that for the Mali-G52 background-image artifact (2026-07-13) and it
+     made things worse — this circle's own CSS `filter: drop-shadow` turned out to trigger the
+     same compositing-layer artifact on that GPU, and it didn't even fix the original bug. */
   .radar-glass-native {
     display: none;
     fill: rgba(31, 51, 71, 0.42);
@@ -819,17 +825,11 @@
     inset: 0;
     border-radius: 0;
     transition: box-shadow 0.4s;
-    /* Force the entire SVG into a single GPU compositing layer.
-       On Android Chrome, individual SVG filters/SMIL animations promote
-       sub-elements to separate GPU layers that flicker against each other.
-       translateZ(0) collapses everything into one texture and also creates
-       the stacking context previously provided by isolation:isolate.
-       NOTE: overflow:hidden removed — on Mali-G52 (Samsung Tab A8 SM-X200,
-       Unisoc T618), overflow:hidden + translateZ(0) on the same element
-       corrupts the stencil buffer, producing erratic colored lines. The
-       SVG fills the element exactly so nothing can overflow anyway. */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
+    /* 2026-07-13: translateZ(0) GPU-layer promotion removed entirely (was already
+       force-disabled for Android via :global(.android .galaxy-wrapper) in App.svelte, but the
+       Mali-G52 background-image corruption persisted regardless — incremental isolation test:
+       ruling this out as the/a cause on all platforms, not just Android). If this doesn't fix
+       it either, the next candidates to isolate are the radar HUD/glass and the unit spheres. */
   }
   /* position: absolute; inset: 0 is more reliable than width/height: 100%
      on iOS Safari inside absolutely-positioned containers */

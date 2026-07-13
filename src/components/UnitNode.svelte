@@ -185,14 +185,6 @@
       <stop offset="70%"  stop-color="#F4F2EC" />
       <stop offset="100%" stop-color="#E6E1D2" />
     </linearGradient>
-    <filter id="glow-{index}" filterUnits="userSpaceOnUse"
-            x={-r - 20} y={-r - 20} width={(r + 20) * 2} height={(r + 20) * 2}>
-      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
   </defs>
 
   {#if isActive}
@@ -215,10 +207,20 @@
       <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.15" />
     {/if}
 
+    {#if unit.status === 'completed'}
+      <!-- Soft glow behind completed spheres: was an feGaussianBlur+feMerge filter (its own
+           GPU compositing layer per completed unit — confirmed Mali-G52 artifact trigger,
+           unconditional on every home-page load with any completed unit, project memory).
+           Replaced with plain rgba() layered circles — same "no opacity/filter attrs" pattern
+           already used for the craters below. -->
+      <circle cx="0" cy="0" r={r + 10} fill={craterTone(colors.glow, 1, 0.10)} />
+      <circle cx="0" cy="0" r={r + 6}  fill={craterTone(colors.glow, 1, 0.18)} />
+      <circle cx="0" cy="0" r={r + 3}  fill={craterTone(colors.glow, 1, 0.28)} />
+    {/if}
+
     <circle
       cx="0" cy="0" r={r}
       fill="url(#{gradId})"
-      filter={unit.status === 'completed' ? `url(#glow-${index})` : undefined}
     />
 
     <!-- Craters -->
