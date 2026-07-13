@@ -74,6 +74,9 @@
     if (isAndroidDevice) {
       document.documentElement.classList.add('android');
     }
+    if (isIOS) {
+      document.documentElement.classList.add('ios');
+    }
 
     const vvp = window.visualViewport;
 
@@ -232,6 +235,21 @@
      — keeps a paint-heavy element in mid-transition at all times */
   :global(.android .progress-ring) {
     transition: none !important;
+  }
+
+  /* ── iPadOS/iOS Safari radar-glass fix ────────────────────────────────────
+     Root cause: the translateZ(0)/will-change GPU-layer promotion added for
+     the Android Mali-G52 fix backfires in WebKit — a <foreignObject> child
+     promoted to its own compositing layer stops tracking the ancestor SVG
+     <g>'s CSS transform (the pan/zoom matrix), so the blur glass no longer
+     rescales with zoom, and its own layer composites above sibling SVG
+     content instead of respecting DOM paint order (the reported z-index
+     bug). iOS doesn't have the Android artifact, so just drop the promotion. */
+  :global(.ios .radar-glass) {
+    transform: none !important;
+    will-change: auto !important;
+    -webkit-backface-visibility: visible !important;
+    backface-visibility: visible !important;
   }
 
   :global(html) {
