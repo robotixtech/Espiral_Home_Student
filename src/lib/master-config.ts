@@ -116,7 +116,7 @@ export const STATUS_LABELS = {
 export const C450_CONFIG: ProgramConfig = {
   shortname: 'C450',    // ← 1. NOMBRE DEL PROGRAMA
   fullname:  'C450',
-  bgImage:   'background_lola.png',
+  bgImage:   'background_light.png',
 
   sun: {
     label: 'Open Scentia',
@@ -290,7 +290,7 @@ export const C450_CONFIG: ProgramConfig = {
 export const C550_CONFIG: ProgramConfig = {
   shortname: 'C550',
   fullname:  'C550',
-  bgImage:   'background_lola.png',
+  bgImage:   'background_light.png',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                       displayName: 'Misión Control', fullname: 'C550 – Misión control',                              icon: 'gear',   href: null, status: 'locked', progress: 0 },
@@ -309,7 +309,7 @@ export const C550_CONFIG: ProgramConfig = {
 export const C650_CONFIG: ProgramConfig = {
   shortname: 'C650',
   fullname:  'C650',
-  bgImage:   'background_lola.png',
+  bgImage:   'background_light.png',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                         displayName: 'Misión Control', fullname: 'C650 – Misión control',                                icon: 'gear',   href: null, status: 'locked', progress: 0 },
@@ -328,7 +328,7 @@ export const C650_CONFIG: ProgramConfig = {
 export const C350_CONFIG: ProgramConfig = {
   shortname: 'C350',
   fullname:  'C350',
-  bgImage:   'background_lola.png',
+  bgImage:   'background_light.png',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                      displayName: 'Misión Control', fullname: 'C350 – Misión control',                             icon: 'gear',   href: null, status: 'completed', progress: 100 },
