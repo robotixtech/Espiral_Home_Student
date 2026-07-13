@@ -79,6 +79,9 @@ export const BADGES = {
   unitPattern:        /^U[1-9]\d*$/, // qué unidades reciben badge: U1 a U6 (6 en total, 2026-07-10
                                       // feedback) — excluye solo U0. Antes excluía U1 también,
                                       // de cuando "Misión Control" existía como unidad aparte.
+  blockedImageUrl:    'badges/badgeBlocked.webp', // imagen mostrada para un badge en estado
+                                      // "blocked" (mismo diseño para todos los badges bloqueados;
+                                      // cambia el archivo en public/badges/ para actualizar el diseño).
 } as const;
 
 // ── QUANTA ────────────────────────────────────────────────────────────────

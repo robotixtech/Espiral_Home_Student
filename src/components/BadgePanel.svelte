@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { ProgramData } from '../lib/types';
-  import { badgeUrl, hasBadge, isBadgeEarned } from '../lib/badges';
+  import { badgeUrl, badgeBlockedUrl, hasBadge, isBadgeEarned } from '../lib/badges';
   import { getEmulatedProgram } from '../lib/emulator.svelte';
   import { t } from '../lib/i18n';
   import { getConfigByShortname } from '../lib/program-config';
@@ -50,23 +50,16 @@
           </button>
         {:else}
           <div class="badge-slot">
-            <!-- Flat grey silhouette (2026-07-10 feedback: no trace of the original artwork
-                 should show, just a solid colour) — a plain <img> + CSS filter can only
-                 desaturate/dim, it can't flatten away the artwork's own shading/gradients.
-                 A masked div (background-color clipped to the PNG's own alpha shape) gives a
-                 true single-tone silhouette instead. -->
-            <div
-              class="badge-img badge-silhouette"
-              style="mask-image: url('{item.src}'); -webkit-mask-image: url('{item.src}');"
-              aria-hidden="true"
-            ></div>
-            <div class="badge-lock">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="lock-icon"
-                 stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-              </svg>
-            </div>
+            <!-- Blocked badge: shows the dedicated "blocked" artwork (configurable via
+                 master-config.ts → BADGES.blockedImageUrl) instead of a greyed-out treatment
+                 of the earned badge image. -->
+            <img src={badgeBlockedUrl()} alt="{t('badgesPanelLabel')} {item.unit.displayName} — {t('badgeLockedSuffix')}" class="badge-img" />
+            <!-- Same padlock icon as the locked Unit spheres (UnitNode.svelte). -->
+            <svg class="badge-lock-icon" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-opacity="0.6"
+               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
             <span class="unit-chip">{item.unit.displayName}</span>
           </div>
         {/if}
@@ -169,19 +162,6 @@
     justify-content: center;
   }
 
-  /* Locked: no glow/halo at all (2026-07-10 feedback ×3: the earlier blue drop-shadows, meant
-     to echo the earned badge's shadow, bled outward onto the unit-chip pill too, since
-     `filter` applies to the whole element including its children) — just a crisp white
-     outline (same white as the lock icon's stroke). Two stacked near-zero-blur layers (rather
-     than one) so the outline reads as solid/defined instead of a soft fade.
-     drop-shadow (not border/box-shadow) since the badge PNGs are irregular shapes with
-     transparent backgrounds — border/box-shadow would draw a rectangle instead of hugging the
-     silhouette. */
-  .badge-slot:not(.earned) {
-    filter: drop-shadow(0 0 1px rgba(255,255,255,0.95))
-            drop-shadow(0 0 2px rgba(255,255,255,0.85));
-  }
-
   .badge-slot.earned {
     filter: drop-shadow(0 0 7px rgba(0,117,191,0.6))
             drop-shadow(0 0 20px rgba(0,117,191,0.22));
@@ -217,28 +197,17 @@
     z-index: 1;
   }
 
-  /* Flat grey silhouette (2026-07-10 feedback ×2: no trace of the original artwork should
-     show at all, just a solid colour — a CSS filter on the <img> can only desaturate/dim, it
-     can't flatten away the badge's own shading/gradients). This is now a plain <div> with a
-     solid background-color, CLIPPED to the badge PNG's own alpha shape via mask-image — the
-     mask-image URL is set inline (per-badge src) in the markup above. Same grey as the radar's
-     locked spheres (theme.unit.locked ring: #708090). */
-  .badge-silhouette {
-    background-color: #708090;
-    mask-repeat: no-repeat;
-    mask-position: center;
-    mask-size: contain;
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    -webkit-mask-size: contain;
-    filter: drop-shadow(0 2px 5px rgba(0,0,0,0.45));
-    opacity: 0.85;
-    animation: badge-shimmer 4s ease-in-out infinite;
-  }
-
-  @keyframes badge-shimmer {
-    0%,  100% { opacity: 0.85; }
-    50%        { opacity: 0.65; }
+  /* Padlock overlay on blocked badges — same icon/style as the locked Unit spheres
+     (UnitNode.svelte), scaled proportionally to --badge-size. */
+  .badge-lock-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(var(--badge-size) * 0.32);
+    height: calc(var(--badge-size) * 0.32);
+    z-index: 2;
+    pointer-events: none;
   }
 
   /* Small white pill with the unit code, overlapping the badge's lower-right edge — replaces
@@ -276,20 +245,6 @@
     color: #ffffff;
   }
 
-  .badge-lock {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-  }
-
-  .lock-icon {
-    width: 30px;
-    height: 30px;
-  }
-
   /* ── Landscape phones ─────────────────────────── */
   @media (max-height: 500px) and (orientation: landscape) {
     .badge-float {
@@ -298,7 +253,6 @@
       --badge-size: clamp(28px, calc((90vh - 30px) / 6), 140px);
     }
     .badge-grid { gap: 6px; }
-    .lock-icon { width: 22px; height: 22px; }
   }
 
   @supports (height: 100dvh) {
@@ -337,7 +291,6 @@
   /* ── Portrait tablets (iPad, Android) ────────── */
   @media (min-width: 601px) and (orientation: portrait) {
     .badge-float { --badge-size: 72px; }
-    .lock-icon { width: 22px; height: 22px; }
   }
 
   /* ── Badge modal ──────────────────────────────── */

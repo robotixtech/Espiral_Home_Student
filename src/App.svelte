@@ -201,16 +201,10 @@
     transform: none !important;
     -webkit-transform: none !important;
   }
-  /* BadgePanel: badge-shimmer animates opacity on the silhouette div → an independent GPU
-     compositing layer per locked badge. On Mali-G52 multiple simultaneous compositing layers
-     produce the erratic coloured-line artifact. Also disable .badge-silhouette's OWN filter
-     (drop-shadow) — filter:none on the parent .badge-slot does NOT cascade to override a
-     child's separately-set filter, so it needed its own rule (2026-07-10 feedback: audit after
-     the badge redesign introduced mask-image + a new drop-shadow on this element). */
-  :global(.android .badge-silhouette) {
-    animation: none !important;
-    filter: none !important;
-  }
+  /* BadgePanel: blocked badges now show a plain <img> (badgeBlocked.webp) instead of the old
+     mask-image silhouette, so there's no longer a shimmer animation or per-element drop-shadow
+     filter on that child to neutralise here. .badge-slot.earned still gets a blue glow filter +
+     pop-in animation, disabled below for the same Mali-G52 compositing-layer reason. */
   :global(.android .badge-slot) {
     filter: none !important;
     animation: none !important;

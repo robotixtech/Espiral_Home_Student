@@ -2,7 +2,7 @@ import type { ProgramUnit } from './types';
 import { BADGES } from './master-config';
 
 // Values are defined in src/lib/master-config.ts → BADGES section.
-const { minGrade: MIN_GRADE, unitPattern: BADGE_UNIT_PATTERN } = BADGES;
+const { minGrade: MIN_GRADE, unitPattern: BADGE_UNIT_PATTERN, blockedImageUrl: BLOCKED_IMAGE_URL } = BADGES;
 
 function resolveBadgeUrl(programShortname: string, unitDisplayName: string): string {
   return `${import.meta.env.BASE_URL}badges/${programShortname}_${unitDisplayName}.png`;
@@ -20,6 +20,12 @@ export function hasBadge(displayName: string): boolean {
 /** Devuelve la URL de la imagen del badge para la unidad dada. */
 export function badgeUrl(programShortname: string, unitDisplayName: string): string {
   return resolveBadgeUrl(programShortname, unitDisplayName);
+}
+
+/** Devuelve la URL de la imagen a mostrar cuando un badge está en estado "blocked"
+ *  (configurable en master-config.ts → BADGES.blockedImageUrl). */
+export function badgeBlockedUrl(): string {
+  return `${import.meta.env.BASE_URL}${BLOCKED_IMAGE_URL}`;
 }
 
 /** Devuelve true si el alumno ha ganado el badge de la unidad — la unidad de referencia debe
