@@ -60,10 +60,17 @@
 
   /** Baseline for the curved title: the near band's midline arc, so the title follows the
    *  exact curvature of the band. Coords are divided by cs because the title lives inside a
-   *  scale(cs) group — scaling the text back up lands the glyphs on the real band midline. */
+   *  scale(cs) group — scaling the text back up lands the glyphs on the real band midline.
+   *  The +5.6 (≈0.35 × the 16px title font-size, cs cancels out — see the <text> markup,
+   *  dominant-baseline is intentionally NOT used there) nudges the arc down from its raw
+   *  apex so the glyphs' visual centre (not their alphabetic baseline) lands on the band's
+   *  true middle: iPadOS Safari doesn't reliably support dominant-baseline on <textPath>
+   *  text, rendering it flush with the path instead of vertically centred on it (title read
+   *  as pinned to the top of the ring). A fixed numeric offset works identically everywhere
+   *  since it no longer depends on that property at all. */
   function titlePath(): string {
     const f = (n: number) => n.toFixed(1);
-    const RX = ringRX / cs, RY = RING_RY / cs, YC = BAND_YC / cs;
+    const RX = ringRX / cs, RY = RING_RY / cs, YC = BAND_YC / cs + 5.6;
     return `M ${f(-RX)} ${f(YC)} A ${f(RX)} ${f(RY)} 0 0 0 ${f(RX)} ${f(YC)}`;
   }
 
@@ -166,7 +173,7 @@
       <g transform="translate({-iconSize / 2},{ICON_CY - iconSize / 2})">
         <UnitIcon icon="rocket" size={iconSize} color="#00102A" />
       </g>
-      <text text-anchor="middle" dominant-baseline="middle"
+      <text text-anchor="middle"
             class="lbl-inside-pill" fill="#001f3f">
         <textPath href="#qc-title-path" startOffset="50%">{firstWord}</textPath>
       </text>
@@ -191,7 +198,7 @@
           <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
         </svg>
       </g>
-      <text text-anchor="middle" dominant-baseline="middle"
+      <text text-anchor="middle"
             class="lbl-inside-pill" fill="#4b5563">
         <textPath href="#qc-title-path" startOffset="50%">{firstWord}</textPath>
       </text>

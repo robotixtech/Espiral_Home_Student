@@ -252,7 +252,11 @@
     </svg>
     <!-- Unit number: locked → flat, disabled look (no engraved shadow, dimmed fill) -->
     <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
-          class="planet-number planet-number-disabled" fill="#F4F2EC" style="font-size: {numberFont}px; stroke-width: {numberStroke}px">
+          class="planet-number-outline planet-number-disabled" style="font-size: {numberFont}px; stroke-width: {numberStroke}px">
+      {unit.displayName}
+    </text>
+    <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
+          class="planet-number planet-number-disabled" fill="#F4F2EC" style="font-size: {numberFont}px">
       {unit.displayName}
     </text>
   {:else if compact}
@@ -267,7 +271,11 @@
       {unit.displayName}
     </text>
     <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
-          class="planet-number" fill="url(#num-grad-{index})" style="font-size: {numberFont}px; stroke-width: {numberStroke}px">
+          class="planet-number-outline" style="font-size: {numberFont}px; stroke-width: {numberStroke}px">
+      {unit.displayName}
+    </text>
+    <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
+          class="planet-number" fill="url(#num-grad-{index})" style="font-size: {numberFont}px">
       {unit.displayName}
     </text>
   {:else}
@@ -404,14 +412,23 @@
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
   .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
-  /* Navy outline behind the white fill (paint-order keeps the fill crisp on top instead of
-     the stroke eating into the letterforms) — readability fix: the sphere's own colour
-     varies by status, so a fixed dark edge keeps the glyphs legible against any of them. */
+  /* Navy outline behind the white fill — readability fix: the sphere's own colour varies by
+     status, so a fixed dark edge keeps the glyphs legible against any of them. Implemented as
+     its OWN <text> (fill:none, stroke only), painted before the real fill text, rather than
+     `paint-order: stroke fill` on a single element — iPadOS Safari doesn't reliably support
+     paint-order on SVG <text>, so it drew the stroke on top of the fill instead of behind it
+     (glyphs rendered inverted: dark fill, light-looking stroke on top). Two stacked elements
+     get the identical result (the fill text's interior covers the stroke's inner half either
+     way) without depending on that property at all. */
+  .planet-number-outline {
+    font: 800 1em/1 'Rubik', system-ui, sans-serif;
+    pointer-events: none;
+    fill: none;
+    stroke: #001f3f;
+  }
   .planet-number {
     font: 800 1em/1 'Rubik', system-ui, sans-serif;
     pointer-events: none;
-    stroke: #001f3f;
-    paint-order: stroke fill;
   }
   /* Solid navy duplicate sat behind .planet-number, offset down — same font metrics so it
      lines up exactly under the real glyphs, giving them a flat "extruded" edge with no blur. */
