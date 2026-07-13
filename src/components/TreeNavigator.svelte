@@ -14,13 +14,14 @@
 
   interface Props {
     program: ProgramData;
-    /** IA node progress (0-100), driven by the emulator — see App.svelte. */
-    iaProgress?: number;
     onUnitSelected: (unit: ProgramUnit) => void;
     onActivitySelected: (activity: Activity) => void;
   }
 
-  let { program, iaProgress = 0, onUnitSelected, onActivitySelected }: Props = $props();
+  let { program, onUnitSelected, onActivitySelected }: Props = $props();
+
+  // TODO(moodle): static placeholder until Moodle Workplace exposes real IA-unit progress.
+  let iaProgress = $state(0);
 
 
   // ── Layout constants — all values live in src/lib/master-config.ts ────────
@@ -173,7 +174,7 @@
   // The open unit's activities render as satellites around its real position in the
   // spiral — no modal, no re-centring, no re-scaling.
   let panelUnit = $state<ProgramUnit | null>(null);
-  // Re-derive from live program.units so emulator progress updates animate in the orbit.
+  // Re-derive from live program.units so progress updates animate in the orbit.
   const panelActivities = $derived.by(() => {
     if (!panelUnit) return [];
     const live = program.units.find(u => u.id === panelUnit!.id);
@@ -183,7 +184,7 @@
   const panelUnitPos      = $derived(panelUnitIdx >= 0 ? unitPositions[panelUnitIdx] : null);
   const panelUnitR        = $derived(panelUnitIdx >= 0 ? nodeVisualR(panelUnitIdx) : UNIT_SIZE / 2);
 
-  // Auto-close if the emulator cycles the open unit back to 'locked'.
+  // Auto-close if the open unit's status cycles back to 'locked'.
   $effect(() => {
     if (panelUnit && panelUnitIdx >= 0 && effectiveStatuses[panelUnitIdx] === 'locked') panelUnit = null;
   });
@@ -229,8 +230,6 @@
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
 
   // ── IA Unit (off-radar, never locked) ─────────────────────────────────────
-  // iaProgress comes in as a prop, driven by the emulator (App.svelte / emulator.svelte.ts).
-
   const iaUnit = $derived.by(() => ({
     id: 9999,
     shortname: 'IA',

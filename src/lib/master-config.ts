@@ -63,15 +63,6 @@ export const RADAR = {
   trailDeg:      110,  // ángulo de la estela difuminada detrás del haz (°)
 } as const;
 
-// ── EMULATOR ─────────────────────────────────────────────────────────────
-// Velocidad y granularidad de la demo de progreso animado.
-export const EMULATOR = {
-  tickMs:               440,   // ms entre cada tick de progreso
-  progressStep:           5,   // puntos porcentuales por tick (0 %, 5 %, 10 %… 100 %)
-  pauseBetweenUnitsMs: 1200,   // pausa (ms) tras completar una unidad antes de pasar a la siguiente
-  pauseBeforeRestartMs: 12000, // pausa (ms) tras completar todas las unidades antes de reiniciar
-} as const;
-
 // ── BADGES ────────────────────────────────────────────────────────────────
 // Criterios de evaluación y reconocimiento de badges.
 export const BADGES = {
@@ -136,8 +127,7 @@ export const C450_CONFIG: ProgramConfig = {
   units: [
 
     // ── U0 — sus activities aún no tienen slides. Ahora la primera unidad de la
-    //    espiral (2026-07-09: se eliminó "Misión Control") — ver emulator.svelte.ts,
-    //    que ya no trata el índice 0 como una unidad pre-completada aparte. ────────
+    //    espiral (2026-07-09: se eliminó "Misión Control"). ────────
 
     {
       label:       'Plataforma de lanzamiento',  // ← 2. NOMBRE DE LA UNIDAD

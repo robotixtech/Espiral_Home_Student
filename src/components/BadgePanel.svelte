@@ -1,7 +1,6 @@
 <script lang="ts">
   import type { ProgramData } from '../lib/types';
   import { badgeUrl, badgeBlockedUrl, hasBadge, isBadgeEarned } from '../lib/badges';
-  import { getEmulatedProgram } from '../lib/emulator.svelte';
   import { t } from '../lib/i18n';
   import { getConfigByShortname } from '../lib/program-config';
 
@@ -14,8 +13,7 @@
   const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_lola.png');
 
   const badgeUnits = $derived.by(() => {
-    const prog = getEmulatedProgram() ?? program;
-    const sorted = prog.units
+    const sorted = program.units
       .filter(u => hasBadge(u.displayName))
       .sort((a, b) => parseInt(a.displayName.slice(1)) - parseInt(b.displayName.slice(1)));
     return sorted.map(u => ({
@@ -24,7 +22,7 @@
       // badge while the unit it's named after was still in-progress.
       unit: u,
       earned: isBadgeEarned(u),
-      src: badgeUrl(prog.shortname, u.displayName),
+      src: badgeUrl(program.shortname, u.displayName),
     }));
   });
 

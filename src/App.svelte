@@ -5,13 +5,11 @@
   import { loadProgramFromMoodle } from './lib/program-loader';
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
-  import { getEmulatedProgram, toggleEmulator, isEmulatorActive, getIAProgress } from './lib/emulator.svelte';
   import { getConfigByShortname } from './lib/program-config';
   import { isIOSDevice } from './lib/device';
   import TreeNavigator from './components/TreeNavigator.svelte';
   import UnitDetailView from './components/UnitDetailView.svelte';
   import ActivitySlideView from './components/ActivitySlideView.svelte';
-  import EmulatorToggle from './components/EmulatorToggle.svelte';
   import BadgePanel from './components/BadgePanel.svelte';
 
   // Navigation state — owned here, passed down as callback props
@@ -23,17 +21,7 @@
 
   const theme = $derived(getTheme());
 
-  const allCompleted = $derived.by(() => {
-    if (appState.kind !== 'ready') return null;
-    return {
-      ...appState.data,
-      // TODO(moodle): `grade: 7` hardcodeado; reemplazar con el grade real de Moodle Workplace 4.5 cuando esté disponible.
-      units: appState.data.units.map(u => ({ ...u, status: 'completed' as const, progress: 100, grade: 7 })),
-    };
-  });
-
-  const homeProgram = $derived(allCompleted ? (getEmulatedProgram() ?? allCompleted) : null);
-  const iaProgress   = $derived(getIAProgress());
+  const homeProgram = $derived(appState.kind === 'ready' ? appState.data : null);
 
   const bgImage = $derived(
     appState.kind === 'ready'
@@ -118,9 +106,6 @@
       console.warn('Using mock data:', err);
       appState = { kind: 'ready', data: MOCK_PROGRAM };
     }
-    if (appState.kind === 'ready' && !isEmulatorActive()) {
-      toggleEmulator(appState.data);
-    }
   });
 </script>
 
@@ -147,7 +132,6 @@
     {#if currentView === 'home' && homeProgram}
       <TreeNavigator
         program={homeProgram}
-        {iaProgress}
         onUnitSelected={(unit) => { selectedUnit = unit; currentView = 'unit-detail'; }}
         onActivitySelected={(activity) => {
           selectedActivity = activity;
@@ -176,10 +160,9 @@
   {/if}
 </main>
 
-<!-- EmulatorToggle and BadgePanel outside .app-root so they are also
-     zoom-independent — positioned in the body stacking context directly. -->
+<!-- BadgePanel outside .app-root so it's also zoom-independent — positioned in the body
+     stacking context directly. -->
 {#if appState.kind === 'ready' && currentView === 'home' && homeProgram}
-  <EmulatorToggle program={appState.data} />
   <BadgePanel program={homeProgram} />
 {/if}
 

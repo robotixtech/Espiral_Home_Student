@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import type { ProgramUnit, Activity } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
-  import { EMULATOR_CONFIG } from '../lib/emulator-config';
   import UnitCenterNode from './UnitCenterNode.svelte';
   import ActivityNode from './ActivityNode.svelte';
   import UnitIcon from './UnitIcon.svelte';
@@ -18,90 +17,7 @@
 
   const theme = $derived(getTheme());
 
-  // --- Activity emulator state ---
-  let emuActive = $state(true);
-  let emuActivityIdx = $state(0);
-  let emuProgress = $state(0);
-  let emuTimer: ReturnType<typeof setTimeout> | null = null;
-
-  // Base activities (first promoted to in-progress)
-  const baseActivities = $derived.by((): Activity[] => {
-    const raw = unit.activities ?? [];
-    if (raw.length === 0) return raw;
-    const first = raw[0];
-    if (first.status === 'locked') {
-      return [{ ...first, status: 'in-progress' as const, progress: 0 }, ...raw.slice(1)];
-    }
-    return raw;
-  });
-
-  // Emulated activities: overlay emulator state on base
-  function buildEmuActivities(base: Activity[], activeIdx: number, progress: number): Activity[] {
-    return base.map((a, i) => {
-      if (i < activeIdx) return { ...a, status: 'completed' as const, progress: 100 };
-      if (i === activeIdx) return {
-        ...a,
-        status: progress >= 100 ? 'completed' as const : 'in-progress' as const,
-        progress: Math.min(progress, 100),
-      };
-      return { ...a, status: 'locked' as const, progress: 0 };
-    });
-  }
-
-  const activities = $derived<Activity[]>(
-    emuActive
-      ? buildEmuActivities(baseActivities, emuActivityIdx, emuProgress)
-      : baseActivities.map(a => ({ ...a, status: 'completed' as const, progress: 100 }))
-  );
-
-  // Emulator tick logic
-  function emuTick() {
-    if (!emuActive) return;
-    emuProgress += EMULATOR_CONFIG.progressStep;
-
-    if (emuProgress > 100) {
-      emuProgress = 0;
-      emuActivityIdx++;
-
-      if (emuActivityIdx >= baseActivities.length) {
-        // All done — collapse and pause then restart
-        activitiesCollapsed = true;
-        emuTimer = setTimeout(() => {
-          if (!emuActive) return;
-          emuActivityIdx = 0;
-          emuProgress = 0;
-          activitiesCollapsed = false;
-          scheduleEmuTick();
-        }, EMULATOR_CONFIG.pauseBeforeRestartMs);
-        return;
-      }
-
-      // Pause between activities
-      emuTimer = setTimeout(() => scheduleEmuTick(), EMULATOR_CONFIG.pauseBetweenUnitsMs);
-      return;
-    }
-
-    scheduleEmuTick();
-  }
-
-  function scheduleEmuTick() {
-    if (!emuActive) return;
-    emuTimer = setTimeout(emuTick, EMULATOR_CONFIG.tickMs);
-  }
-
-  function toggleActivityEmu() {
-    if (emuActive) {
-      emuActive = false;
-      if (emuTimer) { clearTimeout(emuTimer); emuTimer = null; }
-      activitiesCollapsed = true; // EMU OFF = all completed = collapse
-    } else {
-      emuActive = true;
-      emuActivityIdx = 0;
-      emuProgress = 0;
-      activitiesCollapsed = false;
-      scheduleEmuTick();
-    }
-  }
+  const activities = $derived<Activity[]>(unit.activities ?? []);
 
   // "Continuar" unlocks when the first activity is completed
   const continuarUnlocked = $derived(
@@ -149,14 +65,7 @@
       cH = entry.contentRect.height;
     });
     ro.observe(containerEl);
-
-    // Auto-start activity emulator
-    scheduleEmuTick();
-
-    return () => {
-      ro.disconnect();
-      if (emuTimer) clearTimeout(emuTimer);
-    };
+    return () => ro.disconnect();
   });
 
   const vb = $derived.by(() => {
@@ -226,10 +135,6 @@
   // Back button position
   const backX = $derived(vb.x + 30);
   const backY = $derived(vb.y + 30);
-
-  // Emulator toggle position
-  const emuBtnX = $derived(vb.x + vb.w - 80);
-  const emuBtnY = $derived(vb.y + vb.h - 40);
 
   function handleContinuar() {
     if (!continuarUnlocked) return;
@@ -408,25 +313,6 @@
       </text>
     </g>
     {/if}
-    <!-- Activity emulator toggle -->
-    <g
-      class="emu-btn"
-      transform="translate({emuBtnX}, {emuBtnY})"
-      role="button"
-      tabindex="0"
-      onclick={() => toggleActivityEmu()}
-      onkeydown={(e: KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleActivityEmu(); } }}
-    >
-      <rect x="-50" y="-14" width="100" height="28" rx="14"
-            fill={emuActive ? 'rgba(59,130,246,0.2)' : 'rgba(128,128,128,0.12)'}
-            stroke={emuActive ? 'rgba(96,165,250,0.5)' : 'rgba(128,128,128,0.2)'}
-            stroke-width="1" />
-      <text x="-30" y="5" class="emu-text" fill={theme.text.secondary}>EMU</text>
-      <rect x="10" y="-6" width="28" height="12" rx="6"
-            fill={emuActive ? 'rgba(59,130,246,0.3)' : 'rgba(128,128,128,0.2)'} />
-      <circle cx={emuActive ? 32 : 16} cy="0" r="5"
-              fill={emuActive ? '#3b82f6' : '#6b7280'} />
-    </g>
   </svg>
 </div>
 
@@ -481,20 +367,6 @@
 
   .cont-label {
     font: 600 13px/1 'Rubik', system-ui, sans-serif;
-  }
-
-  .emu-btn {
-    cursor: pointer;
-    outline: none;
-  }
-
-  .emu-btn:hover rect:first-child {
-    opacity: 0.9;
-  }
-
-  .emu-text {
-    font: 600 10px/1 'Rubik', system-ui, sans-serif;
-    letter-spacing: 0.5px;
   }
 
   .center-toggle {
