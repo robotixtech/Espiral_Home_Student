@@ -137,12 +137,12 @@
   // Thin navy outline on the white glyphs: readability/accessibility fix — the sphere's fill
   // colour varies by status (amber/green/grey/purple), so a fixed dark edge guarantees the
   // text stays legible against any of them instead of relying on fill colour contrast alone.
-  const numberStroke = $derived(numberFont * 0.05);
+  const numberStroke = $derived(numberFont * 0.0845);
   // 3D depth for the active-state number: a solid navy "extrusion" edge (0-blur offset
   // duplicate text, no SVG filter involved) plus a light-from-above gradient fill. The
   // reference design's soft blurred drop-shadow was dropped — CSS filter/drop-shadow on SVG
   // lowers to feGaussianBlur, the confirmed Mali-G52 GPU-artifact trigger (project memory).
-  const numberEdgeOffset = $derived(numberFont * 0.06);
+  const numberEdgeOffset = $derived(numberFont * 0.078);
 
   // Icon + number read as a single centred block (icon above, number below, small gap)
   // instead of being pinned to opposite poles with a dead zone between them.
