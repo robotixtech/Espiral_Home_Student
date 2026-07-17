@@ -199,14 +199,26 @@
 
   const CONTENT = { w: W - 20, h: H };
 
-  // Always landscape (2026-07-13 feedback: simplify — a single horizontal view, no portrait
-  // layout at all). Clamping the effective aspect ratio to at least the design ratio (ctar)
-  // means a portrait container (car < ctar, e.g. an iPad held upright) never grows vb.h past
-  // CONTENT.h — it gets a landscape-shaped viewBox letterboxed by the <svg>'s
-  // preserveAspectRatio="xMidYMid meet" instead. This also removes the previous portrait-only
-  // bug where vb.h ballooned and threw off the IA/nanoQuanta fixed-offset-from-vb.y positions.
+  // Portrait (2026-07-17 feedback): the container itself is taller than wide — a distinct,
+  // functional layout for the radar/IA/nanoQUANTA/badges/zoom-controls, rather than forcing
+  // a single landscape-only view.
+  const isPortraitView = $derived(cH > cW);
+
+  // Landscape: clamp the effective aspect ratio to at least the design ratio (ctar) — a
+  // wide container grows vb.w, vb.h stays pinned to CONTENT.h.
+  // Portrait (2026-07-17 feedback): the opposite fix — grow vb.h to match the container's
+  // own (taller) aspect ratio instead of pinning it, so the viewBox's aspect ratio exactly
+  // matches the real screen's and `preserveAspectRatio="xMidYMid meet"` has nothing left to
+  // letterbox. Previously vb.h stayed pinned to CONTENT.h even in portrait, so the content
+  // rendered as a landscape strip with empty bars top/bottom — centered in principle, but
+  // visually reading as "not centered on the actual screen" against all that empty margin.
   const vb = $derived.by(() => {
     const ctar = CONTENT.w / CONTENT.h;
+    if (isPortraitView) {
+      const car = cW / cH;
+      const vbW = CONTENT.w, vbH = vbW / car;
+      return { x: cx - vbW / 2, y: cy - vbH / 2, w: vbW, h: vbH };
+    }
     const car  = Math.max(cW / cH, ctar);
     const vbH  = CONTENT.h, vbW = vbH * car;
     return { x: cx - vbW / 2, y: cy - vbH / 2, w: vbW, h: vbH };
@@ -218,14 +230,32 @@
   const dgPrev   = $derived({ cx: cx + 1.3 * (vb.x - 725),        cy: 66 });
   const dgNext   = $derived({ cx: cx,                               cy: cy + 1.3 * (vb.y - 980) });
   const dgFuture = $derived({ cx: cx + 1.3 * (vb.x + vb.w - 475), cy: 66 });
+
+  // Two fixed viewport-relative position slots for the off-radar spheres — kept as plain
+  // slots (not named after either sphere) so the IA/nanoQUANTA swap below (2026-07-17
+  // feedback) is just a one-line reassignment, not a rewrite of either formula.
+  const slotNearEdge = $derived({
+    cx: vb.x + 140, // nudged right off the screen edge (2026-07-10 feedback)
+    cy: vb.y + 145, // +30px, then +15px more (2026-07-09, 2026-07-10 feedback)
+  });
+  const slotMid = $derived({
+    cx: isIOSDevice() ? slotNearEdge.cx : vb.x + 270, // 2026-07-10 feedback ×4
+    cy: vb.y + 400,
+  });
+  // Portrait: both spheres sit side by side, centred horizontally around the design's own
+  // centre (cx), vertically centred in the gap between the top of the screen (vb.y) and the
+  // top edge of the radar ring (cy - telescopeR) instead of their landscape corner slots
+  // (2026-07-17 feedback: tripled the gap between them, moved down into that band).
+  const PORTRAIT_TOP_Y     = $derived((vb.y + (cy - telescopeR)) / 2);
+  const PORTRAIT_PAIR_GAP  = 270; // half-distance between the two sphere centres (px) — 3× the original 90px
   // nanoQUANTA: fixed position relative to the viewport — NOT derived from any unit's position
   // or count (2026-07-09 feedback: it used to track U5, so removing/adding units silently
   // moved it). vb.x/vb.y already guarantee it's inside the visible viewBox on any screen size
   // (10"-27"), regardless of how many units are shown inside the radar.
-  const dgQuanta = $derived({
-    cx: vb.x + 140, // nudged right off the screen edge (2026-07-10 feedback)
-    cy: vb.y + 145, // +30px, then +15px more (2026-07-09, 2026-07-10 feedback)
-  });
+  // 2026-07-17 feedback: swapped with the IA sphere — nanoQUANTA now sits where IA used to.
+  const dgQuanta = $derived(
+    isPortraitView ? { cx: cx - PORTRAIT_PAIR_GAP, cy: PORTRAIT_TOP_Y } : slotMid
+  );
   // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
 
@@ -268,10 +298,12 @@
   // On iPad specifically, cx is pinned to nanoQuanta's own (already correct) X instead of the
   // separate "+270" offset — one less independently-tuned position to get wrong (2026-07-13
   // feedback: still landed wrong on-device even with the landscape-lock above).
-  const iaNodePos = $derived({
-    cx: isIOSDevice() ? dgQuanta.cx : vb.x + 270, // 2026-07-10 feedback ×4
-    cy: vb.y + 400,
-  });
+  // 2026-07-17 feedback: swapped with the nanoQUANTA sphere — IA now sits where
+  // nanoQUANTA used to (see slotNearEdge/slotMid above). In portrait, sits beside
+  // nanoQUANTA at the top of the visible content instead (see PORTRAIT_* above).
+  const iaNodePos = $derived(
+    isPortraitView ? { cx: cx + PORTRAIT_PAIR_GAP, cy: PORTRAIT_TOP_Y } : slotNearEdge
+  );
   const iaUnitR             = $derived(SPIRAL.unitSize / 2);
   const iaDisplayActivities = $derived(displayActivities(iaUnit as ProgramUnit));
   const IA_TITLE_FONT = 19;
@@ -754,20 +786,22 @@
     <!-- Zoom controls — bottom-left -->
     <div class="zoom-controls">
       <div class="prog-name-label">{program.shortname}</div>
-      <button class="zoom-btn" class:is-active={zoomInActive}
-              onclick={zoomInBtn}
-              onpointerdown={() => zoomInActive = true}
-              onpointerup={() => zoomInActive = false}
-              onpointercancel={() => zoomInActive = false}
-              onpointerleave={() => zoomInActive = false}
-              aria-label="Zoom in">+</button>
-      <button class="zoom-btn" class:is-active={zoomOutActive}
-              onclick={zoomOutBtn}
-              onpointerdown={() => zoomOutActive = true}
-              onpointerup={() => zoomOutActive = false}
-              onpointercancel={() => zoomOutActive = false}
-              onpointerleave={() => zoomOutActive = false}
-              aria-label="Zoom out">−</button>
+      <div class="zoom-btn-group">
+        <button class="zoom-btn" class:is-active={zoomInActive}
+                onclick={zoomInBtn}
+                onpointerdown={() => zoomInActive = true}
+                onpointerup={() => zoomInActive = false}
+                onpointercancel={() => zoomInActive = false}
+                onpointerleave={() => zoomInActive = false}
+                aria-label="Zoom in">+</button>
+        <button class="zoom-btn" class:is-active={zoomOutActive}
+                onclick={zoomOutBtn}
+                onpointerdown={() => zoomOutActive = true}
+                onpointerup={() => zoomOutActive = false}
+                onpointercancel={() => zoomOutActive = false}
+                onpointerleave={() => zoomOutActive = false}
+                aria-label="Zoom out">−</button>
+      </div>
     </div>
 
   </div>
@@ -858,6 +892,15 @@
     pointer-events: all;
     z-index: 10;
   }
+  /* Own wrapper around the two buttons (2026-07-17 feedback) — column in landscape
+     (matches .zoom-controls's own original gap, so landscape looks unchanged), row in
+     portrait (see below). */
+  .zoom-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
   .zoom-btn {
     width: 72px; height: 72px;
     border-radius: 14px;
@@ -888,10 +931,20 @@
     transition: none;
   }
 
-  /* ── Portrait: move zoom controls above the badge-panel handle (36px) ── */
+  /* ── Portrait: sits below the badge row (closest to the bottom edge); "+"/"−" go back
+       to side by side at half size, label stays upright beside them (2026-07-17 feedback). ── */
   @media (orientation: portrait) {
     .zoom-controls {
-      bottom: 60px; /* clears the 36px badge panel handle + margin */
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+    }
+    .zoom-btn-group {
+      flex-direction: row;
+    }
+    .zoom-btn {
+      width: 36px; height: 36px;
+      font-size: 22px;
     }
   }
 </style>

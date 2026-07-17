@@ -44,7 +44,6 @@
             aria-label="{item.unit.label} — {t('badgeEarnedSuffix')}"
           >
             <img src={item.src} alt="{t('badgesPanelLabel')} {item.unit.displayName}" class="badge-img" />
-            <span class="unit-chip">{item.unit.displayName}</span>
           </button>
         {:else}
           <div class="badge-slot">
@@ -52,13 +51,6 @@
                  master-config.ts → BADGES.blockedImageUrl) instead of a greyed-out treatment
                  of the earned badge image. -->
             <img src={badgeBlockedUrl()} alt="{t('badgesPanelLabel')} {item.unit.displayName} — {t('badgeLockedSuffix')}" class="badge-img" />
-            <!-- Same padlock icon as the locked Unit spheres (UnitNode.svelte). -->
-            <svg class="badge-lock-icon" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-opacity="0.6"
-               stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
-            <span class="unit-chip">{item.unit.displayName}</span>
           </div>
         {/if}
       </div>
@@ -195,52 +187,28 @@
     z-index: 1;
   }
 
-  /* Padlock overlay on blocked badges — same icon/style as the locked Unit spheres
-     (UnitNode.svelte), scaled proportionally to --badge-size. */
-  .badge-lock-icon {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: calc(var(--badge-size) * 0.32);
-    height: calc(var(--badge-size) * 0.32);
-    z-index: 2;
-    pointer-events: none;
-  }
-
-  /* Small white pill with the unit code, overlapping the badge's lower-right edge — replaces
-     the text label that used to sit below the image (2026-07-10 feedback ×2: same X as
-     before, now dropped down to the image's bottom edge instead of vertically centred), same
-     for earned and locked badges. Sized proportionally to --badge-size (2026-07-10 feedback
-     ×3: scale with the badge instead of a fixed px size per breakpoint) — ratios match the
-     original hand-tuned values at the old 100px reference size. */
-  .unit-chip {
-    position: absolute;
-    bottom: -4px;
-    right: -4px;
-    z-index: 3;
-    min-width: calc(var(--badge-size) * 0.2);
-    height: calc(var(--badge-size) * 0.2);
-    padding: 0 calc(var(--badge-size) * 0.06);
-    border-radius: 999px;
-    background: #F4F2EC;
-    color: #0F3A4E;
-    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: calc(var(--badge-size) * 0.1);
-    font-weight: 700;
-    letter-spacing: 0.02em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.45);
-    pointer-events: none;
-    user-select: none;
-  }
-
-  /* Locked: grey pill, white text (2026-07-10 feedback) — earned keeps the chalk-white/navy above. */
-  .badge-slot:not(.earned) .unit-chip {
-    background: #708090;
-    color: #ffffff;
+  /* ── Portrait: single row of 6 badges, centred above the bottom edge
+       (2026-07-17 feedback: functional portrait layout instead of a rotate-lock). ── */
+  @media (orientation: portrait) {
+    .badge-float {
+      right: auto;
+      top: auto;
+      /* Sits above the (now half-size, ~36px) zoom-controls row at the true bottom edge
+         (2026-07-17 feedback). */
+      bottom: 64px;
+      left: 50%;
+      transform: translateX(-50%);
+      max-width: calc(100vw - 24px);
+      /* Row width budget mirrors the landscape column's 90%-of-viewport target, just
+         along the other axis: 6×badge-size + 5×8px gaps = 90vw. */
+      --badge-size: clamp(28px, calc((90vw - 40px) / 6), 120px);
+    }
+    .badge-grid {
+      flex-direction: row;
+      flex-wrap: nowrap;
+      justify-content: center;
+      gap: 8px;
+    }
   }
 
   /* ── Landscape phones ─────────────────────────── */
@@ -259,36 +227,6 @@
         --badge-size: clamp(28px, calc((var(--vvh, 100dvh) * 0.9 - 30px) / 6), 140px);
       }
     }
-  }
-
-  /* ── Portrait (phones + tablets): badges float in a row above the bottom edge ── */
-  @media (orientation: portrait) {
-    .badge-float {
-      right: auto;
-      top: auto;
-      bottom: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      max-width: calc(100vw - 24px);
-    }
-    .badge-grid {
-      flex-direction: row;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-  }
-
-  /* ── Portrait phones ──────────────────────────── */
-  @media (max-width: 600px) and (orientation: portrait) {
-    /* Set via the shared --badge-size var (not a direct width/height override) so .unit-chip's
-       proportional sizing stays correct here too (2026-07-10 feedback ×3). */
-    .badge-float { --badge-size: 60px; }
-    .badge-grid { gap: 10px; }
-  }
-
-  /* ── Portrait tablets (iPad, Android) ────────── */
-  @media (min-width: 601px) and (orientation: portrait) {
-    .badge-float { --badge-size: 72px; }
   }
 
   /* ── Badge modal ──────────────────────────────── */

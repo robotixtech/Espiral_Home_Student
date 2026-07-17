@@ -3,6 +3,7 @@
   import UnitIcon from './UnitIcon.svelte';
   import { getTheme } from '../lib/theme.svelte';
   import { STATUS_LABELS } from '../lib/program-config';
+  import { ICON_COLORS } from '../lib/icon-colors';
 
   const theme = $derived(getTheme());
 
@@ -61,7 +62,7 @@
     return STATUS_LABELS.locked;
   });
 
-  const iconSize = $derived(isStart ? 28 : 24);
+  const iconSize = $derived((isStart ? 28 : 24) * 1.2); // +20% (2026-07-17 feedback)
   const iconOff = $derived(iconSize / 2);
   const labelBelow = $derived(y >= galacticCenterY);
   const fullLabelGap = 12;
@@ -103,7 +104,7 @@
   // Compact icon: base 20.8, +20% then -15%, then +30%, then +30% again (2026-07-08, 2026-07-09
   // feedback) — the icon shouldn't compete with the unit number/code, but still needs to read
   // clearly at radar scale.
-  const C_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3 * 1.3;
+  const C_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3 * 1.3 * 1.2; // +20% (2026-07-17 feedback)
   const cIcon   = $derived(
     unit.status === 'locked' ? C_ICON_BASE * 1.2   // locked lock icon +20% on top of the base, for stroke visibility
     : C_ICON_BASE
@@ -134,15 +135,11 @@
   // child on the map, not the icon (2026-07-07 feedback). ~1/3 of the sphere's diameter,
   // reduced 30% (2026-07-09 feedback) as the icon grows to take more of the visual weight.
   const numberFont = $derived((2 * r) / 3 * 0.84);
-  // Thin navy outline on the white glyphs: readability/accessibility fix — the sphere's fill
-  // colour varies by status (amber/green/grey/purple), so a fixed dark edge guarantees the
-  // text stays legible against any of them instead of relying on fill colour contrast alone.
-  const numberStroke = $derived(numberFont * 0.0845);
-  // 3D depth for the active-state number: a solid navy "extrusion" edge (0-blur offset
-  // duplicate text, no SVG filter involved) plus a light-from-above gradient fill. The
-  // reference design's soft blurred drop-shadow was dropped — CSS filter/drop-shadow on SVG
-  // lowers to feGaussianBlur, the confirmed Mali-G52 GPU-artifact trigger (project memory).
-  const numberEdgeOffset = $derived(numberFont * 0.078);
+  // Number fill matches its sphere's icon color (2026-07-17 feedback) — flat, no outline/shadow.
+  // Locked spheres show the candado icon instead of unit.icon, so match that colour instead.
+  const numberColor = $derived(
+    unit.status === 'locked' ? ICON_COLORS.candado : (ICON_COLORS[unit.icon] ?? colors.icon)
+  );
 
   // Icon + number read as a single centred block (icon above, number below, small gap)
   // instead of being pinned to opposite poles with a dead zone between them.
@@ -178,13 +175,6 @@
       <stop offset="0%" stop-color={colors.g1} />
       <stop offset="100%" stop-color={colors.g2} />
     </radialGradient>
-    <!-- Unit-number fill: light-from-above gradient, chalk-white family (neutral — not
-         status-tinted, matches the "blanco tiza" text colour decision). -->
-    <linearGradient id="num-grad-{index}" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%"   stop-color="#FFFFFF" />
-      <stop offset="70%"  stop-color="#F4F2EC" />
-      <stop offset="100%" stop-color="#E6E1D2" />
-    </linearGradient>
   </defs>
 
   {#if isActive}
@@ -246,19 +236,12 @@
 
   {#if !isActive}
     <!-- Icon in the upper sphere -->
-    <svg x={cIconTX} y={cIconTY} width={cIcon} height={cIcon} viewBox="0 0 24 24"
-         fill="none" stroke="#4b5563" stroke-opacity="0.6" stroke-width="1.8"
-         stroke-linecap="round" stroke-linejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-    </svg>
-    <!-- Unit number: locked → flat, disabled look (no engraved shadow, dimmed fill) -->
+    <g transform="translate({cIconTX},{cIconTY})" opacity="0.6">
+      <UnitIcon icon="candado" size={cIcon} color="#4b5563" />
+    </g>
+    <!-- Unit number: locked → flat, disabled look, fill matches the lock icon colour -->
     <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
-          class="planet-number-outline planet-number-disabled" style="font-size: {numberFont}px; stroke-width: {numberStroke}px">
-      {unit.displayName}
-    </text>
-    <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
-          class="planet-number planet-number-disabled" fill="#F4F2EC" style="font-size: {numberFont}px">
+          class="planet-number planet-number-disabled" fill={numberColor} style="font-size: {numberFont}px">
       {unit.displayName}
     </text>
   {:else if compact}
@@ -266,18 +249,9 @@
     <g transform="translate({cIconTX},{cIconTY})">
       <UnitIcon icon={unit.icon} size={cIcon} color="#00102A" />
     </g>
-    <!-- Unit number: solid navy "extrusion" edge behind (0-blur offset duplicate, gives
-         the letters thickness) + the real gradient-filled, navy-outlined text on top. -->
-    <text x="0" y={numberY + numberEdgeOffset} text-anchor="middle" dominant-baseline="middle"
-          class="planet-number-edge" style="font-size: {numberFont}px">
-      {unit.displayName}
-    </text>
+    <!-- Unit number: flat fill matching the sphere's icon colour, no outline/shadow -->
     <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
-          class="planet-number-outline" style="font-size: {numberFont}px; stroke-width: {numberStroke}px">
-      {unit.displayName}
-    </text>
-    <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
-          class="planet-number" fill="url(#num-grad-{index})" style="font-size: {numberFont}px">
+          class="planet-number" fill={numberColor} style="font-size: {numberFont}px">
       {unit.displayName}
     </text>
   {:else}
@@ -286,7 +260,7 @@
       <UnitIcon icon={unit.icon} size={iconSize} color={colors.icon} />
     </g>
     <text x="0" y={iconOff + 3} text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-id" fill={colors.icon}>
+          class="lbl-unit-id" fill={numberColor}>
       {unit.displayName}
     </text>
   {/if}
@@ -413,36 +387,13 @@
   .lbl-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
-  .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
-  /* Navy outline behind the white fill — readability fix: the sphere's own colour varies by
-     status, so a fixed dark edge keeps the glyphs legible against any of them. Implemented as
-     its OWN <text> (fill:none, stroke only), painted before the real fill text, rather than
-     `paint-order: stroke fill` on a single element — iPadOS Safari doesn't reliably support
-     paint-order on SVG <text>, so it drew the stroke on top of the fill instead of behind it
-     (glyphs rendered inverted: dark fill, light-looking stroke on top). Two stacked elements
-     get the identical result (the fill text's interior covers the stroke's inner half either
-     way) without depending on that property at all. */
-  .planet-number-outline {
-    font: 800 1em/1 'Rubik', system-ui, sans-serif;
-    pointer-events: none;
-    fill: none;
-    stroke: #001f3f;
-  }
+  .lbl-unit-id     { font: 800 9px/1 'Roboto', system-ui, sans-serif; fill-opacity: 0.85; }
   .planet-number {
-    font: 800 1em/1 'Rubik', system-ui, sans-serif;
+    font: 800 1em/1 'Roboto', system-ui, sans-serif;
     pointer-events: none;
   }
-  /* Solid navy duplicate sat behind .planet-number, offset down — same font metrics so it
-     lines up exactly under the real glyphs, giving them a flat "extruded" edge with no blur. */
-  .planet-number-edge {
-    font: 800 1em/1 'Rubik', system-ui, sans-serif;
-    pointer-events: none;
-    fill: #001f3f;
-  }
-  /* Disabled (locked) look: flat, dimmed like the locked activity chips — stroke dims with
-     the fill so the outline doesn't end up reading darker/heavier than the glyph itself. */
+  /* Disabled (locked) look: flat, dimmed like the locked activity chips. */
   .planet-number-disabled {
     fill-opacity: 0.45;
-    stroke-opacity: 0.45;
   }
 </style>

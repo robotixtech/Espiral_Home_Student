@@ -29,7 +29,7 @@
   // Icon sized to exactly match the compact radar UnitNode icon (same formula as UnitNode's
   // C_ICON_BASE), divided by cs since this icon lives inside a scale(cs) group — so the
   // on-screen size comes out identical to the radar spheres' icon (2026-07-08 feedback).
-  const RADAR_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3;
+  const RADAR_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3 * 1.2; // +20% (2026-07-17 feedback)
   const iconSize   = $derived(RADAR_ICON_BASE / cs);
   const ICON_CY    = -25; // vertical centre of the icon, in cs-scaled local space
 
@@ -162,7 +162,7 @@
   {/each}
   <g transform="scale({cs})">
     <g transform="translate({-iconSize / 2},{ICON_CY - iconSize / 2})">
-      <UnitIcon icon="signal" size={iconSize} color="#00102A" />
+      <UnitIcon icon="ia" size={iconSize} color="#00102A" />
     </g>
     <text text-anchor="middle"
           class="lbl-inside-pill" fill="#001f3f">
@@ -206,5 +206,5 @@
     100% { transform: scale(1); }
   }
 
-  .lbl-inside-pill { font: 700 16px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .lbl-inside-pill { font: 800 16px/1 'Roboto', system-ui, sans-serif; pointer-events: none; }
 </style>

@@ -35,7 +35,7 @@
   // C_ICON_BASE), divided by cs since this icon lives inside a scale(cs) group — so the
   // on-screen size comes out identical to the radar spheres' icon (2026-07-08 feedback).
   // Locked variant follows UnitNode's own +20% (stroke visibility) on top of that.
-  const RADAR_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3;
+  const RADAR_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3 * 1.2; // +20% (2026-07-17 feedback)
   const iconSize     = $derived(RADAR_ICON_BASE / cs);
   const lockIconSize = $derived(RADAR_ICON_BASE * 1.2 / cs);
   const ICON_CY      = -25; // vertical centre of the icon, in cs-scaled local space
@@ -167,7 +167,7 @@
     {/each}
     <g transform="scale({cs})">
       <g transform="translate({-iconSize / 2},{ICON_CY - iconSize / 2})">
-        <UnitIcon icon="rocket" size={iconSize} color="#00102A" />
+        <UnitIcon icon="quanta" size={iconSize} color="#00102A" />
       </g>
       <text text-anchor="middle"
             class="lbl-inside-pill" fill="#001f3f">
@@ -186,13 +186,8 @@
             stroke={colors.ring} stroke-width="1.6" stroke-opacity="0.8" stroke-linecap="round" />
     {/each}
     <g transform="scale({cs})">
-      <g transform="translate({-lockIconSize / 2},{ICON_CY - lockIconSize / 2})">
-        <svg x="0" y="0" width={lockIconSize} height={lockIconSize} viewBox="0 0 24 24"
-             fill="none" stroke="#4b5563" stroke-opacity="0.6" stroke-width="2.5"
-             stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-          <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-        </svg>
+      <g transform="translate({-lockIconSize / 2},{ICON_CY - lockIconSize / 2})" opacity="0.6">
+        <UnitIcon icon="candado" size={lockIconSize} color="#4b5563" />
       </g>
       <text text-anchor="middle"
             class="lbl-inside-pill" fill="#4b5563">
@@ -225,5 +220,5 @@
 
   .progress-ring { transition: stroke-dashoffset 1s ease; }
 
-  .lbl-inside-pill { font: 700 16px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
+  .lbl-inside-pill { font: 800 16px/1 'Roboto', system-ui, sans-serif; pointer-events: none; }
 </style>

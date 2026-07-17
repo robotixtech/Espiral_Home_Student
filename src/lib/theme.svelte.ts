@@ -67,7 +67,7 @@ const DARK: ThemeColors = {
   },
   unit: {
     completed: {
-      g1: '#66CDAA', g2: '#4a9e82', ring: '#66CDAA', glow: '#66CDAA',
+      g1: '#87BDA6', g2: '#5A8773', ring: '#87BDA6', glow: '#87BDA6',
       icon: '#001f3f', lBg: 'rgba(102,205,170,0.25)', lBorder: 'rgba(102,205,170,0.4)', lText: '#b2e8d4',
     },
     inProgress: {

@@ -70,7 +70,7 @@ export const BADGES = {
   unitPattern:        /^U[1-9]\d*$/, // qué unidades reciben badge: U1 a U6 (6 en total, 2026-07-10
                                       // feedback) — excluye solo U0. Antes excluía U1 también,
                                       // de cuando "Misión Control" existía como unidad aparte.
-  blockedImageUrl:    'badges/badgeBlocked.webp', // imagen mostrada para un badge en estado
+  blockedImageUrl:    'badges/badge_locked.webp', // imagen mostrada para un badge en estado
                                       // "blocked" (mismo diseño para todos los badges bloqueados;
                                       // cambia el archivo en public/badges/ para actualizar el diseño).
 } as const;
@@ -116,7 +116,7 @@ export const STATUS_LABELS = {
 export const C450_CONFIG: ProgramConfig = {
   shortname: 'C450',    // ← 1. NOMBRE DEL PROGRAMA
   fullname:  'C450',
-  bgImage:   'background_light.png',
+  bgImage:   'background_last.png',
 
   sun: {
     label: 'Open Scentia',
@@ -133,10 +133,10 @@ export const C450_CONFIG: ProgramConfig = {
       label:       'Plataforma de lanzamiento',  // ← 2. NOMBRE DE LA UNIDAD
       displayName: 'U0',
       fullname:    'C450 – Unidad 0. Plataforma de lanzamiento',
-      icon:        'flag',
+      icon:        'u0',
       href:        null,
       status:      'locked',   // ⚡ Moodle
-      progress:    0,          // ⚡ Moodle
+      progress:    0,               // ⚡ Moodle
       activities: [
         // lessons (✏️ editar label y añadir slides para activar la vista de detalle)
         { label: 'Preparación de la base', icon: 'gear',  href: null, status: 'locked', progress: 0 },
@@ -153,7 +153,7 @@ export const C450_CONFIG: ProgramConfig = {
       label:       'Lanzamiento de señal',  // ← 2. NOMBRE DE LA UNIDAD
       displayName: 'U1',
       fullname:    'C450 – Unidad 1. Lanzamiento de señal',
-      icon:        'signal',
+      icon:        'terra',
       href:        null,
       status:      'locked',
       progress:    0,
@@ -185,7 +185,7 @@ export const C450_CONFIG: ProgramConfig = {
       label:       'Preparado para mover',  // ← 2. NOMBRE DE LA UNIDAD
       displayName: 'U2',
       fullname:    'C450 – Unidad 2. Preparado para mover',
-      icon:        'car',
+      icon:        'terra',
       href:        null,
       status:      'locked',
       progress:    0,
@@ -205,7 +205,7 @@ export const C450_CONFIG: ProgramConfig = {
       label:       'Visión de túnel',  // ← 2. NOMBRE DE LA UNIDAD
       displayName: 'U3',
       fullname:    'C450 – Unidad 3. Visión de túnel',
-      icon:        'tunnel',
+      icon:        'aqua',
       href:        null,
       status:      'locked',
       progress:    0,
@@ -225,7 +225,7 @@ export const C450_CONFIG: ProgramConfig = {
       label:       'Análisis profundo',  // ← 2. NOMBRE DE LA UNIDAD
       displayName: 'U4',
       fullname:    'C450 – Unidad 4. Análisis profundo',
-      icon:        'search',
+      icon:        'aqua',
       href:        null,
       status:      'locked',
       progress:    0,
@@ -245,7 +245,7 @@ export const C450_CONFIG: ProgramConfig = {
       label:       'Señales inteligentes',  // ← 2. NOMBRE DE LA UNIDAD
       displayName: 'U5',
       fullname:    'C450 – Unidad 5. Señales inteligentes',
-      icon:        'signal',
+      icon:        'aire',
       href:        null,
       status:      'locked',
       progress:    0,
@@ -265,7 +265,7 @@ export const C450_CONFIG: ProgramConfig = {
       label:       'Respuesta a emergencias',  // ← 2. NOMBRE DE LA UNIDAD
       displayName: 'U6',
       fullname:    'C450 – Unidad 6. Respuesta a emergencias',
-      icon:        'alert',
+      icon:        'aire',
       href:        null,
       status:      'locked',
       progress:    0,
@@ -290,17 +290,17 @@ export const C450_CONFIG: ProgramConfig = {
 export const C550_CONFIG: ProgramConfig = {
   shortname: 'C550',
   fullname:  'C550',
-  bgImage:   'background_light.png',
+  bgImage:   'background_last.png',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                       displayName: 'Misión Control', fullname: 'C550 – Misión control',                              icon: 'gear',   href: null, status: 'locked', progress: 0 },
-    { label: 'Plataforma de lanzamiento',         displayName: 'U0',            fullname: 'C550 – Unidad 0. Plataforma de lanzamiento',          icon: 'flag',   href: null, status: 'locked', progress: 0 },
-    { label: 'Puesta en marcha de la base Terra', displayName: 'U1',            fullname: 'C550 – Unidad 1. Puesta en marcha de la base Terra',  icon: 'power',  href: null, status: 'locked', progress: 0 },
-    { label: 'Entrenamiento de sensores',         displayName: 'U2',            fullname: 'C550 – Unidad 2. Entrenamiento de sensores',          icon: 'search', href: null, status: 'locked', progress: 0 },
-    { label: 'El tiempo lo es todo',              displayName: 'U3',            fullname: 'C550 – Unidad 3. El tiempo lo es todo',               icon: 'gear',   href: null, status: 'locked', progress: 0 },
-    { label: 'Repetición desde la base Aqua',     displayName: 'U4',            fullname: 'C550 – Unidad 4. Repetición desde la base Aqua',      icon: 'signal', href: null, status: 'locked', progress: 0 },
-    { label: 'Respuesta inteligente al océano',   displayName: 'U5',            fullname: 'C550 – Unidad 5. Respuesta inteligente al océano',    icon: 'alert',  href: null, status: 'locked', progress: 0 },
-    { label: 'Robots reactivos',                  displayName: 'U6',            fullname: 'C550 – Unidad 6. Robots reactivos',                   icon: 'car',    href: null, status: 'locked', progress: 0 },
+    { label: 'Plataforma de lanzamiento',         displayName: 'U0',            fullname: 'C550 – Unidad 0. Plataforma de lanzamiento',          icon: 'u0',     href: null, status: 'locked', progress: 0 },
+    { label: 'Puesta en marcha de la base Terra', displayName: 'U1',            fullname: 'C550 – Unidad 1. Puesta en marcha de la base Terra',  icon: 'terra',  href: null, status: 'locked', progress: 0 },
+    { label: 'Entrenamiento de sensores',         displayName: 'U2',            fullname: 'C550 – Unidad 2. Entrenamiento de sensores',          icon: 'terra',  href: null, status: 'locked', progress: 0 },
+    { label: 'El tiempo lo es todo',              displayName: 'U3',            fullname: 'C550 – Unidad 3. El tiempo lo es todo',               icon: 'aqua',   href: null, status: 'locked', progress: 0 },
+    { label: 'Repetición desde la base Aqua',     displayName: 'U4',            fullname: 'C550 – Unidad 4. Repetición desde la base Aqua',      icon: 'aqua',   href: null, status: 'locked', progress: 0 },
+    { label: 'Respuesta inteligente al océano',   displayName: 'U5',            fullname: 'C550 – Unidad 5. Respuesta inteligente al océano',    icon: 'aire',   href: null, status: 'locked', progress: 0 },
+    { label: 'Robots reactivos',                  displayName: 'U6',            fullname: 'C550 – Unidad 6. Robots reactivos',                   icon: 'aire',   href: null, status: 'locked', progress: 0 },
   ],
 };
 
@@ -309,17 +309,17 @@ export const C550_CONFIG: ProgramConfig = {
 export const C650_CONFIG: ProgramConfig = {
   shortname: 'C650',
   fullname:  'C650',
-  bgImage:   'background_light.png',
+  bgImage:   'background_last.png',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                         displayName: 'Misión Control', fullname: 'C650 – Misión control',                                icon: 'gear',   href: null, status: 'locked', progress: 0 },
-    { label: 'Plataforma de lanzamiento',           displayName: 'U0',            fullname: 'C650 – Unidad 0. Plataforma de lanzamiento',            icon: 'flag',   href: null, status: 'locked', progress: 0 },
-    { label: 'Robots de alerta de emergencia',      displayName: 'U1',            fullname: 'C650 – Unidad 1. Robots de alerta de emergencia',       icon: 'alert',  href: null, status: 'locked', progress: 0 },
-    { label: 'Sistemas de agricultura inteligente', displayName: 'U2',            fullname: 'C650 – Unidad 2. Sistemas de agricultura inteligente',  icon: 'gear',   href: null, status: 'locked', progress: 0 },
-    { label: 'Entrega inteligente',                 displayName: 'U3',            fullname: 'C650 – Unidad 3. Entrega inteligente',                  icon: 'car',    href: null, status: 'locked', progress: 0 },
-    { label: 'Exploradores de sensores oceánicos',  displayName: 'U4',            fullname: 'C650 – Unidad 4. Exploradores de sensores oceánicos',   icon: 'search', href: null, status: 'locked', progress: 0 },
-    { label: 'Control de comunicaciones',           displayName: 'U5',            fullname: 'C650 – Unidad 5. Control de comunicaciones',            icon: 'signal', href: null, status: 'locked', progress: 0 },
-    { label: 'Clasificación inteligente',           displayName: 'U6',            fullname: 'C650 – Unidad 6. Clasificación inteligente',            icon: 'tunnel', href: null, status: 'locked', progress: 0 },
+    { label: 'Plataforma de lanzamiento',           displayName: 'U0',            fullname: 'C650 – Unidad 0. Plataforma de lanzamiento',            icon: 'u0',     href: null, status: 'locked', progress: 0 },
+    { label: 'Robots de alerta de emergencia',      displayName: 'U1',            fullname: 'C650 – Unidad 1. Robots de alerta de emergencia',       icon: 'terra',  href: null, status: 'locked', progress: 0 },
+    { label: 'Sistemas de agricultura inteligente', displayName: 'U2',            fullname: 'C650 – Unidad 2. Sistemas de agricultura inteligente',  icon: 'terra',  href: null, status: 'locked', progress: 0 },
+    { label: 'Entrega inteligente',                 displayName: 'U3',            fullname: 'C650 – Unidad 3. Entrega inteligente',                  icon: 'aqua',   href: null, status: 'locked', progress: 0 },
+    { label: 'Exploradores de sensores oceánicos',  displayName: 'U4',            fullname: 'C650 – Unidad 4. Exploradores de sensores oceánicos',   icon: 'aqua',   href: null, status: 'locked', progress: 0 },
+    { label: 'Control de comunicaciones',           displayName: 'U5',            fullname: 'C650 – Unidad 5. Control de comunicaciones',            icon: 'aire',   href: null, status: 'locked', progress: 0 },
+    { label: 'Clasificación inteligente',           displayName: 'U6',            fullname: 'C650 – Unidad 6. Clasificación inteligente',            icon: 'aire',   href: null, status: 'locked', progress: 0 },
   ],
 };
 
@@ -328,16 +328,16 @@ export const C650_CONFIG: ProgramConfig = {
 export const C350_CONFIG: ProgramConfig = {
   shortname: 'C350',
   fullname:  'C350',
-  bgImage:   'background_light.png',
+  bgImage:   'background_last.png',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
-    { label: 'Onboarding',                      displayName: 'Misión Control', fullname: 'C350 – Misión control',                             icon: 'gear',   href: null, status: 'completed', progress: 100 },
-    { label: 'Puesta en marcha de la base Terra', displayName: 'U1',           fullname: 'C350 – Unidad 1. Puesta en marcha de la base Terra', icon: 'power',  href: null, status: 'completed', progress: 100 },
-    { label: 'Exploración',                      displayName: 'U2',            fullname: 'C350 – Unidad 2. Exploración',                      icon: 'search', href: null, status: 'completed', progress: 100 },
-    { label: 'Buen momento',                     displayName: 'U3',            fullname: 'C350 – Unidad 3. Buen momento',                     icon: 'gear',   href: null, status: 'completed', progress: 100 },
-    { label: 'Alertas de la base acuática',      displayName: 'U4',            fullname: 'C350 – Unidad 4. Alertas de la base acuática',      icon: 'alert',  href: null, status: 'completed', progress: 100 },
-    { label: 'Responder y repetir',              displayName: 'U5',            fullname: 'C350 – Unidad 5. Responder y repetir',              icon: 'signal', href: null, status: 'completed', progress: 100 },
-    { label: 'Problemas de temblor',             displayName: 'U6',            fullname: 'C350 – Unidad 6. Problemas de temblor',             icon: 'tunnel', href: null, status: 'completed', progress: 100 },
+    { label: 'Onboarding',                      displayName: 'Misión Control', fullname: 'C350 – Misión control',                             icon: 'gear',   href: null, status: 'locked', progress: 0 },
+    { label: 'Puesta en marcha de la base Terra', displayName: 'U1',           fullname: 'C350 – Unidad 1. Puesta en marcha de la base Terra', icon: 'terra',  href: null, status: 'locked', progress: 0 },
+    { label: 'Exploración',                      displayName: 'U2',            fullname: 'C350 – Unidad 2. Exploración',                      icon: 'terra',  href: null, status: 'locked', progress: 0 },
+    { label: 'Buen momento',                     displayName: 'U3',            fullname: 'C350 – Unidad 3. Buen momento',                     icon: 'aqua',   href: null, status: 'locked', progress: 0 },
+    { label: 'Alertas de la base acuática',      displayName: 'U4',            fullname: 'C350 – Unidad 4. Alertas de la base acuática',      icon: 'aqua',   href: null, status: 'locked', progress: 0 },
+    { label: 'Responder y repetir',              displayName: 'U5',            fullname: 'C350 – Unidad 5. Responder y repetir',              icon: 'aire',   href: null, status: 'locked', progress: 0 },
+    { label: 'Problemas de temblor',             displayName: 'U6',            fullname: 'C350 – Unidad 6. Problemas de temblor',             icon: 'aire',   href: null, status: 'locked', progress: 0 },
   ],
 };
 
