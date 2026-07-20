@@ -2,8 +2,7 @@
   import type { ProgramData } from '../lib/types';
   import { t } from '../lib/i18n';
   import { getConfigByShortname } from '../lib/program-config';
-  import { BADGE_PANEL } from '../lib/master-config';
-  // 🗑️ Hemos eliminado las importaciones de '../lib/badges' porque Moodle ya nos da estos datos.
+  import { badgeBlockedUrl } from '../lib/badges';
 
   interface Props {
     program: ProgramData;
@@ -13,20 +12,22 @@
 
   const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_opacity.png');
 
-  // 🔥 SOLUCIÓN: Leemos directamente la data inyectada desde Moodle
-  const badgeUnits = $derived(
-    program.units
-      .filter(u => u.badge !== undefined) // Solo renderizamos unidades que tengan el nodo "badge"
+  // 🔥 SOLUCIÓN MOODLE + ORDENACIÓN: Leemos directamente la data inyectada desde Moodle y ordenamos por unidad
+  const badgeUnits = $derived.by(() => {
+    const filtered = program.units.filter(u => u.badge !== undefined);
+    
+    return filtered
+      .sort((a, b) => {
+        const numA = parseInt(a.displayName.replace(/\D/g, '')) || 0;
+        const numB = parseInt(b.displayName.replace(/\D/g, '')) || 0;
+        return numA - numB;
+      })
       .map(u => ({
         unit: u,
-        earned: u.badge!.earned, // Leemos el boolean del JSON
-        src: u.badge!.badgeUrl   // Leemos la URL absoluta del JSON
-      }))
-  );
-
-  const earnedCount = $derived(badgeUnits.filter(b => b.earned).length);
-
-  let collapsed = $state(BADGE_PANEL.startCollapsed);
+        earned: u.badge!.earned, // Leemos el boolean del JSON de Moodle
+        src: u.badge!.badgeUrl   // Leemos la URL absoluta del JSON de Moodle
+      }));
+  });
 
   type BadgeItem = (typeof badgeUnits)[number];
   let selectedBadge = $state<BadgeItem | null>(null);
@@ -34,60 +35,38 @@
 
 <svelte:window onkeydown={(e) => { if (e.key === 'Escape') selectedBadge = null; }} />
 
-<div class="badge-panel" class:collapsed aria-label={t('badgesPanelAriaLabel')}>
-
-  <button
-    class="panel-handle"
-    onclick={() => collapsed = !collapsed}
-    aria-expanded={!collapsed}
-    aria-label={t('badgesPanelAriaLabel')}
-  >
-    <svg class="handle-chevron" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <polyline points="6,4 10,8 6,12" stroke="rgba(120,180,255,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-    <span class="handle-title">{t('badgesPanelTitle')}</span>
-  </button>
-
-  <div class="panel-content">
-
-    <span class="bracket tl"></span>
-    <span class="bracket tr"></span>
-    <span class="bracket bl"></span>
-    <span class="bracket br"></span>
-
-    <div class="scanline" aria-hidden="true"></div>
-
-    <div class="badge-grid">
-      {#each badgeUnits as item (item.unit.id)}
-        <div class="badge-cell" title={item.earned ? `${item.unit.label} — ${t('badgeEarnedSuffix')}` : `${item.unit.label} — ${t('badgeLockedSuffix')}`}>
-          {#if item.earned}
-            <button
-              class="badge-slot earned"
-              onclick={() => selectedBadge = item}
-              aria-label="{item.unit.label} — {t('badgeEarnedSuffix')}"
-            >
-              <img src={item.src} alt="{t('badgesPanelLabel')} {item.unit.displayName}" class="badge-img" />
-            </button>
-          {:else}
-            <div class="badge-slot">
-              <img src={item.src} alt="" class="badge-img badge-silhouette" aria-hidden="true" />
-              <div class="badge-lock">
-                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="lock-icon"
-                   stroke="rgba(255,255,255,0.7)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                </svg>
-              </div>
-            </div>
-          {/if}
-          <span class="unit-label">{item.unit.displayName}</span>
-        </div>
-      {/each}
-    </div>
-
+<!-- ── Floating badge stack — sin contenedor/panel, flotando sobre el background ── -->
+<div class="badge-float" aria-label={t('badgesPanelAriaLabel')}>
+  <div class="badge-grid">
+    {#each badgeUnits as item (item.unit.id)}
+      <div 
+        class="badge-cell" 
+        title={item.earned ? `${item.unit.label} — ${t('badgeEarnedSuffix')}` : `${item.unit.label} — ${t('badgeLockedSuffix')}`}
+      >
+        {#if item.earned}
+          <button
+            class="badge-slot earned"
+            onclick={() => selectedBadge = item}
+            aria-label="{item.unit.label} — {t('badgeEarnedSuffix')}"
+          >
+            <img src={item.src} alt="{t('badgesPanelLabel')} {item.unit.displayName}" class="badge-img" />
+          </button>
+        {:else}
+          <div class="badge-slot">
+            <!-- Bloqueado: usa el arte dedicado de badgeBlockedUrl() -->
+            <img 
+              src={badgeBlockedUrl()} 
+              alt="{t('badgesPanelLabel')} {item.unit.displayName} — {t('badgeLockedSuffix')}" 
+              class="badge-img" 
+            />
+          </div>
+        {/if}
+      </div>
+    {/each}
   </div>
 </div>
 
+<!-- ── Badge modal: mostrado al hacer click en una insignia ganada ── -->
 {#if selectedBadge}
   <div
     class="modal-backdrop"
@@ -100,11 +79,13 @@
   >
     <div class="modal-card" role="dialog" aria-modal="true" tabindex="-1">
 
+      <!-- Esquinas decorativas -->
       <span class="modal-bracket tl"></span>
       <span class="modal-bracket tr"></span>
       <span class="modal-bracket bl"></span>
       <span class="modal-bracket br"></span>
 
+      <!-- Botón de cierre -->
       <button class="modal-close" onclick={() => selectedBadge = null} aria-label="Cerrar">
         <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
           <line x1="3" y1="3" x2="13" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -112,6 +93,7 @@
         </svg>
       </button>
 
+      <!-- Imagen de la insignia -->
       <div class="modal-badge-wrap">
         <img
           src={selectedBadge.src}
@@ -120,6 +102,7 @@
         />
       </div>
 
+      <!-- Código de la unidad (Pill/Chip style) -->
       <p class="modal-unit-code">{selectedBadge.unit.displayName}</p>
 
     </div>
@@ -127,152 +110,29 @@
 {/if}
 
 <style>
- .badge-panel {
+  /* ── Floating badge stack ─────────────────────────────────────────── */
+  .badge-float {
     position: fixed;
-    right: 0;
-    top: 0;
-    /* --vvh is set by App.svelte via visualViewport API (same fix used for app-root).
-       Conservative 240px overhead (190 + 50px) guards against pre-JS render. */
-    height: 100vh;
-    --badge-size: clamp(50px, calc((100vh - 240px) / 6), 110px);
-    /* flex row: [handle | content] */
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-
-    /* Expanded: fully visible */
-    transform: translateX(0);
-    transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
-
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
     z-index: 60;
     pointer-events: none;
-
-    background: linear-gradient(160deg, rgba(0,12,34,0.97) 0%, rgba(0,22,56,0.94) 100%);
-    border: 1px solid rgba(70,150,255,0.28);
-    border-right: none;
-    border-radius: 12px 0 0 12px;
-
-    box-shadow:
-      inset 0 1px 0 rgba(255,255,255,0.05),
-      inset 0 -1px 0 rgba(0,0,0,0.4),
-      0 8px 40px rgba(0,0,0,0.7),
-      0 0 28px rgba(40,100,220,0.12);
-
-    overflow: hidden;
+    --badge-size: clamp(40px, calc((90vh - 40px) / 6), 250px);
   }
 
-  /* Collapsed: only the handle (38px) remains visible at screen edge.
-     Content width = --badge-size + 10px left + 14px right padding = badge + 24px */
-  .badge-panel.collapsed {
-    transform: translateX(calc(var(--badge-size) + 24px));
-  }
-
-  /* ── Handle ──── */
-  .panel-handle {
-    width: 38px;
-    flex-shrink: 0;
-    align-self: stretch;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-
-    background: transparent;
-    border: none;
-    border-right: 1px solid rgba(70,140,255,0.15);
-    cursor: pointer;
-    pointer-events: auto;
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    transition: background 0.2s ease;
-  }
-
-  @media (hover: hover) {
-    .panel-handle:hover {
-      background: rgba(80,140,255,0.07);
+  /* ── Visual viewport sync (iOS / Dynamic viewports) ───────────────── */
+  @supports (height: 100dvh) {
+    .badge-float {
+      --badge-size: clamp(40px, calc((var(--vvh, 100dvh) * 0.9 - 40px) / 6), 250px);
     }
   }
 
-  .handle-chevron {
-    width: 14px;
-    height: 14px;
-    flex-shrink: 0;
-    transition: transform 0.32s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  .badge-panel.collapsed .handle-chevron {
-    transform: rotate(180deg);
-  }
-
-  .handle-title {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    color: rgba(110,180,255,0.75);
-    text-shadow: 0 0 8px rgba(80,160,255,0.4);
-    user-select: none;
-    white-space: nowrap;
-  }
-
-  /* ── Panel content ────────────────────────────── */
-  .panel-content {
-    flex: 1;
-    min-width: 0;
-    position: relative;
-    padding: 14px 14px 14px 10px;
-    overflow: hidden;
-    pointer-events: none;
+  .badge-grid {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-  }
-
-  .bracket {
-    position: absolute;
-    width: 10px;
-    height: 10px;
-    border-color: rgba(80,160,255,0.45);
-    border-style: solid;
-    pointer-events: none;
-  }
-  .bracket.tl { top: 5px; left: 5px;  border-width: 1.5px 0 0 1.5px; border-radius: 2px 0 0 0; }
-  .bracket.tr { top: 5px; right: 5px; border-width: 1.5px 1.5px 0 0; border-radius: 0 2px 0 0; }
-  .bracket.bl { bottom: 5px; left: 5px;  border-width: 0 0 1.5px 1.5px; border-radius: 0 0 0 2px; }
-  .bracket.br { bottom: 5px; right: 5px; border-width: 0 1.5px 1.5px 0; border-radius: 0 0 2px 0; }
-
-  .scanline {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(
-      180deg,
-      transparent 0%,
-      rgba(80,160,255,0.04) 45%,
-      rgba(80,160,255,0.07) 50%,
-      rgba(80,160,255,0.04) 55%,
-      transparent 100%
-    );
-    background-size: 100% 200%;
-    animation: scanline-sweep 6s linear infinite;
-    z-index: 1;
-  }
-
-  @keyframes scanline-sweep {
-    0%   { background-position: 0% -100%; }
-    100% { background-position: 0% 200%; }
-  }
-
-  /* ── Badge grid ───────────────────────────────── */
-  .badge-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 12px;
-    position: relative;
-    z-index: 2;
+    align-items: center;
+    gap: 8px;
   }
 
   .badge-cell {
@@ -289,12 +149,6 @@
     display: flex;
     align-items: center;
     justify-content: center;
-  }
-
-  .badge-slot:not(.earned) {
-    filter: drop-shadow(0 0 1.5px rgba(80,150,255,0.75))
-            drop-shadow(0 0 5px rgba(60,110,255,0.28))
-            drop-shadow(0 3px 8px rgba(0, 0, 0, 0.5));
   }
 
   .badge-slot.earned {
@@ -331,133 +185,43 @@
     z-index: 1;
   }
 
-  .badge-silhouette {
-    filter: grayscale(100%) sepia(1) hue-rotate(195deg) saturate(2.5) brightness(0.38) contrast(0.2);
-    opacity: 0.7;
-    animation: badge-shimmer 4s ease-in-out infinite;
-  }
-
-  @keyframes badge-shimmer {
-    0%,  100% { opacity: 0.7; filter: grayscale(100%) sepia(1) hue-rotate(195deg) saturate(2.5) brightness(0.38) contrast(0.2); }
-    50%        { opacity: 0.55; filter: grayscale(100%) sepia(1) hue-rotate(210deg) saturate(2) brightness(0.30) contrast(0.2); }
-  }
-
-  .unit-label {
-    font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 9px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    color: rgba(100,155,230,0.6);
-    text-align: center;
-    line-height: 1;
-    user-select: none;
-  }
-
-  .badge-slot.earned + .unit-label,
-  .badge-cell:has(.earned) .unit-label {
-    color: rgba(130,220,110,0.75);
-    text-shadow: 0 0 6px rgba(57,255,20,0.3);
-  }
-
-  .badge-lock {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2;
-  }
-
-  .lock-icon {
-    width: 30px;
-    height: 30px;
-  }
-
-  /* ── Landscape phones ─────────────────────────── */
-  @media (max-height: 500px) and (orientation: landscape) {
-    .badge-panel {
-      --badge-size: clamp(38px, calc((100% - 100px) / 6), 78px);
-    }
-    .badge-panel.collapsed { transform: translateX(calc(var(--badge-size) + 17px)); }
-    .panel-content { padding: 9px 9px 9px 8px; }
-    .badge-grid { gap: 8px; }
-    .lock-icon { width: 22px; height: 22px; }
-    .unit-label { font-size: 8px; }
-  }
-
-  /* ── Portrait ── */
+  /* ── Portrait Layout ──────────────────────────────────────────────── */
   @media (orientation: portrait) {
-    .badge-panel {
+    .badge-float {
       right: auto;
       top: auto;
-      bottom: 0;
+      bottom: 64px;
       left: 50%;
-      height: auto;
-      width: 100%;
-      transform: translateX(-50%) translateY(0);
-      flex-direction: column;
-      border-radius: 12px 12px 0 0;
-      border-right: 1px solid rgba(70,150,255,0.28);
-      border-bottom: none;
+      transform: translateX(-50%);
+      max-width: calc(100vw - 24px);
+      --badge-size: clamp(28px, calc((90vw - 40px) / 6), 120px);
     }
-
-    .badge-panel.collapsed {
-      transform: translateX(-50%) translateY(calc(100% - 36px));
-    }
-
-    .panel-handle {
-      width: 100%;
-      height: 36px;
-      flex-direction: row;
-      gap: 10px;
-      border-right: none;
-      border-bottom: 1px solid rgba(70,140,255,0.15);
-    }
-
-    .handle-chevron {
-      transform: rotate(90deg);
-    }
-
-    .badge-panel.collapsed .handle-chevron {
-      transform: rotate(-90deg);
-    }
-
-    .handle-title {
-      writing-mode: horizontal-tb;
-      transform: none;
-      font-size: 16px;
-      letter-spacing: 0.15em;
-    }
-  }
-
-  /* ── Portrait phones ──────────────────────────── */
-  @media (max-width: 600px) and (orientation: portrait) {
-    .badge-panel { width: 100%; }
-    .panel-content { padding: 10px; }
-    .badge-slot, .badge-img { width: 68px; height: 68px; }
-    .badge-grid { 
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px; 
-    }
-  }
-
-  /* ── Portrait tablets ── */
-  @media (min-width: 601px) and (orientation: portrait) {
-    .badge-panel { width: 100%; }
-    .panel-content { padding: 8px 14px 10px; }
     .badge-grid {
-      grid-template-columns: unset;
-      grid-auto-flow: column;
-      grid-auto-columns: auto;
-      gap: 10px;
+      flex-direction: row;
+      flex-wrap: nowrap;
       justify-content: center;
+      gap: 8px;
     }
-    .badge-slot, .badge-img { width: 72px; height: 72px; }
-    .lock-icon { width: 22px; height: 22px; }
-    .unit-label { font-size: 8px; }
   }
 
-  /* ── Badge modal ──────────────────────────────── */
+  /* ── Landscape phones ─────────────────────────────────────────────── */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .badge-float {
+      right: 8px;
+      --badge-size: clamp(28px, calc((90vh - 30px) / 6), 140px);
+    }
+    .badge-grid { gap: 6px; }
+  }
+
+  @supports (height: 100dvh) {
+    @media (max-height: 500px) and (orientation: landscape) {
+      .badge-float {
+        --badge-size: clamp(28px, calc((var(--vvh, 100dvh) * 0.9 - 30px) / 6), 140px);
+      }
+    }
+  }
+
+  /* ── Badge Modal ──────────────────────────────────────────────────── */
   .modal-backdrop {
     position: fixed;
     inset: 0;
@@ -551,12 +315,19 @@
   }
 
   .modal-unit-code {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-family: 'Rubik', system-ui, -apple-system, sans-serif;
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 700;
-    letter-spacing: 0.25em;
-    color: rgba(90,150,255,0.7);
+    letter-spacing: 0.15em;
+    color: #0F3A4E;
+    background: #F4F2EC;
     text-transform: uppercase;
+    padding: 6px 18px;
+    border-radius: 999px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.45);
     margin-top: 16px;
   }
 

@@ -3,6 +3,7 @@
   import UnitIcon from './UnitIcon.svelte';
   import { getTheme } from '../lib/theme.svelte';
   import { STATUS_LABELS } from '../lib/program-config';
+  import { ICON_COLORS } from '../lib/icon-colors';
 
   const theme = $derived(getTheme());
 
@@ -36,6 +37,7 @@
 
   const sw = 3.5;
   const isStart = $derived(index === 0);
+  // Sphere size never depends on status — only fill colour does (see `colors`).
   const sz = $derived(isStart ? size * 1.15 : size);
   const r = $derived(sz / 2);
   const pr = $derived(r - sw / 2);
@@ -60,7 +62,7 @@
     return STATUS_LABELS.locked;
   });
 
-  const iconSize = $derived(isStart ? 28 : 24);
+  const iconSize = $derived((isStart ? 28 : 24) * 1.2); // +20% (2026-07-17 feedback)
   const iconOff = $derived(iconSize / 2);
   const labelBelow = $derived(y >= galacticCenterY);
   const fullLabelGap = 12;
@@ -99,6 +101,55 @@
     return lines.slice(0, 2);
   }
 
+  // Compact icon: base 20.8, +20% then -15%, then +30%, then +30% again (2026-07-08, 2026-07-09
+  // feedback) — the icon shouldn't compete with the unit number/code, but still needs to read
+  // clearly at radar scale.
+  const C_ICON_BASE = 20.8 * 1.2 * 0.85 * 1.3 * 1.3 * 1.2; // +20% (2026-07-17 feedback)
+  const cIcon   = $derived(
+    unit.status === 'locked' ? C_ICON_BASE * 1.2   // locked lock icon +20% on top of the base, for stroke visibility
+    : C_ICON_BASE
+  );
+
+  // Craters — position/size as fractions of the sphere radius r (adapted from a reference
+  // .crater CSS design). Tinted to each sphere's own gradient colour (colors.g2) rather than
+  // a fixed hue, so it reads correctly on amber/green/grey/purple spheres alike. Plain rgba()
+  // fill only — no opacity/filter attrs — the confirmed-safe pattern for Mali-G52 (see
+  // project memory on the Samsung Tab A8 GPU artifact). Per-crater `alpha` so any one of them
+  // can be made subtler without affecting the others (2026-07-07: crater-a was fighting the
+  // unit number for attention — moved off the number's zone and toned down, no inner shadow).
+  const CRATERS = [
+    { cx: -0.66, cy:  0.68, r: 0.11, shadow: false, alpha: 0.14 }, // small, lower-left corner, subtle
+    { cx:  0.59, cy: -0.41, r: 0.10, shadow: true,  alpha: 0.25 }, // medium, upper-right
+    { cx:  0.73, cy:  0.19, r: 0.07, shadow: false, alpha: 0.22 }, // small, flat (older crater)
+  ];
+  function craterTone(hex: string, factor: number, alpha: number): string {
+    const n = parseInt(hex.replace('#', ''), 16);
+    const r8 = Math.round(((n >> 16) & 255) * factor);
+    const g8 = Math.round(((n >> 8) & 255) * factor);
+    const b8 = Math.round((n & 255) * factor);
+    return `rgba(${r8},${g8},${b8},${alpha})`;
+  }
+  const craterShadow = $derived(craterTone(colors.g2, 0.6, 0.4));
+
+  // Unit number: the dominant element inside the sphere — it's the code that orients the
+  // child on the map, not the icon (2026-07-07 feedback). ~1/3 of the sphere's diameter,
+  // reduced 30% (2026-07-09 feedback) as the icon grows to take more of the visual weight.
+  const numberFont = $derived((2 * r) / 3 * 0.84);
+  // Number fill matches its sphere's icon color (2026-07-17 feedback) — flat, no outline/shadow.
+  // Locked spheres show the candado icon instead of unit.icon, so match that colour instead.
+  const numberColor = $derived(
+    unit.status === 'locked' ? ICON_COLORS.candado : (ICON_COLORS[unit.icon] ?? colors.icon)
+  );
+
+  // Icon + number read as a single centred block (icon above, number below, small gap)
+  // instead of being pinned to opposite poles with a dead zone between them.
+  const BLOCK_GAP = 7;
+  const blockH  = $derived(cIcon + BLOCK_GAP + numberFont);
+  const iconCY  = $derived(-blockH / 2 + cIcon / 2);
+  const cIconTX = $derived(-cIcon / 2);
+  const cIconTY = $derived(iconCY - cIcon / 2);
+  const numberY = $derived(blockH / 2 - numberFont / 2);
+
   let selected = $state(false);
   function onSelect() {
     if (!isActive) return;
@@ -127,7 +178,6 @@
   </defs>
 
   {#if isActive}
-    <circle class:heartbeat={isInProgress} cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
     <!-- Hover glow border -->
     <circle class="halo-ring" cx="0" cy="0" r={r + 5} fill="none"
             stroke={colors.glow} stroke-width="0.8" />
@@ -139,62 +189,82 @@
             stroke="#ffffff" stroke-width="0" />
   {/if}
 
-  <circle
-    class:heartbeat={isInProgress}
-    cx="0" cy="0" r={r}
-    fill="url(#{gradId})"
-  />
+  <!-- Beat group: sphere, rings and pill scale together on heartbeat / hover,
+       so the continuous sphere+pill outline moves as a single object. -->
+  <g class="beat" class:heartbeat={isInProgress}>
+    {#if isActive}
+      <!-- Toned down (2026-07-07 feedback): was brighter than the sphere's own surface -->
+      <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.15" />
+    {/if}
 
-  {#if isActive}
-    <circle cx="0" cy="0" r={pr} fill="none" stroke={theme.progressRingBg} stroke-width={sw} />
+    {#if unit.status === 'completed'}
+      <!-- Soft glow behind completed spheres: was an feGaussianBlur+feMerge filter (its own
+           GPU compositing layer per completed unit — confirmed Mali-G52 artifact trigger,
+           unconditional on every home-page load with any completed unit, project memory).
+           Replaced with plain rgba() layered circles — same "no opacity/filter attrs" pattern
+           already used for the craters below. -->
+      <circle cx="0" cy="0" r={r + 10} fill={craterTone(colors.glow, 1, 0.10)} />
+      <circle cx="0" cy="0" r={r + 6}  fill={craterTone(colors.glow, 1, 0.18)} />
+      <circle cx="0" cy="0" r={r + 3}  fill={craterTone(colors.glow, 1, 0.28)} />
+    {/if}
+
     <circle
-      cx="0" cy="0" r={pr}
-      fill="none" stroke={colors.ring} stroke-width={sw}
-      stroke-dasharray={circ} stroke-dashoffset={dashOff}
-      stroke-linecap="round" transform="rotate(-90)"
-      class="progress-ring"
+      cx="0" cy="0" r={r}
+      fill="url(#{gradId})"
     />
 
-  {/if}
+    <!-- Craters -->
+    <g transform="rotate({(index * 47) % 360})">
+      {#each CRATERS as c}
+        <circle cx={c.cx * r} cy={c.cy * r} r={c.r * r} fill={craterTone(colors.g2, 1, c.alpha)} />
+        {#if c.shadow}
+          <circle cx={(c.cx + c.r * 0.3) * r} cy={(c.cy + c.r * 0.35) * r}
+                  r={c.r * r * 0.55} fill={craterShadow} />
+        {/if}
+      {/each}
+    </g>
+
+    {#if isActive}
+      <circle
+        cx="0" cy="0" r={pr}
+        fill="none" stroke={colors.ring} stroke-width={sw}
+        stroke-dasharray={circ} stroke-dashoffset={dashOff}
+        stroke-linecap="round" transform="rotate(-90)"
+        class="progress-ring"
+      />
+    {/if}
 
   {#if !isActive}
-    {@const firstWord = unit.label.split(' ')[0]}
-    {@const cs = r / 50}
-    <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.5" stroke-opacity="0.7" />
-    <g transform="scale({cs})">
-      <svg x="-7" y="-32" width="14" height="14" viewBox="0 0 24 24"
-           fill="none" stroke={colors.icon} stroke-width="1.8"
-           stroke-linecap="round" stroke-linejoin="round">
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-      </svg>
-      <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-inside" fill={colors.icon}>{firstWord}</text>
-      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-unit-num" fill={colors.icon}>U{index}</text>
+    <!-- Icon in the upper sphere -->
+    <g transform="translate({cIconTX},{cIconTY})" opacity="0.6">
+      <UnitIcon icon="candado" size={cIcon} color="#4b5563" />
     </g>
+    <!-- Unit number: locked → flat, disabled look, fill matches the lock icon colour -->
+    <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
+          class="planet-number planet-number-disabled" fill={numberColor} style="font-size: {numberFont}px">
+      {unit.displayName}
+    </text>
   {:else if compact}
-    {@const firstWord = unit.label.split(' ')[0]}
-    {@const cs = r / 50}
-    <g transform="scale({cs})">
-      <g transform="translate(-7,-32)">
-        <UnitIcon icon={unit.icon} size={14} color={colors.icon} />
-      </g>
-      <text x="0" y="0" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-inside" fill={colors.icon}>{firstWord}</text>
-      <text x="0" y="25" text-anchor="middle" dominant-baseline="middle"
-            class="lbl-unit-num" fill={colors.icon}>U{index}</text>
+    <!-- Icon in the upper sphere -->
+    <g transform="translate({cIconTX},{cIconTY})">
+      <UnitIcon icon={unit.icon} size={cIcon} color="#00102A" />
     </g>
+    <!-- Unit number: flat fill matching the sphere's icon colour, no outline/shadow -->
+    <text x="0" y={numberY} text-anchor="middle" dominant-baseline="middle"
+          class="planet-number" fill={numberColor} style="font-size: {numberFont}px">
+      {unit.displayName}
+    </text>
   {:else}
     <!-- Full mode (UnitDetailView center node, etc.) -->
     <g transform="translate({-iconOff}, {-iconOff - 5})">
       <UnitIcon icon={unit.icon} size={iconSize} color={colors.icon} />
     </g>
     <text x="0" y={iconOff + 3} text-anchor="middle" dominant-baseline="middle"
-          class="lbl-unit-id" fill={colors.icon}>
+          class="lbl-unit-id" fill={numberColor}>
       {unit.displayName}
     </text>
   {/if}
+  </g>
 
   <!-- Labels -->
   {#if compact}
@@ -259,14 +329,14 @@
   /* Only activate hover effects on real pointer devices — prevents stuck hover on Android touch */
   @media (hover: hover) {
     .node.clickable:hover .halo-ring {
-      stroke-opacity: 0.7;
-      stroke-width: 2;
+      stroke-opacity: 0.85;
+      stroke-width: 3;
       animation: border-pulse 1.2s ease-in-out infinite;
     }
   }
   @keyframes border-pulse {
-    0%, 100% { stroke-opacity: 0.4; stroke-width: 0.5; }
-    50%       { stroke-opacity: 0.8; stroke-width: 1.5; }
+    0%, 100% { stroke-opacity: 0.5; stroke-width: 1.5; }
+    50%       { stroke-opacity: 1.0; stroke-width: 3; }
   }
   .node.selected .halo-ring {
     animation: none !important;
@@ -291,9 +361,17 @@
     transition: stroke-opacity 0.3s ease, stroke-width 0.3s ease;
   }
 
+  /* Whole sphere+pill group shares one transform origin so scale stays centered */
+  .beat { transform-origin: 0 0; }
+
   .heartbeat {
     animation: heartbeat 2s ease-in-out infinite;
     transform-origin: 0 0;
+  }
+
+  /* Hover: the entire shape (sphere + pill) breathes together, not just the sphere */
+  @media (hover: hover) {
+    .node.clickable:hover .beat { animation: heartbeat 2s ease-in-out infinite; }
   }
   @keyframes heartbeat {
     0%   { transform: scale(1); }
@@ -309,7 +387,13 @@
   .lbl-status { font: 600 11px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact     { font: 700 14px/1 'Rubik', system-ui, sans-serif; }
   .lbl-compact-sub { font: 400 12px/1 'Rubik', system-ui, sans-serif; }
-  .lbl-unit-id     { font: 700 9px/1 'Rubik', system-ui, sans-serif; fill-opacity: 0.85; }
-  .lbl-inside      { font: 700 13px/1 'Rubik', system-ui, sans-serif; pointer-events: none; }
-  .lbl-unit-num    { font: 400 10px/1 'Rubik', system-ui, sans-serif; pointer-events: none; fill-opacity: 0.7; }
+  .lbl-unit-id     { font: 800 9px/1 'Roboto', system-ui, sans-serif; fill-opacity: 0.85; }
+  .planet-number {
+    font: 800 1em/1 'Roboto', system-ui, sans-serif;
+    pointer-events: none;
+  }
+  /* Disabled (locked) look: flat, dimmed like the locked activity chips. */
+  .planet-number-disabled {
+    fill-opacity: 0.45;
+  }
 </style>

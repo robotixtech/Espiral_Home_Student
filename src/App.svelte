@@ -39,6 +39,23 @@
   }
 
   const bgImageUrl = $derived(`url('${getPluginAssetUrl(bgImage)}')`);
+    // Reactively update body background when theme changes
+  $effect(() => {
+    const s = document.body.style;
+    const h = theme.body.slice(1);
+    const [br, bg, bb] = [0,2,4].map(i => parseInt(h.slice(i,i+2),16));
+    s.backgroundColor = `rgba(${br},${bg},${bb},0.8)`;
+    s.color = theme.text.primary;
+  });
+
+  // ── Visual Viewport sync ──────────────────────────────────────────────────
+  // Chrome on iOS keeps position:fixed relative to the LAYOUT viewport, not the
+  // visual viewport.  When the browser applies any page zoom the layout viewport
+  // and the visible area diverge, so .app-root drifts off-screen.
+  // We compensate by pinning .app-root exactly to the visual viewport dimensions
+  // using the VisualViewport API (available Chrome 61+, Safari 13+).
+  let appEl: HTMLElement | undefined = $state();
+
 
   onMount(async () => {
     // Detección robusta de Android para optimizaciones de rendimiento gráfico (Mali-G52)
@@ -86,6 +103,7 @@
   style:background-position="bottom"
   style:background-repeat="no-repeat"
   style:background-size="cover"
+  bind:this={appEl}
 >
   {#if isEmpty}
     <div class="state-container empty-state">
@@ -117,7 +135,7 @@
           currentView = 'activity-slide';
         }}
       />
-      <BadgePanel program={homeProgram} />
+      
     {:else if currentView === 'unit-detail' && selectedUnit}
       <UnitDetailView
         unit={selectedUnit}
@@ -139,6 +157,12 @@
     {/if}
   {/if}
 </main>
+
+<!-- BadgePanel outside .app-root so it's also zoom-independent — positioned in the body
+     stacking context directly. -->
+{#if appState.kind === 'ready' && currentView === 'home' && homeProgram}
+  <BadgePanel program={homeProgram} />
+{/if}
 
 <style>
   /* Reseteos locales e independientes para proteger el entorno Moodle */

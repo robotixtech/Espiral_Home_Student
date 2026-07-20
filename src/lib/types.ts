@@ -17,7 +17,9 @@ export interface ProgramUnit {
   // Conservamos la inyección de insignias enviada desde Moodle (de cambios_block)
   badge?: {
     earned: boolean;
-    badgeUrl: string;
+    badgeUrl?: string;
+    badgeurl?: string;  // Soporte para Moodle JSON en minúsculas
+    badge_url?: string; // Soporte para Moodle JSON en snake_case
   };
 }
 

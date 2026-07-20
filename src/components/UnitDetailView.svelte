@@ -171,6 +171,7 @@
         </filter>
       {/if}
 
+      <!-- Line glow filters — userSpaceOnUse to handle thin/degenerate bbox on lines -->
       <filter id="line-glow-blue" filterUnits="userSpaceOnUse" x="0" y="0" width={W} height={H}>
         <feGaussianBlur stdDeviation="6" in="SourceGraphic" result="blur-o" />
         <feFlood flood-color={theme.unit.inProgress.glow} flood-opacity="0.35" result="color-o" />
@@ -200,8 +201,10 @@
       </filter>
     </defs>
 
+    <!-- Background -->
     <rect x={vb.x} y={vb.y} width={vb.w} height={vb.h} fill="url(#detail-bg-grad)" opacity="0.85" />
 
+    <!-- Back button -->
     <g
       class="back-btn"
       transform="translate({backX}, {backY})"
@@ -218,12 +221,14 @@
       <text x="22" y="5" fill={theme.text.primary} class="back-text">Volver</text>
     </g>
 
+    <!-- Orbit ring (dashed) -->
     <circle
       cx={centerX} cy={centerY} r={orbitRadius}
       fill="none" stroke={theme.spiral} stroke-width="1.5"
       stroke-dasharray="10 7" opacity="0.55"
     />
 
+    <!-- Connection lines: activities -->
     {#if activitiesVisible}
       {#each activities as act, i (act.id)}
         {@const pos = activityPositions[i]}
@@ -242,6 +247,7 @@
         {/if}
       {/each}
 
+      <!-- Connection line: Continuar -->
       <line
         x1={centerX} y1={centerY}
         x2={continuarPos.x} y2={continuarPos.y}
@@ -254,6 +260,8 @@
       />
     {/if}
 
+    <!-- Center node -->
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <g
       class:center-toggle={allMandatoryDone}
       role={allMandatoryDone ? 'button' : undefined}
@@ -272,6 +280,7 @@
       >{activitiesCollapsed ? '▼ ver actividades' : '▲ ocultar'}</text>
     {/if}
 
+    <!-- Activity nodes -->
     {#if activitiesVisible}
       {#each activities as act, i (act.id)}
         {@const pos = activityPositions[i]}
@@ -281,7 +290,9 @@
       {/each}
     {/if}
 
+    <!-- Continuar node — text label with fitted background -->
     {#if activitiesVisible}
+    <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
     <g
       class="continuar-node"
       class:unlocked={continuarUnlocked}

@@ -1,15 +1,15 @@
 import type { ProgramUnit } from './types';
 import { BADGES } from './master-config';
 
-// Los valores de configuración se definen centralizados en src/lib/master-config.ts → Sección BADGES.
-const { minGrade: MIN_GRADE, unitPattern: BADGE_UNIT_PATTERN, blockedImageUrl: BLOCKED_IMAGE_URL } = BADGES;
+// Values are defined in src/lib/master-config.ts → BADGES section.
+const { minGrade: MIN_GRADE, unitPattern: BADGE_UNIT_PATTERN } = BADGES;
 
 function resolveBadgeUrl(programShortname: string, unitDisplayName: string): string {
   return `${import.meta.env.BASE_URL}badges/${programShortname}_${unitDisplayName}.png`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-//  API PÚBLICA  —  consumida por BadgePanel.svelte
+//  API PÚBLICA  —  consumida por Badges_panel.svelte
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /** Devuelve true si la unidad tiene badge asociado. */
@@ -22,26 +22,24 @@ export function badgeUrl(programShortname: string, unitDisplayName: string): str
   return resolveBadgeUrl(programShortname, unitDisplayName);
 }
 
-/** Devuelve true si el alumno ha ganado el badge de la unidad. */
-export function isBadgeEarned(unit: ProgramUnit): boolean {
-  return effectivelyCompleted(unit) && (unit.grade ?? 0) >= MIN_GRADE;
+/** Devuelve la URL de la imagen a mostrar cuando un badge está en estado "blocked".
+ *  Apunta al directorio del bloque de Moodle: /blocks/espiral_dashboard/visual/badges/badge_locked.webp */
+export function badgeBlockedUrl(): string {
+  const path = '/blocks/espiral_dashboard/visual/badges/badge_locked.webp';
+
+  // Si se ejecuta en el navegador y Moodle define su URL base (wwwroot), la concatenamos
+  if (typeof window !== 'undefined') {
+    const wwwroot = (window as any).M?.cfg?.wwwroot || (window as any).CFG?.wwwroot;
+    if (wwwroot) {
+      return `${wwwroot.replace(/\/$/, '')}${path}`;
+    }
+  }
+
+  return path;
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-//  LÓGICA INTERNA
-// ═══════════════════════════════════════════════════════════════════════════════
-
-function effectivelyCompleted(unit: ProgramUnit): boolean {
-  if (unit.status === 'completed') return true;
-  if (unit.status === 'locked')    return false;
-
-  const activities = unit.activities ?? [];
-  if (activities.length === 0) return false;
-
-  const milestoneIdx = activities.findIndex(a => a.label === COMPLETION_ACTIVITY);
-  const threshold = milestoneIdx >= 0
-    ? ((milestoneIdx + 1) / activities.length) * 100
-    : 100;
-
-  return unit.progress >= threshold;
+/** Devuelve true si el alumno ha ganado el badge de la unidad — la unidad de referencia debe
+ *  estar en status "completed" */
+export function isBadgeEarned(unit: ProgramUnit): boolean {
+  return unit.status === 'completed' && (unit.grade ?? 0) >= MIN_GRADE;
 }
