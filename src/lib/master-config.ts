@@ -16,7 +16,6 @@ export const CANVAS = {
 } as const;
 
 // ── SPIRAL ────────────────────────────────────────────────────────────────
-// Geometría de la espiral: tamaños de nodos, órbitas y etiquetas.
 export const SPIRAL = {
   unitSize:       100,      // diámetro de los nodos planeta (px)
   actOrbit:        65,      // distancia del centro del planeta al centro de su luna (px)
@@ -29,6 +28,8 @@ export const SPIRAL = {
   labelPadY:        5,      // padding vertical dentro de la píldora de etiqueta (px)
   labelGapPx:      14,      // separación del borde visual del nodo al borde de la píldora (px)
   goldenAngleDeg: 137.508,  // ángulo áureo — evita alineaciones radiales entre órbitas (°)
+  angleStepDeg:    60,      // "Planetary" distribution: regular hexagon (60° between units)
+  startAngleDeg:  -90,      // usually starts at top
 } as const;
 
 // ── ZOOM ──────────────────────────────────────────────────────────────────
