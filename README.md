@@ -267,58 +267,6 @@ Campo `label` de las activities que tienen `slides[]`. El array `slides` define 
 
 ---
 
-## Integración Moodle Workplace 4.5
-
-La app ya carga datos reales de Moodle (progreso y compleción de cursos) pero le faltan dos campos por unidad para que badges y actividades funcionen con datos reales. El checklist completo vive en **`src/lib/master-config.ts` → sección `MOODLE_INTEGRATION`**.
-
-### Estado actual de la integración
-
-| Campo | Estado | Fuente actual |
-|---|---|---|
-| `status` (locked / in-progress / completed) | ✅ Implementado | `core_enrol_get_users_courses` → `completed` + `progress` |
-| `progress` (0–100) | ✅ Implementado | `core_enrol_get_users_courses` → `progress` |
-| `grade` (0–10, para badges) | ⏳ Pendiente | Hardcodeado como `undefined` |
-| `activities[]` (lessons con progreso real) | ⏳ Pendiente | Leído de `master-config.ts` (datos estáticos) |
-
-### Pasos pendientes
-
-**Paso 1 — `src/lib/moodle-api.ts`**
-
-Implementar los dos stubs existentes:
-
-| Método | Endpoint Moodle (orientativo) | Para qué sirve |
-|---|---|---|
-| `getUnitGrade(courseId, userId)` | `gradereport_overview_get_course_grades` | Nota 0–10 del alumno → decide si se otorga el badge |
-| `getCourseActivities(courseId, userId)` | `core_course_get_contents` + `core_completion_get_activities_completion_status` | Lista de actividades con estado completado/no por alumno |
-
-> Verificar nombre exacto de los endpoints y estructura de respuesta en la documentación oficial de Moodle Workplace 4.5 antes de implementar.
-
-**Paso 2 — `src/lib/program-loader.ts`**
-
-Dentro del `map` de `programCourses`, añadir los dos campos al `return`:
-
-```typescript
-grade:      await api.getUnitGrade(course.id, userId) ?? undefined,
-activities: await api.getCourseActivities(course.id, userId),
-```
-
-El resultado de `getCourseActivities` debe mapearse al tipo `Activity[]` de `src/lib/types.ts`, cruzando los datos de Moodle con los `label` / `icon` / `slides` definidos en `master-config.ts`.
-
-**Paso 3 — Validar criterios de badge**
-
-Una vez lleguen datos reales, revisar en `master-config.ts`:
-
-```typescript
-BADGES.minGrade           = 6          // nota mínima para otorgar el badge
-BADGES.completionActivity = 'DemoDay'  // actividad que marca la unidad como completada
-```
-
-**Paso 4 — Eliminar el fallback mock (cuando la API esté estable)**
-
-`src/App.svelte` tiene un bloque `catch` que carga `MOCK_PROGRAM` como red de seguridad cuando Moodle no responde. En producción puede eliminarse o convertirse en error visible. Los datos mock están en `src/lib/mock-data.ts`.
-
----
-
 ## Arquitectura de ficheros
 
 ```

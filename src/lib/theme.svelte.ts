@@ -67,20 +67,20 @@ const DARK: ThemeColors = {
   },
   unit: {
     completed: {
-      g1: '#34d399', g2: '#059669', ring: '#34d399', glow: '#10b981',
-      icon: '#fff', lBg: 'rgba(16,185,129,0.25)', lBorder: 'rgba(52,211,153,0.4)', lText: '#a7f3d0',
+      g1: '#87BDA6', g2: '#5A8773', ring: '#87BDA6', glow: '#87BDA6',
+      icon: '#001f3f', lBg: 'rgba(102,205,170,0.25)', lBorder: 'rgba(102,205,170,0.4)', lText: '#b2e8d4',
     },
     inProgress: {
       g1: '#fde68a', g2: '#d97706', ring: '#fbbf24', glow: '#f59e0b',
-      icon: '#78350f', lBg: 'rgba(245,158,11,0.3)', lBorder: 'rgba(251,191,36,0.5)', lText: '#fef3c7',
+      icon: '#001f3f', lBg: 'rgba(245,158,11,0.3)', lBorder: 'rgba(251,191,36,0.5)', lText: '#fef3c7',
     },
     locked: {
-      g1: '#374151', g2: '#1f2937', ring: '#4b5563', glow: 'transparent',
-      icon: '#6b7280', lBg: 'rgba(75,85,99,0.2)', lBorder: 'rgba(75,85,99,0.3)', lText: '#6b7280',
+      g1: '#8695a5', g2: '#5e6a78', ring: '#708090', glow: 'transparent',
+      icon: '#001f3f', lBg: 'rgba(112,128,144,0.2)', lBorder: 'rgba(112,128,144,0.3)', lText: '#d5dbe2',
     },
     finalProject: {
       g1: '#a855f7', g2: '#7c3aed', ring: '#c084fc', glow: '#a855f7',
-      icon: '#fff', lBg: 'rgba(168,85,247,0.3)', lBorder: 'rgba(168,85,247,0.5)', lText: '#e9d5ff',
+      icon: '#001f3f', lBg: 'rgba(168,85,247,0.3)', lBorder: 'rgba(168,85,247,0.5)', lText: '#e9d5ff',
     },
   },
   badge: { fill: '#059669', stroke: '#0d1020' },

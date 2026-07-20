@@ -35,7 +35,14 @@ export type UnitIcon =
   | 'trophy'     // final project
   | 'rocket'     // launch/platform
   | 'snowflake'  // cooling
-  | 'binoculars'; // observation
+  | 'binoculars' // observation
+  | 'u0'         // Unidad 0 (custom design asset)
+  | 'terra'      // U1-U2 (custom design asset)
+  | 'aqua'       // U3-U4 (custom design asset)
+  | 'aire'       // U5-U6 (custom design asset)
+  | 'candado'    // locked unit/badge (custom design asset)
+  | 'ia'         // IA sphere (custom design asset)
+  | 'quanta';    // Quanta/nanoQuanta sphere (custom design asset)
 
 /** A single content slide within an activity */
 export interface ActivitySlide {

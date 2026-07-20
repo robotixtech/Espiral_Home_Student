@@ -2,7 +2,7 @@ import type { ProgramUnit } from './types';
 import { BADGES } from './master-config';
 
 // Los valores de configuración se definen centralizados en src/lib/master-config.ts → Sección BADGES.
-const { minGrade: MIN_GRADE, completionActivity: COMPLETION_ACTIVITY, unitPattern: BADGE_UNIT_PATTERN } = BADGES;
+const { minGrade: MIN_GRADE, unitPattern: BADGE_UNIT_PATTERN, blockedImageUrl: BLOCKED_IMAGE_URL } = BADGES;
 
 function resolveBadgeUrl(programShortname: string, unitDisplayName: string): string {
   return `${import.meta.env.BASE_URL}badges/${programShortname}_${unitDisplayName}.png`;

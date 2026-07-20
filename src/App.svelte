@@ -6,6 +6,7 @@
   import { MOCK_PROGRAM } from './lib/mock-data';
   import { getTheme } from './lib/theme.svelte';
   import { getConfigByShortname } from './lib/program-config';
+  import { isIOSDevice } from './lib/device';
   import TreeNavigator from './components/TreeNavigator.svelte';
   import UnitDetailView from './components/UnitDetailView.svelte';
   import ActivitySlideView from './components/ActivitySlideView.svelte';
@@ -24,8 +25,8 @@
 
   const bgImage = $derived(
     appState.kind === 'ready'
-      ? (getConfigByShortname(appState.data.shortname)?.bgImage ?? 'background_opacity.png')
-      : 'background_opacity.png'
+      ? (getConfigByShortname(appState.data.shortname)?.bgImage ?? 'background_light.png')
+      : 'background_light.png'
   );
 
   // Helper de la rama Base: Resuelve las rutas reales dentro de la estructura de plugins de Moodle
@@ -41,9 +42,9 @@
 
   onMount(async () => {
     // Detección robusta de Android para optimizaciones de rendimiento gráfico (Mali-G52)
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-      (/Apple/.test(navigator.vendor) && navigator.maxTouchPoints > 1);
-    const uaPlatform = (navigator.userAgentData?.platform ?? '').toLowerCase();
+    const isIOS = isIOSDevice();
+    const uaData = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+    const uaPlatform = (uaData?.platform ?? '').toLowerCase();
     const isAndroidDevice = !isIOS && (
       /Android/i.test(navigator.userAgent) ||
       uaPlatform === 'android' ||
@@ -51,6 +52,9 @@
     );
     if (isAndroidDevice) {
       document.documentElement.classList.add('android');
+    }
+    if (isIOS) {
+      document.documentElement.classList.add('ios');
     }
 
     // Carga de datos empaquetada segura para producción Moodle
@@ -173,7 +177,9 @@
   /* ── Optimizaciones Android (Mali-G52 / Tab A8) heredadas de iThink ── */
   :global(.android .heartbeat) { animation: none !important; }
   :global(.android .galaxy-wrapper [filter]) { filter: none !important; }
-  :global(.android .galaxy-wrapper) { transform: none !important; -webkit-transform: none !important; }
+ :global(.android .list-inner) {
+    animation: none !important;
+  }
   :global(.android .badge-silhouette) { animation: none !important; }
   :global(.android .badge-slot) { filter: none !important; animation: none !important; }
   :global(.android .scanline) { animation: none !important; }

@@ -27,7 +27,6 @@
   const isCompleted  = $derived(activity.status === 'completed');
 
   const gradId = $derived(`act-g${index}`);
-  const glowId = $derived(`act-w${index}`);
 
   const colors = $derived.by(() => {
     switch (activity.status) {
@@ -96,11 +95,11 @@
         <stop offset="100%" stop-color={colors.g2} />
       </radialGradient>
     </defs>
-    <circle cx="0" cy="0" r={r} fill="url(#{gradId})" opacity={isActive ? 0.90 : 0.35} />
+    <circle cx="0" cy="0" r={r} fill="url(#{gradId})" fill-opacity={isActive ? 0.90 : 0.35} />
     {#if !isActive}
       <svg x="-5" y="-6" width="10" height="12" viewBox="0 0 24 24"
-           fill="none" stroke={colors.icon} stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round" opacity="0.7">
+           fill="none" stroke={colors.icon} stroke-width="2" stroke-opacity="0.7"
+           stroke-linecap="round" stroke-linejoin="round">
         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
       </svg>
@@ -131,24 +130,14 @@
         <stop offset="0%" stop-color={colors.g1} />
         <stop offset="100%" stop-color={colors.g2} />
       </radialGradient>
-      {#if isActive}
-        <filter id={glowId} x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur stdDeviation="5" result="blur" />
-          <feFlood flood-color={colors.glow} flood-opacity="0.3" result="color" />
-          <feComposite in="color" in2="blur" operator="in" result="glow" />
-          <feMerge>
-            <feMergeNode in="glow" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      {/if}
+
     </defs>
 
     {#if isActive}
       <circle class:heartbeat={isInProgress} cx="0" cy="0" r={r + 3}
-              fill="none" stroke={colors.glow} stroke-width="0.8" opacity="0.25" />
+              fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0.25" />
       <circle class="halo-ring" cx="0" cy="0" r={r + 5}
-              fill="none" stroke={colors.glow} stroke-width="0.8" opacity="0" />
+              fill="none" stroke={colors.glow} stroke-width="0.8" stroke-opacity="0" />
     {/if}
 
     <circle class:heartbeat={isInProgress} cx="0" cy="0" r={r}
@@ -171,7 +160,7 @@
     {/if}
 
     {#if !isActive}
-      <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.2" opacity="0.6" />
+      <circle cx="0" cy="0" r={r + 3} fill="none" stroke={colors.ring} stroke-width="1.2" stroke-opacity="0.6" />
       <svg x="-7" y="-8" width="14" height="16" viewBox="0 0 24 24"
            fill="none" stroke={colors.icon} stroke-width="1.8"
            stroke-linecap="round" stroke-linejoin="round">
