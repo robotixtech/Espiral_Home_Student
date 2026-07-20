@@ -17,19 +17,32 @@ export const CANVAS = {
 
 // ── SPIRAL ────────────────────────────────────────────────────────────────
 export const SPIRAL = {
-  unitSize:       100,      // diámetro de los nodos planeta (px)
-  actOrbit:        65,      // distancia del centro del planeta al centro de su luna (px)
-  labelGap:        80,      // distancia del borde del planeta al borde de la etiqueta (px)
-  orbitStep:       68,      // separación entre órbitas consecutivas (px)
+  unitSize:       118,      // diámetro de los nodos planeta (px)
+  actOrbit:        78,      // distancia del centro del planeta al centro de su luna (px)
+  labelGap:        85,      // distancia del borde del planeta al borde de la etiqueta (px)
+  orbitStep:       15,      // separación entre órbitas consecutivas (px)
   sunRadius:        9,      // radio del sol central (px)
-  orbitStart:      80,      // radio de la órbita más interior (px)
+  orbitStart:     215,      // radio de la órbita más interior (px). El radar es un CÍRCULO
+                             // perfecto en cualquier tamaño de pantalla (2026-07-10 feedback:
+                             // una versión elíptica anterior se veía "ovalada" en Chromebook)
+                             // — el radio está acotado por igual en todas direcciones (425px).
+                             // Valor (junto con orbitStep/startAngleDeg, buscado numéricamente)
+                             // que evita que cualquier esfera dispare el zoom-out automático al
+                             // desplegar sus esferas pequeñas, con U0 centrada en el radar
+                             // (2026-07-10 feedback: se quitó el desplazamiento vertical del
+                             // contenido — ver CONTENT_CY en TreeNavigator.svelte).
   labelLineH:      19,      // separación entre líneas de la etiqueta (px)
   labelPadX:       10,      // padding horizontal dentro de la píldora de etiqueta (px)
   labelPadY:        5,      // padding vertical dentro de la píldora de etiqueta (px)
   labelGapPx:      14,      // separación del borde visual del nodo al borde de la píldora (px)
-  goldenAngleDeg: 137.508,  // ángulo áureo — evita alineaciones radiales entre órbitas (°)
-  angleStepDeg:    60,      // "Planetary" distribution: regular hexagon (60° between units)
-  startAngleDeg:  -90,      // usually starts at top
+  // Distribución "planetaria" (2026-07-10 feedback): hexágono regular (60° entre unidades)
+  // en vez del ángulo áureo — el áureo esparcía las unidades de forma casi aleatoria y daba
+  // 2+ vueltas completas, lo que terminaba apilando las unidades de radio más grande cerca
+  // del borde superior/inferior. Con 60° fijos, la espiral da una sola vuelta limpia.
+  angleStepDeg:    60,       // separación angular entre unidades consecutivas (°)
+  startAngleDeg: 59.5,       // ángulo de la primera unidad — offset elegido junto con orbitStart/
+                             // orbitStep (búsqueda numérica) para maximizar la distancia mínima
+                             // entre esferas sin que ninguna dispare el zoom-out (°)
 } as const;
 
 // ── ZOOM ──────────────────────────────────────────────────────────────────
@@ -55,6 +68,7 @@ export const BADGES = {
   minGrade:           6,             // nota mínima (sobre 10) para recibir el badge
   completionActivity: 'DemoDay',     // actividad que marca la unidad como "completada"
   unitPattern:        /^U[1-9]\d*$/, // qué unidades reciben badge (U1, U2 … excluye MC, U0)
+  blockedImageUrl:    'badges/badge_locked.webp',
 } as const;
 
 // ── BADGE_PANEL ───────────────────────────────────────────────────────────
