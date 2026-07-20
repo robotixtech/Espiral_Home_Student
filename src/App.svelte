@@ -24,17 +24,17 @@
 
   const bgImage = $derived(
     appState.kind === 'ready'
-      ? (getConfigByShortname(appState.data.shortname)?.bgImage ?? 'background_2.png')
-      : 'background_2.png'
+      ? (getConfigByShortname(appState.data.shortname)?.bgImage ?? 'background_opacity.png')
+      : 'background_opacity.png'
   );
 
   // Helper de la rama Base: Resuelve las rutas reales dentro de la estructura de plugins de Moodle
   function getPluginAssetUrl(filename: string): string {
     if (typeof window !== 'undefined' && (window as any).moodleConfig?.baseUrl) {
       const baseUrl = (window as any).moodleConfig.baseUrl.replace(/\/$/, '');
-      return `${baseUrl}/moodle_robotix_405/blocks/espiral_dashboard/visual/${filename}`;
+      return `${baseUrl}/blocks/espiral_dashboard/visual/${filename}`;
     }
-    return `/moodle_robotix_405/blocks/espiral_dashboard/visual/${filename}`;
+    return `/blocks/espiral_dashboard/visual/${filename}`;
   }
 
   const bgImageUrl = $derived(`url('${getPluginAssetUrl(bgImage)}')`);

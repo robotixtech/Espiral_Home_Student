@@ -68,6 +68,8 @@ export interface ProgramData {
   sun: ProgramUnit;
   /** Units that orbit the sun along the spiral */
   units: ProgramUnit[];
+  /** IA Unit (off-radar, controlada por el campo personalizado ia_course del programa) */
+  iaUnit?: ProgramUnit | null;
 }
 
 /** Moodle REST API response types (snake_case as returned) */

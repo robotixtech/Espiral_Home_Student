@@ -1,4 +1,4 @@
-import type { ProgramConfig } from './types';
+import type { ProgramConfig, ActivityConfig } from './types';
 
 // ═══════════════════════════════════════════════════════════════════════════
 //  PANEL DE CONTROL MAESTRO — Espiral Home Student
@@ -103,7 +103,7 @@ export const STATUS_LABELS = {
 export const C450_CONFIG: ProgramConfig = {
   shortname: 'C450',    // ← 1. NOMBRE DEL PROGRAMA
   fullname:  'C450',
-  bgImage:   'background_2.png',
+  bgImage:   'background_opacity.png',
 
   sun: {
     label: 'Open Scentia',
@@ -284,7 +284,7 @@ export const C450_CONFIG: ProgramConfig = {
 export const C550_CONFIG: ProgramConfig = {
   shortname: 'C550',
   fullname:  'C550',
-  bgImage:   'background_2.png',
+  bgImage:   'background_opacity.png',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                       displayName: 'Misión Control', fullname: 'C550 – Misión control',                              icon: 'gear',   href: null, status: 'locked', progress: 0 },
@@ -303,7 +303,7 @@ export const C550_CONFIG: ProgramConfig = {
 export const C650_CONFIG: ProgramConfig = {
   shortname: 'C650',
   fullname:  'C650',
-  bgImage:   'background_2.png',
+  bgImage:   'background_opacity.png',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                         displayName: 'Misión Control', fullname: 'C650 – Misión control',                                icon: 'gear',   href: null, status: 'locked', progress: 0 },
@@ -322,7 +322,7 @@ export const C650_CONFIG: ProgramConfig = {
 export const C350_CONFIG: ProgramConfig = {
   shortname: 'C350',
   fullname:  'C350',
-  bgImage:   'background_2.png',
+  bgImage:   'background_opacity.png',
   sun: { label: 'Open Scentia', icon: 'sun', href: null },
   units: [
     { label: 'Onboarding',                      displayName: 'Misión Control', fullname: 'C350 – Misión control',                             icon: 'gear',   href: null, status: 'completed', progress: 100 },
@@ -385,6 +385,126 @@ export const PROGRAMS = {
 //  │  Fichero mock: src/lib/mock-data.ts
 //  │
 //  └────────────────────────────────────────────────────────────────────────
+
+// ── IA — Unidad de Inteligencia Artificial (fuera del radar, nunca bloqueada) ──
+export const IA_UNIT_CONFIG: {
+  label:     string;       // ← texto principal visible en la esfera (e.g. 'IA')
+  sublabel:  string;       // ← identificador secundario bajo la esfera  (e.g. 'AI')
+  ariaLabel: string;       // ← texto accesible (screen readers)
+  href: string | null;
+  activities: ActivityConfig[];
+} = {
+  label:     'IA',                      // ← NOMBRE DE LA ESFERA (texto grande)
+  sublabel:  'AI',                      // ← IDENTIFICADOR (texto pequeño inferior)
+  ariaLabel: 'Inteligencia Artificial', // ← accesibilidad
+  href: null,
+  activities: [
+    {
+      label: '¿Qué es la IA?',
+      icon: 'search',
+      href: null,
+      status: 'locked',
+      progress: 0,
+      slides: [
+        {
+          title: 'Inteligencia Artificial',
+          body: 'La IA es la capacidad de las máquinas para aprender y tomar decisiones. Igual que tú aprendes de la experiencia, los ordenadores aprenden de los datos.\n\nLos algoritmos de IA analizan millones de ejemplos para encontrar patrones, igual que tú reconoces una cara después de verla muchas veces.',
+        },
+        {
+          title: '¿Cómo aprende una máquina?',
+          body: 'Una máquina aprende mostrándole muchos ejemplos. Para que reconozca un gato, le mostramos miles de fotos de gatos y de cosas que no son gatos.\n\nEste proceso se llama **entrenamiento** y es el corazón del Machine Learning.\n\n• Entrada: datos (imágenes, sonidos, números)\n• Procesamiento: búsqueda de patrones\n• Salida: predicción o decisión',
+          video: 'https://player.vimeo.com/video/1114029375?h=9c59e1a281&title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479',
+        },
+        {
+          title: '¡Tu robot ya usa IA!',
+          body: 'Los sensores de tu robot recogen datos del entorno: distancias, luz, color. Cuando programas tu robot para reaccionar a esos datos, estás aplicando los mismos principios básicos que usa la IA.\n\n**Misión:** Programa tu robot para que detecte el color rojo y se detenga automáticamente.',
+          image: 'blockly_example.png',
+        },
+      ],
+    },
+    {
+      label: 'Machine Learning',
+      icon: 'gear',
+      href: null,
+      status: 'locked',
+      progress: 0,
+      slides: [
+        {
+          title: 'Aprender de los datos',
+          body: 'Machine Learning es un tipo de IA donde el ordenador aprende sin que nadie le diga exactamente qué hacer. En lugar de reglas, le damos ejemplos.\n\n**3 tipos de aprendizaje:**\n\n• **Supervisado:** aprender con respuestas correctas\n• **No supervisado:** encontrar grupos por sí solo\n• **Por refuerzo:** aprender a base de intentos y errores',
+        },
+        {
+          title: 'Entrena tu robot',
+          body: 'El aprendizaje por refuerzo es el más parecido a cómo aprende tu robot. El robot prueba una acción, recibe una recompensa si lo hace bien, y una penalización si lo hace mal.\n\n**Desafío:** Diseña un sistema de puntos para que tu robot aprenda a seguir una línea. ¿Qué comportamientos recompensarías?',
+          image: 'blockly_example.png',
+        },
+      ],
+    },
+    {
+      label: 'Visión Artificial',
+      icon: 'tunnel',
+      href: null,
+      status: 'locked',
+      progress: 0,
+      slides: [
+        {
+          title: 'Ver para aprender',
+          body: 'La Visión Artificial permite a las máquinas "ver" e interpretar imágenes. Las cámaras capturan píxeles y la IA los analiza para identificar objetos, personas y patrones.\n\n**Usos reales:**\n• Coches autónomos que detectan obstáculos\n• Médicos que identifican enfermedades en radiografías\n• Robots industriales que inspeccionan piezas',
+        },
+        {
+          title: 'Reconocimiento de objetos',
+          body: 'Un sistema de reconocimiento analiza cada región de una imagen y compara lo que ve con patrones aprendidos durante el entrenamiento.\n\nCuantos más datos de entrenamiento, más precisa es la detección. Los mejores modelos actuales superan a los humanos en muchas tareas visuales.',
+          video: 'https://player.vimeo.com/video/1114029375?h=9c59e1a281&title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479',
+        },
+        {
+          title: 'Cámara inteligente',
+          body: 'Con el sensor de color de tu robot puedes simular visión artificial. El sensor lee el color del suelo y el robot toma decisiones basadas en esa información.\n\n**Programa tu robot para:**\n\n• Avanzar sobre color negro\n• Girar a la izquierda sobre color azul\n• Detenerse sobre color rojo',
+          image: 'blockly_example.png',
+        },
+      ],
+    },
+    {
+      label: 'Redes Neuronales',
+      icon: 'signal',
+      href: null,
+      status: 'locked',
+      progress: 0,
+      slides: [
+        {
+          title: 'El cerebro digital',
+          body: 'Las Redes Neuronales Artificiales están inspiradas en el cerebro humano. El cerebro tiene miles de millones de neuronas conectadas. Las redes artificiales imitan esta estructura con nodos matemáticos.\n\n**Estructura básica:**\n• Capa de entrada: recibe los datos\n• Capas ocultas: procesan la información\n• Capa de salida: genera el resultado',
+        },
+        {
+          title: 'Neuronas artificiales',
+          body: 'Cada neurona recibe señales de entrada, las multiplica por un peso (importancia), las suma y pasa el resultado por una función de activación.\n\nDurante el entrenamiento, los pesos se ajustan para reducir los errores. Este proceso se llama **retropropagación** y es la clave del aprendizaje profundo.',
+          video: 'https://player.vimeo.com/video/1114029375?h=9c59e1a281&title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479',
+        },
+      ],
+    },
+    {
+      label: 'IA en el Mundo',
+      icon: 'rocket',
+      href: null,
+      status: 'locked',
+      progress: 0,
+      slides: [
+        {
+          title: 'IA en todas partes',
+          body: 'La IA ya forma parte de nuestra vida diaria:\n\n• **Recomendaciones** de música, películas y noticias\n• **Asistentes de voz** que entienden el lenguaje natural\n• **Filtros de spam** en el correo electrónico\n• **Diagnóstico médico** asistido por IA\n• **Robots industriales** que trabajan junto a humanos',
+        },
+        {
+          title: 'IA responsable',
+          body: 'Con tanto poder viene una gran responsabilidad. La IA ética es fundamental:\n\n• Evitar sesgos en los datos de entrenamiento\n• Proteger la privacidad de las personas\n• Garantizar que las decisiones sean explicables\n• Asegurar que la IA beneficia a todos\n\n**Como futuros ingenieros**, vosotros seréis quienes diseñéis la IA del mañana.',
+        },
+        {
+          title: 'El futuro de la robótica con IA',
+          body: 'Los robots del futuro combinarán precisión mecánica con inteligencia artificial:\n\n• Explorar planetas y entornos peligrosos\n• Asistir a personas mayores y con discapacidades\n• Colaborar con humanos en tareas complejas\n\n**¡Tú puedes ser parte de este futuro!** Los conocimientos que adquieres hoy son los cimientos de la robótica inteligente del mañana.',
+        },
+      ],
+    },
+  ],
+};
+
 export const MOODLE_INTEGRATION = {
   // Endpoints REST pendientes (nombres orientativos — verificar en doc oficial)
   pendingEndpoints: {

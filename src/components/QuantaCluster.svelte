@@ -17,7 +17,7 @@
   const theme  = $derived(getTheme());
   const colors = $derived(isUnlocked ? theme.unit.inProgress : theme.unit.locked);
 
-  const isNano = $derived(QUANTA.nanoPrograms.includes(programShortname));
+  const isNano = $derived(QUANTA.nanoPrograms.some(code => programShortname.includes(code)));
   const label  = $derived(isNano ? QUANTA.nanoLabel : QUANTA.label);
   
   // 🔥 LÓGICA CLAVE: Priorizamos la URL de Moodle. Si no existe, usamos la estática.
