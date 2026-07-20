@@ -10,7 +10,7 @@
   import IANode from './IANode.svelte';
   import { activityOrbitLayout } from '../lib/activity-orbit';
   import { CANVAS, SPIRAL, ZOOM, IA_UNIT_CONFIG } from '../lib/master-config';
-  import { isIOSDevice } from '../lib/device';
+  import { isIOSDevice, isMacDevice } from '../lib/device';
 
   interface Props {
     program: ProgramData;
@@ -238,8 +238,10 @@
     cx: vb.x + 140, // nudged right off the screen edge (2026-07-10 feedback)
     cy: vb.y + 145, // +30px, then +15px more (2026-07-09, 2026-07-10 feedback)
   });
+  // MacBook screens (2026-07-20 feedback): the +270 offset lands close enough to the radar's
+  // own edge that nanoQUANTA reads as tangent to it — push it further out horizontally.
   const slotMid = $derived({
-    cx: isIOSDevice() ? slotNearEdge.cx : vb.x + 270, // 2026-07-10 feedback ×4
+    cx: isIOSDevice() ? slotNearEdge.cx : vb.x + 270 - (isMacDevice() ? 60 : 0), // 2026-07-10 feedback ×4
     cy: vb.y + 400,
   });
   // Portrait: both spheres sit side by side, centred horizontally around the design's own
