@@ -20,8 +20,7 @@
 
   let { program, onUnitSelected, onActivitySelected }: Props = $props();
 
-  // TODO(moodle): static placeholder until Moodle Workplace exposes real IA-unit progress.
-  let iaProgress = $state(0);
+
 
 
   // ── Layout constants — all values live in src/lib/master-config.ts ────────
@@ -177,6 +176,10 @@
   // Re-derive from live program.units so progress updates animate in the orbit.
   const panelActivities = $derived.by(() => {
     if (!panelUnit) return [];
+    // Si el panel abierto corresponde al ID de la unidad de IA, procesamos sus actividades reales
+    if (program.iaUnit && panelUnit.id === program.iaUnit.id) {
+      return displayActivities(program.iaUnit);
+    }
     const live = program.units.find(u => u.id === panelUnit!.id);
     return live ? displayActivities(live) : [];
   });
@@ -259,33 +262,33 @@
   // Distant galaxy configs derived from main program — [0]=prev, [1]=next, [2]=future
   const distantConfigs = $derived(getDistantConfigs(program.shortname));
 
-  // ── IA Unit (off-radar, never locked) ─────────────────────────────────────
-  const iaUnit = $derived.by(() => ({
-    id: 9999,
-    shortname: 'IA',
-    label: 'Inteligencia Artificial',
-    displayName: 'IA',
-    fullname: 'Inteligencia Artificial',
-    status: 'in-progress' as UnitStatus,
-    progress: iaProgress,
-    courseUrl: IA_UNIT_CONFIG.href ?? '#',
-    icon: 'signal' as UnitIcon,
-    activities: IA_UNIT_CONFIG.activities.map((a, i) => ({
-      id: 9000 + i,
-      label: a.label,
-      status: 'locked' as UnitStatus,
-      progress: 0,
-      icon: a.icon,
-      activityUrl: a.href ?? '#',
-      slides: a.slides,
-    })),
-  }));
+// ── IA Unit (Dinámica desde Moodle a través del Programa) ───────────────────
+  // Si el backend no envía iaUnit, 'hasIA' será false automáticamente.
+  const hasIA = $derived(!!program.iaUnit);
 
-  const iaEffectiveStatus = $derived(
-    iaProgress >= 100 ? ('completed' as const) : ('in-progress' as const)
+  // Fallback de respaldo solo para queTypeScript y las matemáticas no se rompan,
+  // pero usaremos 'hasIA' para decidir si pintar o no en el HTML.
+  const iaUnit = $derived(
+    program.iaUnit ?? {
+      id: 9999,
+      shortname: 'IA',
+      label: 'Inteligencia Artificial',
+      displayName: 'IA',
+      fullname: 'Inteligencia Artificial',
+      status: 'in-progress' as UnitStatus,
+      progress: 0,
+      courseUrl: '#',
+      icon: 'signal' as UnitIcon,
+      activities: []
+    }
   );
 
+  const iaProgress = $derived(iaUnit.progress);
+  const iaEffectiveStatus = $derived(iaUnit.status as 'in-progress' | 'completed');
+
   let panelIA = $state(false);
+  // NUEVO: Bandera para saber si el panel abierto pertenece al nodo de IA
+  let isIAPanelOpen = $state(false);
   // Any unit/IA currently showing its lesson satellites — dims the background spiral so the
   // connector lines to the satellites read more clearly against it.
   const anyPanelOpen = $derived(!!panelUnit || panelIA);
@@ -595,9 +598,19 @@
     panelUnit = panelUnit?.id === unit.id ? null : unit;
   }
 
+// NUEVO: Manejador de clics para el nodo de IA
+// NUEVO: Manejador de clics corregido para el nodo de IA
   function handleIAClick() {
-    if (panelUnit) panelUnit = null;
+    if (!program.iaUnit) return;
+    
+    // 1. Si hay una unidad regular abierta, la cerramos para evitar sobreposiciones
+    if (panelUnit) {
+      panelUnit = null;
+    }
+    
+    // 2. Alternamos el estado de las variables que realmente usa el HTML
     panelIA = !panelIA;
+    isIAPanelOpen = panelIA; // Sincronizamos la bandera por si la usas en otro lado
   }
 
   onMount(() => {
@@ -694,12 +707,15 @@
         <DistantGalaxy config={distantConfigs[0].config} isCompleted={distantConfigs[0].isCompleted} cx={dgPrev.cx}   cy={dgPrev.cy}   scale={0.30} opacity={0.75} fontScale={0.6} />
         <!-- nanoQUANTA — unlocks when U1 (index 1) is completed; never counted as completed -->
         <QuantaCluster cx={dgQuanta.cx} cy={dgQuanta.cy} programShortname={program.shortname}
-          isUnlocked={effectiveStatuses[1] === 'completed'} />
+          isUnlocked={effectiveStatuses[0] === 'completed'} 
+          quantaUrl={program.quantaUrl} />
 
         <!-- IA Unit — off-radar, always unlocked -->
+         {#if hasIA && !panelIA}
         <IANode cx={iaNodePos.cx} cy={iaNodePos.cy}
                 status={iaEffectiveStatus} progress={iaProgress}
-                onSelect={handleIAClick} />
+                  onSelect={handleIAClick}/>
+        {/if}
 
         <!-- HUD ring — perfect circle on any screen size (2026-07-10 feedback) — 0 compositing
              ops: all opacity baked into rgba stroke colors. -->
@@ -768,7 +784,11 @@
         {/if}
 
         <!-- Open IA node's activities: same "satellites in place" treatment -->
-        {#if panelIA}
+        {#if panelIA && hasIA}
+        <g transform={zoomTransform}>
+          <IANode cx={iaNodePos.cx} cy={iaNodePos.cy}
+                  status={iaEffectiveStatus} progress={iaProgress}
+                  onSelect={handleIAClick} />
           <ActivityOrbit
             activities={iaDisplayActivities}
             cx={iaNodePos.cx}
@@ -777,6 +797,7 @@
             titleFontSize={IA_TITLE_FONT}
             {onActivitySelected}
           />
+          </g>
         {/if}
 
       </g><!-- end zoomable -->
