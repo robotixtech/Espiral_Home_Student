@@ -10,7 +10,7 @@
 
   let { program }: Props = $props();
 
-  const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_opacity.png');
+  const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_light.png');
 
   // 🔥 SOLUCIÓN MOODLE + ORDENACIÓN: Leemos directamente la data inyectada desde Moodle y ordenamos por unidad
   const badgeUnits = $derived.by(() => {
