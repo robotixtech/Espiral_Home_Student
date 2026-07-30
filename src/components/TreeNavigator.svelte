@@ -149,24 +149,23 @@
   function displayActivities(unit: ProgramUnit): Activity[] {
     const raw = unit.activities ?? [];
     if (raw.length === 0) return raw;
+    
     if (unit.status === 'locked') return raw.map(a => ({ ...a, status: 'locked' as const, progress: 0 }));
     if (unit.status === 'completed') return raw.map(a => ({ ...a, status: 'completed' as const, progress: 100 }));
-    const count = raw.length;
-    const per   = 100 / count;
-    return raw.map((act, i) => {
-      // "Continuar" unlocks as soon as the first regular activity finishes (2026-07-08
-      // feedback) — it doesn't wait for its own sequential slot, which would otherwise
-      // require DemoDay to finish first. It's an optional early-access step, so it's just
-      // on/off (no partial progress).
+    
+    // Moodle ya calcula el estado individual. Confiamos en su payload y evitamos 
+    // sobrescribirlo con cálculos matemáticos que generan errores de decimales (33 vs 33.33)
+    return raw.map((act) => {
+      // "Continuar" unlocks as soon as the first regular activity finishes.
       if (act.label === 'Continuar') {
-        return unit.progress >= per
+        const firstIsDone = raw.length > 0 && raw[0].status === 'completed';
+        return firstIsDone
           ? { ...act, status: 'in-progress' as const, progress: 100 }
           : { ...act, status: 'locked' as const, progress: 0 };
       }
-      const s = i * per, e = (i + 1) * per;
-      if (unit.progress >= e) return { ...act, status: 'completed'   as const, progress: 100 };
-      if (unit.progress >= s) return { ...act, status: 'in-progress' as const, progress: Math.min(((unit.progress - s) / per) * 100, 100) };
-      return { ...act, status: 'locked' as const, progress: 0 };
+      
+      // Respetar el estado exacto enviado por el backend
+      return act;
     });
   }
 
