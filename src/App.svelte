@@ -19,6 +19,7 @@
 
   let appState = $state<AppState>({ kind: 'loading' });
   let isEmpty = $state(false);
+  let moodleBgUrl = $state<string | null>(null);
 
   const theme = $derived(getTheme());
   const homeProgram = $derived(appState.kind === 'ready' ? appState.data : null);
@@ -38,7 +39,8 @@
     return `/blocks/espiral_dashboard/visual/${filename}`;
   }
 
-  const bgImageUrl = $derived(`url('${getPluginAssetUrl(bgImage)}')`);
+  const finalBgUrl = $derived(moodleBgUrl ? moodleBgUrl : getPluginAssetUrl(bgImage));
+  const bgImageUrl = $derived(`url('${finalBgUrl}')`);
     // Reactively update body background when theme changes
   $effect(() => {
     const s = document.body.style;
@@ -77,6 +79,10 @@
     // Carga de datos empaquetada segura para producción Moodle
     try {
       const config = await getAppConfig();
+      if (config.backgroundUrl) {
+        moodleBgUrl = config.backgroundUrl;
+      }
+      
       if (config.programData) {
         console.info('Espiral Dashboard: Cargando datos inyectados.');
         appState = { kind: 'ready', data: config.programData };
@@ -158,10 +164,9 @@
   {/if}
 </main>
 
-<!-- BadgePanel outside .app-root so it's also zoom-independent — positioned in the body
-     stacking context directly. -->
+<!-- BadgePanel outside .app-root so it's also zoom-independent — positioned in the body directly -->
 {#if appState.kind === 'ready' && currentView === 'home' && homeProgram}
-  <BadgePanel program={homeProgram} />
+  <BadgePanel program={homeProgram} bgUrl={finalBgUrl} />
 {/if}
 
 <style>

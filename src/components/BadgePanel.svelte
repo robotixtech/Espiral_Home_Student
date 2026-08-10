@@ -6,11 +6,13 @@
 
   interface Props {
     program: ProgramData;
+    bgUrl?: string;
   }
 
-  let { program }: Props = $props();
+  let { program, bgUrl }: Props = $props();
 
   const bgImage = $derived(getConfigByShortname(program.shortname)?.bgImage ?? 'background_light.png');
+  const finalBgUrl = $derived(bgUrl ? bgUrl : `${import.meta.env.BASE_URL}${bgImage}`);
 
   // 🔥 SOLUCIÓN MOODLE + ORDENACIÓN: Leemos directamente la data inyectada desde Moodle y ordenamos por unidad
   const badgeUnits = $derived.by(() => {
@@ -70,7 +72,7 @@
 {#if selectedBadge}
   <div
     class="modal-backdrop"
-    style:background-image={`linear-gradient(rgba(11,14,26,0.8), rgba(11,14,26,0.8)), url('${import.meta.env.BASE_URL}${bgImage}')`}
+    style:background-image={`linear-gradient(rgba(11,14,26,0.8), rgba(11,14,26,0.8)), url('${finalBgUrl}')`}
     role="button"
     tabindex="-1"
     aria-label="Cerrar"
