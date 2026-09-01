@@ -706,7 +706,7 @@
         <DistantGalaxy config={distantConfigs[0].config} isCompleted={distantConfigs[0].isCompleted} cx={dgPrev.cx}   cy={dgPrev.cy}   scale={0.30} opacity={0.75} fontScale={0.6} />
         <!-- nanoQUANTA — unlocks when U1 (index 1) is completed; never counted as completed -->
         <QuantaCluster cx={dgQuanta.cx} cy={dgQuanta.cy} programShortname={program.shortname}
-          isUnlocked={effectiveStatuses[1] === 'completed'}
+          isUnlocked={effectiveStatuses[0] === 'completed'} 
           quantaUrl={program.quantaUrl} />
 
         <!-- IA Unit — off-radar, always unlocked -->
