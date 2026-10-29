@@ -2,6 +2,7 @@
   import type { Activity } from '../lib/types';
   import { getTheme } from '../lib/theme.svelte';
   import { activityOrbitLayout } from '../lib/activity-orbit';
+  import { SYSTEM_ACTIVITIES } from '../lib/master-config';
 
   interface Props {
     activities: Activity[];
@@ -42,7 +43,7 @@
     const arcs: string[] = [];
     for (let i = 0; i < sorted.length; i++) {
       const p = sorted[i], q = sorted[(i + 1) % sorted.length];
-      if (p.label === 'C' || q.label === 'C') continue;
+      if (p.label === SYSTEM_ACTIVITIES.continueShortCode || q.label === SYSTEM_ACTIVITIES.continueShortCode) continue;
       arcs.push(arcPath(layout.orbitR, p.a, q.a));
     }
     return arcs;

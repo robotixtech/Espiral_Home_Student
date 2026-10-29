@@ -8,7 +8,7 @@
   import ActivityOrbit from './ActivityOrbit.svelte';
   import QuantaCluster from './QuantaCluster.svelte';
   import IANode from './IANode.svelte';
-  import { activityOrbitLayout } from '../lib/activity-orbit';
+  import { activityOrbitLayout, isDemoDayActivity, isContinueActivity } from '../lib/activity-orbit';
   import { CANVAS, SPIRAL, ZOOM, IA_UNIT_CONFIG } from '../lib/master-config';
   import { isIOSDevice } from '../lib/device';
 
@@ -83,7 +83,7 @@
       if (unit.status === 'locked' || unit.status === 'completed') return unit.status;
       const all = unit.activities ?? [];
       if (all.length === 0) return unit.status;
-      const demoDayIdx = all.findIndex(a => a.label === 'DemoDay');
+      const demoDayIdx = all.findIndex(a => isDemoDayActivity(a.label));
       const threshold = demoDayIdx >= 0
         ? ((demoDayIdx + 1) / all.length) * 100
         : 100; // no DemoDay → require full completion
@@ -156,8 +156,8 @@
     // Moodle ya calcula el estado individual. Confiamos en su payload y evitamos 
     // sobrescribirlo con cálculos matemáticos que generan errores de decimales (33 vs 33.33)
     return raw.map((act) => {
-      // "Continuar" unlocks as soon as the first regular activity finishes.
-      if (act.label === 'Continuar') {
+      // "Continuar" (and localized equivalents: "Continue", "Jarraitu", etc.) unlocks as soon as the first regular activity finishes.
+      if (isContinueActivity(act.label)) {
         const firstIsDone = raw.length > 0 && raw[0].status === 'completed';
         return firstIsDone
           ? { ...act, status: 'in-progress' as const, progress: 100 }

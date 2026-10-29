@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { ProgramConfig } from '../lib/program-config';
   import { getActivityOrbitPositions, getActivityOrbitPositionsFixed } from '../lib/tree-math';
+  import { isDemoDayActivity } from '../lib/activity-orbit';
 
   // ── Colour tokens for completed galaxies — edit here to adjust ─────────────
   const COMPLETED_SPHERE_RGB   = '52,211,153';  // green tint
@@ -59,7 +60,7 @@
     config.units.map((unit, i) => {
       if (!unit.activities?.length) return [] as { x: number; y: number }[];
       const uPos = unitPositions[i];
-      const demoDayIdx = unit.activities.findIndex(a => a.label === 'DemoDay');
+      const demoDayIdx = unit.activities.findIndex(a => isDemoDayActivity(a.label));
       if (demoDayIdx >= 0) {
         return getActivityOrbitPositionsFixed(uPos.x, uPos.y, unit.activities.length, ACT_ORBIT, demoDayIdx);
       }

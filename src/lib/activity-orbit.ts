@@ -1,6 +1,8 @@
 // Shared layout for the activity orbit: pill positions/sizes around a unit, plus the overall
 // bounding half-extents so the detail-view container can size itself to fit every pill.
 
+import { SYSTEM_ACTIVITIES } from './master-config';
+
 export interface OrbitChip {
   a: number;      // angle
   x: number;      // chip centre x (relative to unit centre)
@@ -9,14 +11,38 @@ export interface OrbitChip {
   label: string;  // short display text (1, 2, 3, DD, C)
 }
 
+/** Normalise an activity label from Moodle (case- and whitespace-insensitive). */
+function normalizeActivityLabel(label: string): string {
+  return (label ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+const DEMO_DAY_LABEL_SET = new Set(
+  SYSTEM_ACTIVITIES.demoDayLabels.map(normalizeActivityLabel),
+);
+
+const CONTINUE_LABEL_SET = new Set(
+  SYSTEM_ACTIVITIES.continueLabels.map(normalizeActivityLabel),
+);
+
+/** True when the activity label corresponds to the system "DemoDay" milestone. */
+export function isDemoDayActivity(label: string): boolean {
+  return DEMO_DAY_LABEL_SET.has(normalizeActivityLabel(label));
+}
+
+/** True when an activity label matches one of the configured "Continuar" names
+ *  ("Continuar", "Continue", "Jarraitu", etc. in `SYSTEM_ACTIVITIES.continueLabels`). */
+export function isContinueActivity(label: string): boolean {
+  return CONTINUE_LABEL_SET.has(normalizeActivityLabel(label));
+}
+
 /** Activities always follow the same fixed pattern: N regular activities, then the system
  *  "DemoDay" and "Continuar" steps. Regular ones show their 1-based position; the system
  *  steps show a fixed short code — never the full label. */
 function shortLabels(activities: { label: string }[]): string[] {
   let regularCount = 0;
   return activities.map(a => {
-    if (a.label === 'DemoDay')   return 'DD';
-    if (a.label === 'Continuar') return 'C';
+    if (isDemoDayActivity(a.label))  return SYSTEM_ACTIVITIES.demoDayShortCode;
+    if (isContinueActivity(a.label)) return SYSTEM_ACTIVITIES.continueShortCode;
     return String(++regularCount);
   });
 }
@@ -29,7 +55,15 @@ function shortLabels(activities: { label: string }[]): string[] {
 // angle, which the overlap-avoidance loop below can never resolve by growing the radius (two
 // chips at an identical angle never separate) — that's what caused the IA satellites to blow
 // out to an absurd distance (2026-07-08 feedback).
-const CLOCK_HOUR: Record<string, number> = { '1': 10, '2': 12, '3': 14, '4': 5, '5': 7, 'DD': 4, 'C': 8 };
+const CLOCK_HOUR: Record<string, number> = {
+  '1': 10,
+  '2': 12,
+  '3': 14,
+  '4': 5,
+  '5': 7,
+  [SYSTEM_ACTIVITIES.demoDayShortCode]:  4,
+  [SYSTEM_ACTIVITIES.continueShortCode]: 8,
+};
 
 /** Angle for a 24h clock hour in this (y-down) coordinate system: 3 o'clock = 0°, and
  *  increasing angle rotates clockwise — matching real clock hands. */

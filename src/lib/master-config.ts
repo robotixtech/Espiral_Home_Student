@@ -71,6 +71,29 @@ export const BADGES = {
   blockedImageUrl:    'badges/badge_locked.webp',
 } as const;
 
+// ── SYSTEM_ACTIVITIES ─────────────────────────────────────────────────────
+// Actividades de sistema fijas al final de cada unidad (no se numeran como lección 1, 2, 3…).
+// Se reconocen exclusivamente por su nombre en cualquiera de los idiomas configurados en Moodle
+// (castellano "Continuar", inglés "Continue", euskera "Jarraitu", etc.), sin importar mayúsculas.
+export const SYSTEM_ACTIVITIES = {
+  demoDayShortCode:  'DD',
+  continueShortCode: 'C',
+  demoDayLabels: [
+    'DemoDay',
+    'Demo Day',
+  ],
+  continueLabels: [
+    'Continuar',   // es, ca, pt, gl
+    'Continue',    // en
+    'Jarraitu',    // eu (euskera)
+    'Continua',    // ca, it
+    'Continuer',   // fr
+    'Weiter',      // de
+    'Fortfahren',  // de
+    'Continuare',  // it
+  ],
+} as const;
+
 // ── BADGE_PANEL ───────────────────────────────────────────────────────────
 // Estado inicial y comportamiento del panel lateral de badges.
 export const BADGE_PANEL = {
@@ -100,7 +123,8 @@ export const QUANTA = {
 //  Dentro de cada unidad las activities se dividen en dos grupos:
 //    · lessons          — tienen `slides`, son el contenido interactivo de la unidad.
 //                         Edita `label` y el array `slides` para cambiar título y contenido.
-//    · sistema (固定)    — `DemoDay` y `Continuar` son hitos fijos sin slides.
+//    · sistema (固定)    — `DemoDay` y `Continuar` (o sus traducciones en Moodle como
+//                         `Continue` / `Jarraitu`, ver SYSTEM_ACTIVITIES) son hitos fijos sin slides.
 //                         NO cambies su `label`; la lógica de compleción y badges depende de él.
 //
 //  Misión Control (MC) no tiene activities; no aplica para los niveles 2 ni 3.
